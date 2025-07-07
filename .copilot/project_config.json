@@ -1,9 +1,11 @@
 {
   "project_type": "cpp_computer_vision",
-  "description": "C++ stereo vision project for 3D point cloud generation using CUDA acceleration",
+  "description": "C++ stereo vision project for 3D point cloud generation with cross-platform GPU acceleration (CUDA/HIP)",
   "technologies": [
     "C++17",
     "CUDA",
+    "HIP",
+    "ROCm",
     "OpenCV",
     "PCL",
     "GTK3",
@@ -36,6 +38,7 @@
     ],
     "optional": [
       "CUDA >= 11.0",
+      "ROCm >= 5.0 with HIP",
       "Eigen3",
       "Qt5"
     ]
@@ -43,6 +46,7 @@
   "development_workflow": {
     "build_command": "./build.sh",
     "debug_build": "./build_debug.sh",
+    "amd_build": "./build_amd.sh",
     "clean_command": "./clean.sh",
     "test_command": "./build/test_stereo_vision",
     "main_executable": "./build/stereo_vision_app"
@@ -58,19 +62,21 @@
     "Document public API functions"
   ],
   "performance_considerations": [
-    "Use CUDA streams for asynchronous processing",
-    "Optimize memory access patterns for GPU",
+    "Use GPU streams for asynchronous processing",
+    "Optimize memory access patterns for GPU (both CUDA and HIP)",
     "Consider memory bandwidth limitations",
     "Use appropriate data types (float vs double)",
-    "Profile before optimizing",
-    "Cache-friendly data structures"
+    "Profile before optimizing (nvprof for NVIDIA, rocprof for AMD)",
+    "Cache-friendly data structures",
+    "Cross-platform GPU code using unified abstractions"
   ],
   "debugging_tips": [
-    "Use cuda-gdb for CUDA debugging",
+    "Use cuda-gdb for CUDA debugging or hip-gdb for HIP debugging",
     "Enable OpenCV error handling",
     "Use PCL visualization for point cloud debugging",
-    "Check CUDA error codes after kernel launches",
+    "Check GPU error codes after kernel launches",
     "Validate input data ranges",
-    "Use assertions for development builds"
+    "Use assertions for development builds",
+    "Use rocm-smi for AMD GPU monitoring"
   ]
 }

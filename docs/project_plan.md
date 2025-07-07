@@ -17,7 +17,7 @@
 - **GPU Computing**: CUDA 11.0+ (NVIDIA) / ROCm 5.0+ with HIP (AMD)
 - **Computer Vision**: OpenCV 4.5+
 - **Point Cloud Processing**: PCL (Point Cloud Library) 1.12+
-- **GUI Framework**: GTK3
+- **GUI Framework**: Qt6 (with Qt5 fallback)
 - **Build System**: CMake 3.18+
 
 ### System Architecture
@@ -107,12 +107,13 @@
 **Objectives**: Create user-friendly interface
 
 #### Tasks:
-- [ ] GTK3 main window design
-- [ ] Image display widgets
-- [ ] Parameter adjustment controls
+- [ ] Qt6 main window design with modern UI
+- [ ] Image display widgets with zoom/pan functionality
+- [ ] Parameter adjustment controls with real-time updates
 - [ ] Real-time preview functionality
-- [ ] Point cloud visualization widget
-- [ ] File management interface
+- [ ] 3D point cloud visualization widget (Qt3D or VTK integration)
+- [ ] File management interface with drag-and-drop support
+- [ ] Settings dialog for calibration and algorithm parameters
 
 **Deliverables**:
 - Complete GUI application

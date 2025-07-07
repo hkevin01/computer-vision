@@ -182,6 +182,9 @@ EOF
 update_cmake() {
     print_header "Updating CMakeLists.txt for HIP support..."
     
+    # Create cmake directory first
+    mkdir -p cmake
+    
     # The CMakeLists.txt should already be updated, but let's verify HIP detection
     cat > cmake/FindHIP.cmake << 'EOF'
 # FindHIP.cmake - Find HIP installation
@@ -220,7 +223,6 @@ if(HIP_FOUND)
 endif()
 EOF
 
-    mkdir -p cmake
     print_status "Created cmake/FindHIP.cmake"
 }
 
