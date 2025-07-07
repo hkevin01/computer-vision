@@ -1,0 +1,76 @@
+{
+  "project_type": "cpp_computer_vision",
+  "description": "C++ stereo vision project for 3D point cloud generation using CUDA acceleration",
+  "technologies": [
+    "C++17",
+    "CUDA",
+    "OpenCV",
+    "PCL",
+    "GTK3",
+    "CMake"
+  ],
+  "build_system": "cmake",
+  "coding_standards": {
+    "style": "Google C++ Style Guide",
+    "naming_convention": "snake_case for functions and variables, PascalCase for classes",
+    "max_line_length": 100,
+    "indent_size": 4,
+    "use_spaces": true
+  },
+  "project_structure": {
+    "source_dirs": ["src/", "include/"],
+    "header_extension": ".hpp",
+    "source_extension": ".cpp",
+    "cuda_extension": ".cu",
+    "test_dir": "tests/",
+    "build_dir": "build/",
+    "data_dir": "data/"
+  },
+  "dependencies": {
+    "required": [
+      "OpenCV >= 4.5",
+      "PCL >= 1.12",
+      "GTK3",
+      "CMake >= 3.18",
+      "C++17 compiler"
+    ],
+    "optional": [
+      "CUDA >= 11.0",
+      "Eigen3",
+      "Qt5"
+    ]
+  },
+  "development_workflow": {
+    "build_command": "./build.sh",
+    "debug_build": "./build_debug.sh",
+    "clean_command": "./clean.sh",
+    "test_command": "./build/test_stereo_vision",
+    "main_executable": "./build/stereo_vision_app"
+  },
+  "best_practices": [
+    "Use RAII for resource management",
+    "Prefer smart pointers over raw pointers",
+    "Use const correctness",
+    "Handle errors with exceptions for unrecoverable errors",
+    "Use OpenCV and PCL data types for interoperability",
+    "Profile CUDA kernels for performance optimization",
+    "Write unit tests for core algorithms",
+    "Document public API functions"
+  ],
+  "performance_considerations": [
+    "Use CUDA streams for asynchronous processing",
+    "Optimize memory access patterns for GPU",
+    "Consider memory bandwidth limitations",
+    "Use appropriate data types (float vs double)",
+    "Profile before optimizing",
+    "Cache-friendly data structures"
+  ],
+  "debugging_tips": [
+    "Use cuda-gdb for CUDA debugging",
+    "Enable OpenCV error handling",
+    "Use PCL visualization for point cloud debugging",
+    "Check CUDA error codes after kernel launches",
+    "Validate input data ranges",
+    "Use assertions for development builds"
+  ]
+}
