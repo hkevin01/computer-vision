@@ -64,14 +64,14 @@ find_package(PCL REQUIRED)
 
 # Use the same Qt version as the main project
 # Check which Qt version the parent project is actually using by looking at targets
-if(TARGET Qt6::Core)
-    message(STATUS "Detected Qt6 in parent project, using Qt6 for tests")
-    find_package(Qt6 COMPONENTS Test REQUIRED)
-    set(QT_TEST_LIBRARIES Qt6::Test)
-elseif(TARGET Qt5::Core)
+if(TARGET Qt5::Core)
     message(STATUS "Detected Qt5 in parent project, using Qt5 for tests")
     find_package(Qt5 COMPONENTS Test REQUIRED)
     set(QT_TEST_LIBRARIES Qt5::Test)
+elseif(TARGET Qt6::Core)
+    message(STATUS "Detected Qt6 in parent project, using Qt6 for tests")
+    find_package(Qt6 COMPONENTS Test REQUIRED)
+    set(QT_TEST_LIBRARIES Qt6::Test)
 else()
     # Fallback: Try Qt5 first (more common on Ubuntu), then Qt6
     find_package(Qt5 COMPONENTS Test QUIET)

@@ -20,8 +20,8 @@ protected:
 
 TEST_F(GuiTest, MainWindowCreation) {
   // This test checks if the main window can be created without crashing.
-  MainWindow *w = nullptr;
-  ASSERT_NO_THROW(w = new MainWindow());
+  stereo_vision::gui::MainWindow *w = nullptr;
+  ASSERT_NO_THROW(w = new stereo_vision::gui::MainWindow());
   if (w) {
     // Optionally, show the window for a very short time to see if it renders
     w->show();
@@ -39,7 +39,7 @@ TEST_F(GuiTest, PlaceholderGuiTest) {
 
 // Test window initialization
 TEST_F(GuiTest, WindowInitialization) {
-  MainWindow mainWindow;
+  stereo_vision::gui::MainWindow mainWindow;
   EXPECT_TRUE(mainWindow.isVisible() == false); // Should be hidden by default
 
   // Test window title
@@ -49,7 +49,7 @@ TEST_F(GuiTest, WindowInitialization) {
 
 // Test GUI responsiveness
 TEST_F(GuiTest, WindowShowHide) {
-  MainWindow mainWindow;
+  stereo_vision::gui::MainWindow mainWindow;
 
   // Show the window
   mainWindow.show();

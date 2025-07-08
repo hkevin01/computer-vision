@@ -8,6 +8,7 @@ RUN_APP=true
 RUN_TESTS=false
 CLEAN_BUILD=false
 FORCE_RECONFIG=false
+BUILD_ONLY=false
 EXTRA_CMAKE_ARGS=""
 
 # Function to display help message
@@ -23,14 +24,17 @@ function show_help() {
     echo "  -t, --tests           Run the test suite instead of the main application."
     echo "  -c, --clean           Perform a clean build."
     echo "  -r, --force-reconfig  Force CMake reconfiguration even if cache exists."
+    echo "  -b, --build-only      Only build the project, do not run."
     echo "  --build-dir <dir>     Specify the build directory (default: build)."
     echo "  --target <target>     Specify the cmake build target (default: all)."
     echo "  --amd                 Use the AMD/HIP build configuration (build_amd)."
     echo "  --debug               Use the Debug build configuration."
     echo "  --cpu-only            Disable GPU backends (CUDA and HIP)."
+    echo "  --no-run              Build the project without running the application or tests."
     echo ""
     echo "Examples:"
     echo "  $0                    # Build and run main application"
+    echo "  $0 --build-only       # Build the project without running"
     echo "  $0 --tests            # Run test suite"
     echo "  $0 --amd --clean      # Clean AMD/HIP build"
     echo "  $0 --force-reconfig   # Fix build issues"
@@ -51,12 +55,22 @@ while [[ $# -gt 0 ]]; do
         EXECUTABLE="run_tests"
         shift # past argument
         ;;
+        --no-run)
+        RUN_APP=false
+        RUN_TESTS=false
+        shift # past argument
+        ;;
         -c|--clean)
         CLEAN_BUILD=true
         shift # past argument
         ;;
         -r|--force-reconfig)
         FORCE_RECONFIG=true
+        shift # past argument
+        ;;
+        -b|--build-only)
+        BUILD_ONLY=true
+        RUN_APP=false
         shift # past argument
         ;;
         --build-dir)
@@ -147,7 +161,9 @@ fi
 echo "--- Build completed successfully ---"
 
 # Run the application or tests
-if [ "$RUN_APP" = true ]; then
+if [ "$BUILD_ONLY" = true ]; then
+    echo "--- Build-only mode enabled. Skipping execution. ---"
+elif [ "$RUN_APP" = true ]; then
     echo "--- Running Application ---"
     if [ -f "$BUILD_DIR/$EXECUTABLE" ]; then
         ./"$BUILD_DIR"/"$EXECUTABLE"

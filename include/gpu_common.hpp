@@ -7,8 +7,8 @@
 #include <string>
 
 #ifdef USE_CUDA
-#include <cuda_runtime.h>
 #include <cublas_v2.h>
+#include <cuda_runtime.h>
 #define GPU_DEVICE __device__
 #define GPU_HOST __host__
 #define GPU_GLOBAL __global__
@@ -57,8 +57,8 @@ using gpuEvent_t = cudaEvent_t;
 #define gpu_grid_dim_z gridDim.z
 
 #elif defined(USE_HIP)
-#include <hip/hip_runtime.h>
 #include <hip/hip_common.h>
+#include <hip/hip_runtime.h>
 // Optional HIP libraries - only include if available
 #ifdef HIP_HAS_BLAS
 #include <hipblas.h>
@@ -125,38 +125,33 @@ using gpuEvent_t = void *;
 
 #endif
 
-namespace stereo_vision
-{
-    namespace gpu
-    {
+namespace stereo_vision {
+namespace gpu {
 
-        /**
-         * @brief GPU utility functions
-         */
-        class GPUManager
-        {
-        public:
-            static bool isGPUAvailable();
-            static int getDeviceCount();
-            static void setDevice(int device_id);
-            static size_t getAvailableMemory();
-            static std::string getDeviceName(int device_id = 0);
-            static void checkError(gpuError_t error, const char *file, int line);
+/**
+ * @brief GPU utility functions
+ */
+class GPUManager {
+public:
+  static bool isGPUAvailable();
+  static int getDeviceCount();
+  static void setDevice(int device_id);
+  static size_t getAvailableMemory();
+  static std::string getDeviceName(int device_id = 0);
+  static void checkError(gpuError_t error, const char *file, int line);
 
-        private:
-            static bool gpu_initialized_;
-        };
+private:
+  static bool gpu_initialized_;
+};
 
 // Error checking macro
-#define GPU_CHECK(call)                                                            \
-    do                                                                             \
-    {                                                                              \
-        gpuError_t error = call;                                                   \
-        if (error != gpuSuccess)                                                   \
-        {                                                                          \
-            stereo_vision::gpu::GPUManager::checkError(error, __FILE__, __LINE__); \
-        }                                                                          \
-    } while (0)
+#define GPU_CHECK(call)                                                        \
+  do {                                                                         \
+    gpuError_t error = call;                                                   \
+    if (error != gpuSuccess) {                                                 \
+      stereo_vision::gpu::GPUManager::checkError(error, __FILE__, __LINE__);   \
+    }                                                                          \
+  } while (0)
 
-    } // namespace gpu
+} // namespace gpu
 } // namespace stereo_vision

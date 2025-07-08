@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 3.18)
 project(StereoVisionPointCloud LANGUAGES CXX C)
 
+# --- Fetch Spdlog ---
+include(FetchContent)
+FetchContent_Declare(
+  spdlog
+  GIT_REPOSITORY https://github.com/gabime/spdlog.git
+  GIT_TAG        v1.11.0
+)
+FetchContent_MakeAvailable(spdlog)
+
 # --- Project Settings ---
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -78,18 +87,11 @@ message(STATUS "OpenCV version: ${OpenCV_VERSION}")
 if(BUILD_GUI)
     set(QT_LIBRARIES "")
     set(QT_VERSION_MAJOR "")
-    find_package(Qt6 COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets QUIET)
-    if(Qt6_FOUND)
-        set(QT_VERSION_MAJOR 6)
-        list(APPEND QT_LIBRARIES Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets)
-        message(STATUS "Using Qt6 for GUI.")
-        qt_standard_project_setup()
-    else()
-        find_package(Qt5 COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets REQUIRED)
-        set(QT_VERSION_MAJOR 5)
-        list(APPEND QT_LIBRARIES Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL Qt5::OpenGLWidgets)
-        message(STATUS "Qt6 not found. Using Qt5 for GUI.")
-    endif()
+    # Force Qt5 to match system VTK/PCL installation that was compiled against Qt5
+    find_package(Qt5 COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets REQUIRED)
+    set(QT_VERSION_MAJOR 5)
+    list(APPEND QT_LIBRARIES Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL Qt5::OpenGLWidgets)
+    message(STATUS "Using Qt5 for GUI to match system VTK/PCL installation.")
 endif()
 
 # VTK, a dependency of PCL, may require MPI. Find it after Qt.
@@ -159,6 +161,7 @@ if(BUILD_GUI)
         ${QT_LIBRARIES}
         ${OpenCV_LIBS}
         ${PCL_LIBRARIES}
+        spdlog::spdlog
     )
 endif()
 
@@ -174,6 +177,14 @@ endif()
 if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+    # Propagate Qt includes to the test project
+    if(BUILD_GUI)
+        if(TARGET Qt6::Core)
+            target_include_directories(run_tests PRIVATE ${Qt6_INCLUDE_DIRS})
+        elseif(TARGET Qt5::Core)
+            target_include_directories(run_tests PRIVATE ${Qt5_INCLUDE_DIRS})
+        endif()
+    endif()
 endif()
 
 # --- Installation ---

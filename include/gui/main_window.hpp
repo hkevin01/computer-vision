@@ -1,37 +1,32 @@
 #pragma once
 
-// Forward declare Qt classes
+#include <QMainWindow>
+#include <QString>
+
+// Forward declare Qt classes to reduce header dependencies
 class QAction;
-class QDoubleSpinBox;
-class QGridLayout;
-class QGroupBox;
-class QHBoxLayout;
-class QLabel;
-class QMainWindow;
 class QMenu;
 class QMenuBar;
-class QMessageBox;
 class QProgressBar;
-class QPushButton;
-class QSlider;
-class QSpinBox;
+class QLabel;
 class QSplitter;
 class QStatusBar;
 class QTabWidget;
 class QTimer;
-class QVBoxLayout;
 class QWidget;
-class QString;
 
 #include "camera_calibration.hpp"
-#include "image_display_widget.hpp"
-#include "parameter_panel.hpp"
 #include "point_cloud_processor.hpp"
-#include "point_cloud_widget.hpp"
 #include "stereo_matcher.hpp"
 
-namespace stereo_vision {
-namespace gui {
+// Forward declare our own GUI widgets
+namespace stereo_vision::gui {
+class ImageDisplayWidget;
+class ParameterPanel;
+class PointCloudWidget;
+} // namespace stereo_vision::gui
+
+namespace stereo_vision::gui {
 
 class MainWindow : public QMainWindow {
   Q_OBJECT
@@ -103,15 +98,12 @@ private:
   QLabel *m_statusLabel;
 
   // Processing components
-  stereo_vision::CameraCalibration *m_calibration;
-  stereo_vision::StereoMatcher *m_stereoMatcher;
-  stereo_vision::PointCloudProcessor *m_pointCloudProcessor;
-  stereo_vision::CameraCalibration::StereoParameters m_stereo_params;
+  std::shared_ptr<stereo_vision::CameraCalibration> m_calibration;
+  stereo_vision::CameraCalibration::StereoParameters m_stereoParams;
+  std::shared_ptr<stereo_vision::StereoMatcher> m_stereoMatcher;
+  std::shared_ptr<stereo_vision::PointCloudProcessor> m_pointCloudProcessor;
 
-  // Processing timer for async operations
-  QTimer *m_processingTimer;
-
-  // Current file paths
+  // Data
   QString m_leftImagePath;
   QString m_rightImagePath;
   QString m_calibrationPath;
@@ -123,5 +115,4 @@ private:
   bool m_hasImages;
 };
 
-} // namespace gui
-} // namespace stereo_vision
+} // namespace stereo_vision::gui
