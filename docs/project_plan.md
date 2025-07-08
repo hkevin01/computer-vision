@@ -47,6 +47,7 @@
 - [x] Project structure creation
 - [x] CMake build system setup
 - [x] Dependencies configuration
+- [x] Test plan documentation
 - [ ] Basic camera interface implementation
 - [ ] Image loading and basic preprocessing
 - [ ] Unit test framework setup
@@ -141,6 +142,7 @@
 **Objectives**: Finalize documentation and prepare for deployment
 
 #### Tasks:
+- [x] Test plan documentation
 - [ ] API documentation completion
 - [ ] User guide creation
 - [ ] Installation instructions
@@ -152,6 +154,20 @@
 - Complete documentation
 - Installation packages
 - Sample datasets
+
+## Immediate Next Steps
+
+Following the successful project setup and AMD GPU build, the immediate next steps are:
+
+- [ ] Verify AMD ROCm/HIP build stability and basic GPU kernels performance
+- [ ] Implement Phase 1 core components:
+  - Basic camera interface and stereo image I/O
+  - Initial preprocessing routines (undistort, rectify)
+  - Unit tests framework with GoogleTest
+- [ ] Create a sample application function to load stereo images, compute disparity, and visualize results
+- [ ] Extend CI/CD pipeline to include AMD and NVIDIA GPU build & test jobs
+- [ ] Update quick start guide and SETUP_COMPLETE.md with current instructions
+- [ ] Refine CMake configurations to compile HIP GPU kernels correctly (use hipcc or enable blockDim/threadIdx macros)
 
 ## Technical Specifications
 

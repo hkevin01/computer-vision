@@ -24,19 +24,19 @@ public:
     void setImage(const cv::Mat &image);
     void setImage(const QString &imagePath);
     void clearImage();
-    
+
     cv::Mat getImage() const { return m_originalImage; }
     QString getImagePath() const { return m_imagePath; }
-    
+
     void zoomIn();
     void zoomOut();
     void zoomToFit();
     void zoomToActualSize();
     void resetZoom();
-    
+
     double getZoomFactor() const { return m_zoomFactor; }
     void setZoomFactor(double factor);
-    
+
     // Selection functionality
     void enableSelection(bool enable) { m_selectionEnabled = enable; }
     bool isSelectionEnabled() const { return m_selectionEnabled; }
@@ -71,20 +71,20 @@ private:
     cv::Mat m_originalImage;
     QPixmap m_pixmap;
     QString m_imagePath;
-    
+
     // Display properties
     double m_zoomFactor;
     QPoint m_imageOffset;
     bool m_dragging;
     QPoint m_lastPanPoint;
-    
+
     // Selection
     bool m_selectionEnabled;
     bool m_selecting;
     QPoint m_selectionStart;
     QRect m_selectionRect;
     QRubberBand *m_rubberBand;
-    
+
     // Constants
     static constexpr double MIN_ZOOM = 0.1;
     static constexpr double MAX_ZOOM = 10.0;

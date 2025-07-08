@@ -1,220 +1,163 @@
 cmake_minimum_required(VERSION 3.18)
-project(StereoVisionPointCloud LANGUAGES CXX)
+project(StereoVisionPointCloud LANGUAGES CXX C)
 
-# Set C++ standard
+# --- Project Settings ---
 set(CMAKE_CXX_STANDARD 17)
-set(C# Create GUI library (if GUI sources exist)
-file(GLOB_RECURSE GUI_SOURCES "src/gui/*.cpp" "src/gui/*.h")
-if(GUI_SOURCES)
-    add_library(stereo_vision_gui ${GUI_SOURCES})
-    target_link_libraries(stereo_vision_gui ${QT_LIBRARIES} stereo_vision_core)
-    set(HAS_GUI TRUE)
-else()
-    message(STATUS "No GUI sources found, skipping GUI library")
-    set(HAS_GUI FALSE)
-endif()
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
 
-# Create main executable
-add_executable(stereo_vision_app src/main.cpp)
-target_link_libraries(stereo_vision_app 
-    stereo_vision_core 
-    ${OpenCV_LIBS} 
-    ${PCL_LIBRARIES} 
-    ${QT_LIBRARIES}
-    Threads::Threads
-)
-
-# Options for GPU backend
+# --- Options ---
 option(USE_CUDA "Enable CUDA support for NVIDIA GPUs" OFF)
 option(USE_HIP "Enable HIP support for AMD GPUs" OFF)
+option(BUILD_GUI "Build the GUI application" ON)
+option(BUILD_TESTS "Build the tests" ON)
 
-# Auto-detect GPU backend if not specified
+# --- GPU Backend Detection and Configuration ---
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
 if(NOT USE_CUDA AND NOT USE_HIP)
     find_package(CUDAToolkit QUIET)
     if(CUDAToolkit_FOUND)
-        set(USE_CUDA ON)
-        message(STATUS "Auto-detected CUDA, enabling NVIDIA GPU support")
+        set(USE_CUDA ON CACHE BOOL "Enable CUDA support for NVIDIA GPUs" FORCE)
+        message(STATUS "Auto-detected CUDA, enabling NVIDIA GPU support.")
     else()
-        find_package(hip QUIET)
-        if(hip_FOUND)
-            set(USE_HIP ON)
-            message(STATUS "Auto-detected HIP, enabling AMD GPU support")
+        find_program(ROCMINFO_EXEC rocminfo)
+        if(ROCMINFO_EXEC)
+             set(USE_HIP ON CACHE BOOL "Enable HIP support for AMD GPUs" FORCE)
+             message(STATUS "Auto-detected ROCm, enabling AMD HIP GPU support.")
+        else()
+            message(STATUS "No GPU backend detected. Building for CPU only.")
         endif()
     endif()
 endif()
 
-# Ensure only one GPU backend is enabled
 if(USE_CUDA AND USE_HIP)
-    message(WARNING "Both CUDA and HIP are enabled. Prioritizing HIP for AMD GPU.")
-    set(USE_CUDA OFF)
+    message(FATAL_ERROR "Both USE_CUDA and USE_HIP are enabled. Please choose only one GPU backend.")
 endif()
 
-# Configure GPU backend
 if(USE_CUDA)
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
-    set(CMAKE_CUDA_STANDARD 17)
-    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    set(CMAKE_CUDA_ARCHITECTURES "75;80;86;89") # Common NVIDIA architectures
     add_definitions(-DUSE_CUDA)
-    message(STATUS "Building with CUDA support")
+    message(STATUS "Building with CUDA support.")
 elseif(USE_HIP)
     find_package(hip REQUIRED)
+    # Enable HIP language for proper kernel compilation with hipcc
+    enable_language(HIP)
     add_definitions(-DUSE_HIP)
-    message(STATUS "Building with HIP support")
+    # Set HIP compiler flags to enable CUDA compatibility
+    set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} -x hip")
+    message(STATUS "Building with AMD HIP support.")
 else()
-    message(STATUS "Building with CPU-only support")
+    message(STATUS "Building with CPU-only support.")
 endif()
 
-# Find required packages
-find_package(OpenCV REQUIRED)
-
-# Handle MPI configuration for VTK/PCL compatibility
-if(NOT TARGET MPI::MPI_C)
-    find_package(MPI QUIET)
-    if(MPI_FOUND)
-        message(STATUS "MPI found and configured")
-    else()
-        message(STATUS "MPI not found, creating dummy target for VTK compatibility")
-        add_library(MPI::MPI_C INTERFACE IMPORTED)
-    endif()
-endif()
-
-# Find Qt for GUI first (try Qt6 first, fallback to Qt5)
-find_package(Qt6 COMPONENTS Core Widgets OpenGL QUIET)
-if(Qt6_FOUND)
-    message(STATUS "Using Qt6")
-    set(QT_VERSION_MAJOR 6)
-    # Try to find Qt6 3D components (optional)
-    find_package(Qt6 COMPONENTS 3DCore 3DRender 3DInput 3DExtras QUIET)
-    if(Qt6_3DCore_FOUND)
-        set(QT_LIBRARIES Qt6::Core Qt6::Widgets Qt6::OpenGL Qt6::3DCore Qt6::3DRender Qt6::3DInput Qt6::3DExtras)
-    else()
-        set(QT_LIBRARIES Qt6::Core Qt6::Widgets Qt6::OpenGL)
-        message(STATUS "Qt6 3D components not found, using basic Qt6 widgets")
-    endif()
-else()
-    find_package(Qt5 COMPONENTS Core Widgets OpenGL QUIET)
-    if(Qt5_FOUND)
-        message(STATUS "Using Qt5")
-        set(QT_VERSION_MAJOR 5)
-        # Try to find Qt5 3D components (optional)
-        find_package(Qt5 COMPONENTS 3DCore 3DRender 3DInput 3DExtras QUIET)
-        if(Qt5_3DCore_FOUND)
-            set(QT_LIBRARIES Qt5::Core Qt5::Widgets Qt5::OpenGL Qt5::3DCore Qt5::3DRender Qt5::3DInput Qt5::3DExtras)
-        else()
-            set(QT_LIBRARIES Qt5::Core Qt5::Widgets Qt5::OpenGL)
-            message(STATUS "Qt5 3D components not found, using basic Qt5 widgets")
-        endif()
-    else()
-        message(FATAL_ERROR "Neither Qt6 nor Qt5 found. Please install Qt development packages.")
-    endif()
-endif()
-
-# Enable Qt MOC, UIC, and RCC
-if(Qt6_FOUND)
-    qt6_standard_project_setup()
-else()
-    set(CMAKE_AUTOMOC ON)
-    set(CMAKE_AUTOUIC ON)
-    set(CMAKE_AUTORCC ON)
-endif()
-
-# Find other packages after Qt to avoid conflicts
-find_package(PkgConfig REQUIRED)
+# --- Find Dependencies ---
 find_package(Threads REQUIRED)
+find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc calib3d)
+message(STATUS "OpenCV version: ${OpenCV_VERSION}")
 
-# Handle PCL with VTK/MPI issues (after Qt setup to avoid conflicts)
-set(VTK_LEGACY_REMOVE OFF CACHE BOOL "Remove legacy VTK")
-set(VTK_USE_MPI OFF CACHE BOOL "Build VTK with MPI support")
-find_package(PCL REQUIRED COMPONENTS common io features surface segmentation filters)
-
-# Include directories
-include_directories(${CMAKE_SOURCE_DIR}/include)
-include_directories(${CMAKE_SOURCE_DIR}/include/gui)
-include_directories(${OpenCV_INCLUDE_DIRS})
-include_directories(${PCL_INCLUDE_DIRS})
-
-# Link directories
-link_directories(${PCL_LIBRARY_DIRS})
-
-# Add definitions
-add_definitions(${PCL_DEFINITIONS})
-
-# Set GPU-specific flags
-if(USE_CUDA)
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_75,code=sm_75")
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_80,code=sm_80")
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_86,code=sm_86")
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_89,code=sm_89")
-elseif(USE_HIP)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__HIP_PLATFORM_AMD__")
+# --- GUI Configuration (Qt) ---
+if(BUILD_GUI)
+    find_package(Qt6 COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets QUIET)
+    if(Qt6_FOUND)
+        set(QT_VERSION_MAJOR 6)
+        set(QT_LIBRARIES Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets)
+        message(STATUS "Using Qt6 for GUI.")
+    else()
+        find_package(Qt5 COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets REQUIRED)
+        set(QT_VERSION_MAJOR 5)
+        set(QT_LIBRARIES Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL Qt5::OpenGLWidgets)
+        message(STATUS "Qt6 not found. Using Qt5 for GUI.")
+    endif()
+    qt_standard_project_setup()
 endif()
 
-# Create library for core functionality
-file(GLOB_RECURSE CORE_SOURCES "src/core/*.cpp")
-file(GLOB_RECURSE UTILS_SOURCES "src/utils/*.cpp")
-
-# Add GPU sources based on backend
-if(USE_CUDA)
-    file(GLOB_RECURSE GPU_SOURCES "src/cuda/*.cu")
-elseif(USE_HIP)
-    file(GLOB_RECURSE GPU_SOURCES "src/cuda/*.hip.cpp")
-endif()
-
-add_library(stereo_vision_core ${CORE_SOURCES} ${GPU_SOURCES} ${UTILS_SOURCES})
-
-# Link GPU libraries
-if(USE_CUDA)
-    target_link_libraries(stereo_vision_core ${OpenCV_LIBS} ${PCL_LIBRARIES} CUDA::cudart CUDA::cublas)
-elseif(USE_HIP)
-    target_link_libraries(stereo_vision_core ${OpenCV_LIBS} ${PCL_LIBRARIES} hip::host)
+# VTK, a dependency of PCL, may require MPI. Find it after Qt.
+find_package(MPI QUIET)
+if(MPI_FOUND)
+    message(STATUS "MPI found for PCL/VTK compatibility.")
 else()
-    target_link_libraries(stereo_vision_core ${OpenCV_LIBS} ${PCL_LIBRARIES})
+    message(STATUS "MPI not found, continuing without it. PCL/VTK might complain.")
 endif()
 
-# Create GUI library (if GUI sources exist)
-file(GLOB_RECURSE GUI_SOURCES "src/gui/*.cpp")
-if(GUI_SOURCES)
-    add_library(stereo_vision_gui ${GUI_SOURCES})
-    target_link_libraries(stereo_vision_gui ${GTK3_LIBRARIES} stereo_vision_core)
-    set(HAS_GUI TRUE)
-else()
-    message(STATUS "No GUI sources found, skipping GUI library")
-    set(HAS_GUI FALSE)
-endif()
+find_package(PCL 1.12 REQUIRED)
+message(STATUS "PCL version: ${PCL_VERSION}")
 
-# Create main executable
-add_executable(stereo_vision_app src/main.cpp)
-target_link_libraries(stereo_vision_app 
-    stereo_vision_core 
-    ${OpenCV_LIBS} 
-    ${PCL_LIBRARIES} 
-    ${GTK3_LIBRARIES}
-    Threads::Threads
+# --- Include Directories ---
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${OpenCV_INCLUDE_DIRS}
+    ${PCL_INCLUDE_DIRS}
 )
 
-# Link GUI library if available
-if(HAS_GUI)
-    target_link_libraries(stereo_vision_app stereo_vision_gui)
+# Cross-platform VTK include path fix
+if(UNIX AND NOT APPLE)
+    # Linux: Check for VTK symlink and create if needed
+    if(EXISTS "/usr/include/vtk-9.1" AND NOT EXISTS "/usr/include/vtk")
+        message(STATUS "Creating VTK symlink for PCL compatibility...")
+        execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink "/usr/include/vtk-9.1" "/usr/include/vtk"
+                       RESULT_VARIABLE SYMLINK_RESULT)
+        if(SYMLINK_RESULT EQUAL 0)
+            message(STATUS "VTK symlink created successfully")
+        else()
+            message(WARNING "Failed to create VTK symlink. You may need to run: sudo ln -sf /usr/include/vtk-9.1 /usr/include/vtk")
+        endif()
+    endif()
+    if(EXISTS "/usr/include/vtk")
+        include_directories(/usr/include/vtk)
+    endif()
+elseif(WIN32)
+    # Windows: VTK headers are typically found automatically by PCL
+    message(STATUS "Windows detected - VTK headers should be found automatically")
+elseif(APPLE)
+    # macOS: VTK headers are typically found automatically by PCL
+    message(STATUS "macOS detected - VTK headers should be found automatically")
 endif()
 
-# Link GPU libraries to main executable
-if(USE_CUDA)
-    target_link_libraries(stereo_vision_app CUDA::cudart CUDA::cublas)
-elseif(USE_HIP)
-    target_link_libraries(stereo_vision_app hip::host)
+# --- Source Files ---
+file(GLOB_RECURSE CORE_SOURCES "src/core/*.cpp")
+file(GLOB_RECURSE GPU_SOURCES "src/gpu/*.cpp")
+file(GLOB_RECURSE GUI_SOURCES "src/gui/*.cpp")
+file(GLOB_RECURSE UTIL_SOURCES "src/utils/*.cpp")
+
+# --- Core Library ---
+add_library(stereo_vision_core ${CORE_SOURCES} ${GPU_SOURCES} ${UTIL_SOURCES})
+target_link_libraries(stereo_vision_core PRIVATE
+    Threads::Threads
+    ${OpenCV_LIBS}
+    ${PCL_LIBRARIES}
+)
+if(USE_HIP)
+    target_link_libraries(stereo_vision_core PRIVATE hip::host)
 endif()
 
-# Create test executable (if test sources exist)
-file(GLOB_RECURSE TEST_SOURCES "tests/*.cpp")
-if(TEST_SOURCES)
-    add_executable(test_stereo_vision ${TEST_SOURCES})
-    target_link_libraries(test_stereo_vision stereo_vision_core ${OpenCV_LIBS} ${PCL_LIBRARIES})
-    message(STATUS "Test executable will be built")
+# --- GUI Library ---
+if(BUILD_GUI)
+    add_library(stereo_vision_gui ${GUI_SOURCES})
+    target_link_libraries(stereo_vision_gui PRIVATE
+        stereo_vision_core
+        ${QT_LIBRARIES}
+        ${OpenCV_LIBS}
+        ${PCL_LIBRARIES}
+    )
+endif()
+
+# --- Main Application ---
+add_executable(stereo_vision_app src/main.cpp)
+if(BUILD_GUI)
+    target_link_libraries(stereo_vision_app PRIVATE stereo_vision_gui)
 else()
-    message(STATUS "No test sources found, skipping test executable")
+    target_link_libraries(stereo_vision_app PRIVATE stereo_vision_core)
 endif()
 
-# Install targets
+# --- Installation ---
 install(TARGETS stereo_vision_app DESTINATION bin)
-install(DIRECTORY include/ DESTINATION include)
+install(DIRECTORY data/ DESTINATION share/stereo_vision_app/data)
+
+message(STATUS "Configuration complete. Build type: ${CMAKE_BUILD_TYPE}")

@@ -24,14 +24,19 @@ This project supports both NVIDIA and AMD GPUs:
 ### Required Libraries
 - **OpenCV** (>= 4.5): Computer vision and image processing
 - **PCL** (Point Cloud Library >= 1.12): Point cloud processing and visualization
-- **GTK3**: GUI framework
+- **Qt6** (>= 6.0): GUI framework
+- **VTK** (>= 9.0): Visualization toolkit (dependency of PCL)
 - **CMake** (>= 3.18): Build system
 
 ### GPU Runtime (Optional)
 - **NVIDIA**: CUDA Toolkit (>= 11.0)
 - **AMD**: ROCm (>= 5.0) with HIP support
 
-### Installation (Ubuntu/Debian)
+## Installation
+
+**📋 Complete setup instructions for Ubuntu, Windows, and macOS are available in [docs/SETUP_REQUIREMENTS.md](docs/SETUP_REQUIREMENTS.md)**
+
+### Quick Setup (Ubuntu/Debian)
 
 #### For NVIDIA GPUs:
 ```bash
@@ -48,17 +53,20 @@ This project supports both NVIDIA and AMD GPUs:
 ./setup_amd_gpu.sh
 ```
 
-#### Manual Installation:
+#### Manual Installation (Ubuntu):
 ```bash
 # Install OpenCV
 sudo apt update
-sudo apt install libopencv-dev libopencv-contrib-dev
+sudo apt install libopencv-dev
 
-# Install PCL
-sudo apt install libpcl-dev
+# Install PCL and VTK
+sudo apt install libpcl-dev libvtk9-dev
 
-# Install GTK3
-sudo apt install libgtk-3-dev
+# Install Qt6
+sudo apt install qt6-base-dev qt6-opengl-dev qt6-opengl-widgets-dev
+
+# Install additional dependencies
+sudo apt install libboost-all-dev libeigen3-dev libglew-dev
 
 # For NVIDIA: Install CUDA (follow NVIDIA's official guide)
 # For AMD: Install ROCm (see setup_amd_gpu.sh)
