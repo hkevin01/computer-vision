@@ -1,54 +1,100 @@
-#!/usr/bin/env bash
-# run.sh - Build and run the Stereo Vision 3D Point Cloud application
-#
-# Usage:
-#   ./run.sh [--console] [--left <left_img_dir>] [--right <right_img_dir>] [--other-args]
-#
-# This script auto-detects the platform and builds the project if needed.
-# It then runs the main application with any arguments you provide.
+#!/bin/bash
 
-set -e
+# Default values
+BUILD_DIR="build"
+TARGET="all"
+EXECUTABLE="stereo_vision_app"
+RUN_APP=true
+RUN_TESTS=false
+CLEAN_BUILD=false
+EXTRA_CMAKE_ARGS=""
 
-# Detect platform
-OS="$(uname -s)"
+# Function to display help message
+function show_help() {
+    echo "Usage: $0 [options]"
+    echo ""
+    echo "Options:"
+    echo "  -h, --help            Show this help message."
+    echo "  -t, --tests           Run the test suite instead of the main application."
+    echo "  -c, --clean           Perform a clean build."
+    echo "  --build-dir <dir>     Specify the build directory (default: build)."
+    echo "  --target <target>     Specify the cmake build target (default: all)."
+    echo "  --amd                 Use the AMD/HIP build configuration (build_amd)."
+    echo "  --debug               Use the Debug build configuration."
+    exit 0
+}
 
-# Set build script and binary paths
-if [[ "$OS" == "Linux" ]]; then
-    if lspci | grep -i amd &>/dev/null && command -v hipcc &>/dev/null; then
-        BUILD_SCRIPT="./build_amd.sh"
-        BINARY="./build_amd/stereo_vision_app"
-    elif lspci | grep -i nvidia &>/dev/null && command -v nvcc &>/dev/null; then
-        BUILD_SCRIPT="./build.sh"
-        BINARY="./build/stereo_vision_app"
-    else
-        BUILD_SCRIPT="./build.sh"
-        BINARY="./build/stereo_vision_app"
-    fi
-elif [[ "$OS" == "Darwin" ]]; then
-    BUILD_SCRIPT="./build.sh"
-    BINARY="./build/stereo_vision_app"
-elif [[ "$OS" =~ MINGW|MSYS|CYGWIN ]]; then
-    BUILD_SCRIPT="N/A"
-    BINARY="./build/Release/stereo_vision_app.exe"
-    echo "Please build the project using CMake/Visual Studio on Windows."
-    echo "Then run: $BINARY [args]"
-    exit 1
-else
-    echo "Unsupported OS: $OS"
-    exit 1
+# Parse command-line arguments
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+        -h|--help)
+        show_help
+        ;;
+        -t|--tests)
+        RUN_TESTS=true
+        RUN_APP=false
+        EXECUTABLE="run_tests"
+        shift # past argument
+        ;;
+        -c|--clean)
+        CLEAN_BUILD=true
+        shift # past argument
+        ;;
+        --build-dir)
+        BUILD_DIR="$2"
+        shift # past argument
+        shift # past value
+        ;;
+        --target)
+        TARGET="$2"
+        shift # past argument
+        shift # past value
+        ;;
+        --amd)
+        BUILD_DIR="build_amd"
+        EXTRA_CMAKE_ARGS="-DENABLE_HIP=ON -DENABLE_CUDA=OFF"
+        shift # past argument
+        ;;
+        --debug)
+        EXTRA_CMAKE_ARGS="${EXTRA_CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Debug"
+        shift # past argument
+        ;;
+        *)
+        echo "Unknown option: $1"
+        show_help
+        ;;
+    esac
+done
+
+# --- Script Execution ---
+
+set -e # Exit immediately if a command exits with a non-zero status.
+
+# Clean the build directory if requested
+if [ "$CLEAN_BUILD" = true ] && [ -d "$BUILD_DIR" ]; then
+    echo "--- Cleaning build directory: $BUILD_DIR ---"
+    rm -rf "$BUILD_DIR"
 fi
 
-# Build if binary does not exist
-if [[ ! -f "$BINARY" ]]; then
-    echo "[run.sh] Building project using $BUILD_SCRIPT ..."
-    $BUILD_SCRIPT
+# Configure the project using CMake
+if [ ! -d "$BUILD_DIR" ]; then
+    echo "--- Configuring project in: $BUILD_DIR ---"
+    cmake -B "$BUILD_DIR" -S . ${EXTRA_CMAKE_ARGS}
 fi
 
-# Run the application
-if [[ -f "$BINARY" ]]; then
-    echo "[run.sh] Running: $BINARY $@"
-    $BINARY "$@"
-else
-    echo "[run.sh] Error: Could not find built binary: $BINARY"
-    exit 2
-fi 
+# Build the project
+echo "--- Building project in: $BUILD_DIR (Target: $TARGET) ---"
+cmake --build "$BUILD_DIR" --config Debug --target "$TARGET" --parallel $(nproc)
+
+# Run the application or tests
+if [ "$RUN_APP" = true ]; then
+    echo "--- Running Application ---"
+    ./"$BUILD_DIR"/"$EXECUTABLE"
+elif [ "$RUN_TESTS" = true ]; then
+    echo "--- Running Tests ---"
+    # Use ctest to run the tests discovered by gtest_discover_tests
+    cd "$BUILD_DIR" && ctest --output-on-failure
+fi
+
+echo "--- Script finished ---"

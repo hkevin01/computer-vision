@@ -159,15 +159,17 @@
 
 Following the successful project setup and AMD GPU build, the immediate next steps are:
 
-- [ ] Verify AMD ROCm/HIP build stability and basic GPU kernels performance
-- [ ] Implement Phase 1 core components:
+- [x] Verify AMD ROCm/HIP build stability and basic GPU kernels performance
+- [x] Implement Phase 1 core components:
   - Basic camera interface and stereo image I/O
-  - Initial preprocessing routines (undistort, rectify)
+  - Initial preprocessing routines (undistort, rectify) 
   - Unit tests framework with GoogleTest
+- [x] Create comprehensive test suite with both core and GUI tests
+- [x] Enhance run.sh script with build options and test execution
 - [ ] Create a sample application function to load stereo images, compute disparity, and visualize results
 - [ ] Extend CI/CD pipeline to include AMD and NVIDIA GPU build & test jobs
 - [ ] Update quick start guide and SETUP_COMPLETE.md with current instructions
-- [ ] Refine CMake configurations to compile HIP GPU kernels correctly (use hipcc or enable blockDim/threadIdx macros)
+- [x] Refine CMake configurations to compile HIP GPU kernels correctly (use hipcc or enable blockDim/threadIdx macros)
 
 ## Technical Specifications
 

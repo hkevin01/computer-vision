@@ -158,6 +158,12 @@ else()
     target_link_libraries(stereo_vision_app PRIVATE stereo_vision_core)
 endif()
 
+# --- Test Configuration ---
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
 # --- Installation ---
 install(TARGETS stereo_vision_app DESTINATION bin)
 install(DIRECTORY data/ DESTINATION share/stereo_vision_app/data)
