@@ -1,10 +1,13 @@
+#ifdef BUILD_GUI
 #include "gui/main_window.hpp"
 #include <QApplication>
 #include <QSignalSpy>
 #include <QTest>
 #include <QTimer>
+#endif
 #include <gtest/gtest.h>
 
+#ifdef BUILD_GUI
 class GuiTest : public ::testing::Test {
 protected:
   void SetUp() override {
@@ -77,3 +80,5 @@ TEST_F(GuiTest, QtFrameworkIntegration) {
   QTest::qWait(150);
   EXPECT_EQ(spy.count(), 1);
 }
+
+#endif // BUILD_GUI

@@ -1,26 +1,27 @@
 #pragma once
 
-#include <QAction>
-#include <QDoubleSpinBox>
-#include <QFileDialog>
-#include <QGridLayout>
-#include <QGroupBox>
-#include <QHBoxLayout>
-#include <QLabel>
-#include <QMainWindow>
-#include <QMenu>
-#include <QMenuBar>
-#include <QMessageBox>
-#include <QProgressBar>
-#include <QPushButton>
-#include <QSlider>
-#include <QSpinBox>
-#include <QSplitter>
-#include <QStatusBar>
-#include <QTabWidget>
-#include <QTimer>
-#include <QVBoxLayout>
-#include <QWidget>
+// Forward declare Qt classes
+class QAction;
+class QDoubleSpinBox;
+class QGridLayout;
+class QGroupBox;
+class QHBoxLayout;
+class QLabel;
+class QMainWindow;
+class QMenu;
+class QMenuBar;
+class QMessageBox;
+class QProgressBar;
+class QPushButton;
+class QSlider;
+class QSpinBox;
+class QSplitter;
+class QStatusBar;
+class QTabWidget;
+class QTimer;
+class QVBoxLayout;
+class QWidget;
+class QString;
 
 #include "camera_calibration.hpp"
 #include "image_display_widget.hpp"
@@ -28,6 +29,9 @@
 #include "point_cloud_processor.hpp"
 #include "point_cloud_widget.hpp"
 #include "stereo_matcher.hpp"
+
+namespace stereo_vision {
+namespace gui {
 
 class MainWindow : public QMainWindow {
   Q_OBJECT
@@ -99,9 +103,10 @@ private:
   QLabel *m_statusLabel;
 
   // Processing components
-  CameraCalibration *m_calibration;
-  StereoMatcher *m_stereoMatcher;
-  PointCloudProcessor *m_pointCloudProcessor;
+  stereo_vision::CameraCalibration *m_calibration;
+  stereo_vision::StereoMatcher *m_stereoMatcher;
+  stereo_vision::PointCloudProcessor *m_pointCloudProcessor;
+  stereo_vision::CameraCalibration::StereoParameters m_stereo_params;
 
   // Processing timer for async operations
   QTimer *m_processingTimer;
@@ -117,3 +122,6 @@ private:
   bool m_hasCalibration;
   bool m_hasImages;
 };
+
+} // namespace gui
+} // namespace stereo_vision

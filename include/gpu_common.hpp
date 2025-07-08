@@ -3,6 +3,9 @@
 // Cross-platform GPU programming header
 // This header provides unified interface for both CUDA and HIP
 
+#include <cstddef>
+#include <string>
+
 #ifdef USE_CUDA
 #include <cuda_runtime.h>
 #include <cublas_v2.h>

@@ -19,7 +19,13 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-if(NOT USE_CUDA AND NOT USE_HIP)
+# --- GPU Backend Detection and Configuration ---
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+# Only auto-detect if GPU backend options are not explicitly set
+if(NOT DEFINED USE_CUDA AND NOT DEFINED USE_HIP)
     find_package(CUDAToolkit QUIET)
     if(CUDAToolkit_FOUND)
         set(USE_CUDA ON CACHE BOOL "Enable CUDA support for NVIDIA GPUs" FORCE)
@@ -33,6 +39,12 @@ if(NOT USE_CUDA AND NOT USE_HIP)
             message(STATUS "No GPU backend detected. Building for CPU only.")
         endif()
     endif()
+elseif(USE_CUDA)
+    message(STATUS "CUDA explicitly enabled.")
+elseif(USE_HIP)
+    message(STATUS "HIP explicitly enabled.")
+else()
+    message(STATUS "GPU backends explicitly disabled.")
 endif()
 
 if(USE_CUDA AND USE_HIP)

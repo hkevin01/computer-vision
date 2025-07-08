@@ -13,6 +13,8 @@
 #include <QWidget>
 #include <opencv2/opencv.hpp>
 
+namespace stereo_vision::gui {
+
 class ImageDisplayWidget : public QWidget {
   Q_OBJECT
 
@@ -89,3 +91,5 @@ private:
   static constexpr double MAX_ZOOM = 10.0;
   static constexpr double ZOOM_STEP = 1.2;
 };
+
+} // namespace stereo_vision::gui
