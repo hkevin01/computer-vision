@@ -64,18 +64,20 @@ message(STATUS "OpenCV version: ${OpenCV_VERSION}")
 
 # --- GUI Configuration (Qt) ---
 if(BUILD_GUI)
+    set(QT_LIBRARIES "")
+    set(QT_VERSION_MAJOR "")
     find_package(Qt6 COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets QUIET)
     if(Qt6_FOUND)
         set(QT_VERSION_MAJOR 6)
-        set(QT_LIBRARIES Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets)
+        list(APPEND QT_LIBRARIES Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets)
         message(STATUS "Using Qt6 for GUI.")
+        qt_standard_project_setup()
     else()
         find_package(Qt5 COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets REQUIRED)
         set(QT_VERSION_MAJOR 5)
-        set(QT_LIBRARIES Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL Qt5::OpenGLWidgets)
+        list(APPEND QT_LIBRARIES Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL Qt5::OpenGLWidgets)
         message(STATUS "Qt6 not found. Using Qt5 for GUI.")
     endif()
-    qt_standard_project_setup()
 endif()
 
 # VTK, a dependency of PCL, may require MPI. Find it after Qt.
