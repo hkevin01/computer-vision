@@ -9,7 +9,7 @@ RUN_TESTS=false
 CLEAN_BUILD=false
 FORCE_RECONFIG=false
 BUILD_ONLY=false
-FORCE_GUI=false
+FORCE_GUI=true
 EXTRA_CMAKE_ARGS=""
 
 # Function to display help message
@@ -17,7 +17,8 @@ function show_help() {
     echo "Usage: $0 [options]"
     echo ""
     echo "Description:"
-    echo "  Build and run the Stereo Vision 3D Point Cloud application."
+    echo "  Build and run the Stereo Vision 3D Point Cloud GUI application."
+    echo "  By default, launches the GUI with automatic snap conflict resolution."
     echo "  This script automatically detects GPU backends and configures the build accordingly."
     echo ""
     echo "Options:"
@@ -33,14 +34,16 @@ function show_help() {
     echo "  --cpu-only            Disable GPU backends (CUDA and HIP)."
     echo "  --no-run              Build the project without running the application or tests."
     echo "  --simple              Build and run the simple version (fewer dependencies)."
+    echo "  --no-gui              Disable GUI launch and use standard runtime (may have conflicts)."
     echo "  --status              Show build status and available executables."
     echo "  --check-env           Check for common runtime environment issues."
-    echo "  --force-gui           Force GUI launch with snap services disabled (requires sudo)."
+    echo "  --force-gui           Force GUI launch with environment isolation (no sudo required)."
     echo ""
     echo "Examples:"
-    echo "  $0                    # Build and run main application"
-    echo "  $0 --simple           # Build and run simple version (recommended for testing)"
+    echo "  $0                    # Build and launch GUI application (default)"
+    echo "  $0 --simple           # Build and run simple version (fewer dependencies)"
     echo "  $0 --build-only       # Build the project without running"
+    echo "  $0 --no-gui           # Run with standard runtime (may have library conflicts)"
     echo "  $0 --tests            # Run test suite"
     echo "  $0 --amd --clean      # Clean AMD/HIP build"
     echo "  $0 --force-reconfig   # Fix build issues"
@@ -109,6 +112,15 @@ while [[ $# -gt 0 ]]; do
         RUN_APP=true
         shift # past argument
         ;;
+        --no-gui)
+        # Disable GUI launch, use standard runtime
+        FORCE_GUI=false
+        RUN_APP=true
+        echo "=== Standard Runtime Mode ==="
+        echo "GUI launch disabled. Using standard runtime (may encounter library conflicts)."
+        echo ""
+        shift # past argument
+        ;;
         --status)
         # Show build status and exit
         echo "=== Build Status ==="
@@ -149,7 +161,7 @@ while [[ $# -gt 0 ]]; do
         echo ""
         echo "Recommendations:"
         echo "- Use './run.sh --build-only' to verify build success"
-        echo "- Try './run.sh --force-gui' to launch GUI with snap workaround"
+        echo "- GUI launches by default with environment isolation"
         exit 0
         ;;
         --force-gui)
@@ -289,24 +301,36 @@ if [ "$BUILD_ONLY" = true ]; then
 elif [ "$FORCE_GUI" = true ]; then
     echo "--- Force GUI Launch ---"
     if [ -f "$BUILD_DIR/$EXECUTABLE" ]; then
-        echo "Launching GUI with snap services temporarily disabled..."
+        echo "Launching GUI with isolated environment (no snap contamination)..."
         echo "The application should appear in a new window."
         echo "Press Ctrl+C in the terminal if you need to force close."
         echo ""
         
-        # Stop snap services temporarily
-        sudo systemctl stop snapd.socket snapd.service 2>/dev/null
+        # Create a completely clean environment, excluding all snap paths and variables
+        CLEAN_PATH="/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/opt/rocm/bin"
+        CLEAN_LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu:/usr/lib:/lib:/opt/rocm/lib:/opt/rocm/lib64"
+        CLEAN_XDG_DATA_DIRS="/usr/local/share:/usr/share"
+        CLEAN_XDG_CONFIG_DIRS="/etc/xdg"
         
-        # Set clean environment and launch
-        env LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu \
+        echo "Using isolated environment to avoid snap library conflicts..."
+        
+        # Launch with completely clean environment, preserving only essential variables
+        env -i \
+            PATH="$CLEAN_PATH" \
+            LD_LIBRARY_PATH="$CLEAN_LD_LIBRARY_PATH" \
+            XDG_DATA_DIRS="$CLEAN_XDG_DATA_DIRS" \
+            XDG_CONFIG_DIRS="$CLEAN_XDG_CONFIG_DIRS" \
+            XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}" \
             QT_QPA_PLATFORM=xcb \
-            DISPLAY=:0 \
+            DISPLAY="${DISPLAY:-:0}" \
+            XAUTHORITY="${XAUTHORITY}" \
+            HOME="$HOME" \
+            USER="$USER" \
+            TERM="$TERM" \
+            PWD="$(pwd)" \
             ./"$BUILD_DIR"/"$EXECUTABLE"
         
-        # Restart snap services
         echo ""
-        echo "Restarting snap services..."
-        sudo systemctl start snapd.socket snapd.service 2>/dev/null
         echo "GUI session ended."
     else
         echo "ERROR: Application executable not found: $BUILD_DIR/$EXECUTABLE"
@@ -336,48 +360,6 @@ elif [ "$RUN_APP" = true ]; then
         echo "ERROR: Application executable not found: $BUILD_DIR/$EXECUTABLE"
         echo "Available executables in build directory:"
         find "$BUILD_DIR" -type f -executable -name "*stereo*" 2>/dev/null || echo "  No stereo-related executables found"
-        exit 1
-    fi
-elif [ "$RUN_TESTS" = true ]; then
-    echo "--- Running Tests ---"
-    if [ -d "$BUILD_DIR" ]; then
-        echo "Attempting to run tests..."
-        if ! cd "$BUILD_DIR" && ctest --output-on-failure 2>/dev/null; then
-            echo "INFO: Tests encountered runtime library conflicts (common with snap packages)."
-            echo "Tests were built successfully but cannot run due to system library conflicts."
-            echo ""
-            echo "Build Status: SUCCESS ✅"
-            echo "Runtime Status: Library conflict (system issue)"
-        fi
-    else
-        echo "ERROR: Build directory not found: $BUILD_DIR"
-        exit 1
-    fi
-elif [ "$FORCE_GUI" = true ]; then
-    echo "--- Force GUI Launch ---"
-    if [ -f "$BUILD_DIR/$EXECUTABLE" ]; then
-        echo "Launching GUI with snap services temporarily disabled..."
-        echo "The application should appear in a new window."
-        echo "Press Ctrl+C in the terminal if you need to force close."
-        echo ""
-        
-        # Stop snap services temporarily
-        sudo systemctl stop snapd.socket snapd.service 2>/dev/null
-        
-        # Set clean environment and launch
-        env LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu \
-            QT_QPA_PLATFORM=xcb \
-            DISPLAY=:0 \
-            ./"$BUILD_DIR"/"$EXECUTABLE"
-        
-        # Restart snap services
-        echo ""
-        echo "Restarting snap services..."
-        sudo systemctl start snapd.socket snapd.service 2>/dev/null
-        echo "GUI session ended."
-    else
-        echo "ERROR: Application executable not found: $BUILD_DIR/$EXECUTABLE"
-        echo "Run './run.sh --build-only' first to build the application."
         exit 1
     fi
 elif [ "$RUN_TESTS" = true ]; then
