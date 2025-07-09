@@ -88,26 +88,31 @@ The application now supports direct webcam capture for real-time stereo vision p
 ### 🎯 Features
 - **Camera Device Detection**: Automatically detect available USB and built-in cameras
 - **Dual Camera Setup**: Configure separate left and right camera devices
+- **Single Camera Mode**: Use one camera for manual stereo capture (move camera between shots)
 - **Live Preview**: Real-time preview from both cameras simultaneously
 - **Synchronized Capture**: Capture perfectly timed stereo image pairs
 - **Device Testing**: Test camera connections before starting capture
 - **Flexible Configuration**: Support for different camera resolutions and frame rates
+- **Robust Error Handling**: Clear feedback on connection issues and permissions
 
 ### 🎮 Usage
 1. **Select Cameras**: Use `File → Select Cameras...` to configure camera devices
-   - Choose different cameras for left and right channels
+   - Choose different cameras for left and right channels for true stereo
+   - **OR** choose the same camera for both to enable single camera manual stereo mode
    - Test camera connections with live preview
    - Configure camera parameters if needed
 
 2. **Start Live Capture**: Use `File → Start Webcam Capture` (Ctrl+Shift+S)
    - Live preview appears in the image display tabs
-   - Both cameras stream at ~30 FPS
+   - Dual camera mode: Both cameras stream at ~30 FPS
+   - Single camera mode: Same feed shows in both panels for manual positioning
    - Real-time feedback on capture status
 
 3. **Capture Images**: Multiple capture options available
-   - **Capture Left Image** (L key): Save current left camera frame
-   - **Capture Right Image** (R key): Save current right camera frame  
-   - **Capture Stereo Pair** (Space key): Save synchronized left+right pair
+   - **Capture Left Image** (L key): Save current camera frame as left image
+   - **Capture Right Image** (R key): Save current camera frame as right image
+   - **Capture Stereo Pair** (Space key): Save synchronized stereo pair
+   - **Single Camera**: Move camera between left/right captures for stereo pairs
 
 4. **Stop Capture**: Use `File → Stop Webcam Capture` (Ctrl+Shift+T)
 

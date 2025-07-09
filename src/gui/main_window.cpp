@@ -511,12 +511,47 @@ void MainWindow::startWebcamCapture() {
     return;
   }
 
-  // Open cameras using the camera manager
-  if (!m_cameraManager->openCameras(m_selectedLeftCamera,
-                                    m_selectedRightCamera)) {
-    QMessageBox::critical(
-        this, "Camera Error",
-        "Failed to open selected cameras. Please check connections.");
+  bool singleCameraMode = (m_selectedLeftCamera == m_selectedRightCamera &&
+                           m_selectedLeftCamera >= 0 && m_leftCameraConnected &&
+                           m_rightCameraConnected);
+
+  // Handle single camera mode vs dual camera mode
+  bool success = false;
+  if (singleCameraMode) {
+    // Single camera mode - open one camera that will be used for both channels
+    QMessageBox::information(
+        this, "Single Camera Mode",
+        "Using the same camera for left and right channels.\n"
+        "This is useful for manual stereo capture - you can move the camera "
+        "between captures to create stereo pairs.\n\n"
+        "The live preview will show the same image in both panels.\n"
+        "Use the capture buttons to save images for stereo processing.");
+    success = m_cameraManager->openSingleCamera(m_selectedLeftCamera);
+    m_statusLabel->setText("Single camera mode active - manual stereo capture");
+  } else {
+    // Dual camera mode or single camera mode - try to open cameras
+    // appropriately
+    if (m_leftCameraConnected && m_rightCameraConnected) {
+      success = m_cameraManager->openCameras(m_selectedLeftCamera,
+                                             m_selectedRightCamera);
+      m_statusLabel->setText(
+          "Dual camera mode active - synchronized stereo capture");
+    } else if (m_leftCameraConnected) {
+      success = m_cameraManager->openSingleCamera(m_selectedLeftCamera);
+      m_statusLabel->setText("Left camera only mode active");
+    } else if (m_rightCameraConnected) {
+      success = m_cameraManager->openSingleCamera(m_selectedRightCamera);
+      m_statusLabel->setText("Right camera only mode active");
+    }
+  }
+
+  if (!success) {
+    QString errorMsg =
+        singleCameraMode
+            ? "Failed to open camera. Please check connection and permissions."
+            : "Failed to open selected cameras. Please check connections and "
+              "permissions.";
+    QMessageBox::critical(this, "Camera Error", errorMsg);
     return;
   }
 
@@ -527,15 +562,12 @@ void MainWindow::startWebcamCapture() {
   // Update UI
   m_startCaptureAction->setEnabled(false);
   m_stopCaptureAction->setEnabled(true);
-  m_captureLeftAction->setEnabled(m_leftCameraConnected);
-  m_captureRightAction->setEnabled(m_rightCameraConnected);
-  m_captureStereoAction->setEnabled(m_leftCameraConnected &&
-                                    m_rightCameraConnected);
+  m_captureLeftAction->setEnabled(true);   // Always enabled during capture
+  m_captureRightAction->setEnabled(true);  // Always enabled during capture
+  m_captureStereoAction->setEnabled(true); // Always enabled in capture mode
 
   // Connect capture timer
   connect(m_captureTimer, &QTimer::timeout, this, &MainWindow::onFrameReady);
-
-  m_statusLabel->setText("Webcam capture started - live preview active");
 }
 
 void MainWindow::stopWebcamCapture() {
@@ -562,14 +594,27 @@ void MainWindow::stopWebcamCapture() {
 }
 
 void MainWindow::captureLeftImage() {
-  if (!m_isCapturing || m_lastLeftFrame.empty()) {
+  if (!m_isCapturing) {
     QMessageBox::warning(
         this, "Capture Error",
-        "No left camera frame available. Ensure webcam capture is running.");
+        "Webcam capture is not running. Please start capture first.");
     return;
   }
 
-  // Save the current left frame
+  // In single camera mode, both frames are the same
+  cv::Mat frameToSave = m_lastLeftFrame;
+  if (frameToSave.empty()) {
+    frameToSave = m_lastRightFrame; // Fallback
+  }
+
+  if (frameToSave.empty()) {
+    QMessageBox::warning(this, "Capture Error",
+                         "No frame available for capture. Please wait for the "
+                         "camera to initialize.");
+    return;
+  }
+
+  // Save the current frame as left image
   QString fileName = QFileDialog::getSaveFileName(
       this, "Save Left Image",
       m_outputPath + "/left_" +
@@ -577,7 +622,7 @@ void MainWindow::captureLeftImage() {
       "PNG Images (*.png);;JPEG Images (*.jpg);;All Files (*)");
 
   if (!fileName.isEmpty()) {
-    if (cv::imwrite(fileName.toStdString(), m_lastLeftFrame)) {
+    if (cv::imwrite(fileName.toStdString(), frameToSave)) {
       // Also load it as the current left image
       m_leftImagePath = fileName;
       m_leftImageWidget->setImage(fileName);
@@ -593,14 +638,27 @@ void MainWindow::captureLeftImage() {
 }
 
 void MainWindow::captureRightImage() {
-  if (!m_isCapturing || m_lastRightFrame.empty()) {
+  if (!m_isCapturing) {
     QMessageBox::warning(
         this, "Capture Error",
-        "No right camera frame available. Ensure webcam capture is running.");
+        "Webcam capture is not running. Please start capture first.");
     return;
   }
 
-  // Save the current right frame
+  // In single camera mode, both frames are the same
+  cv::Mat frameToSave = m_lastRightFrame;
+  if (frameToSave.empty()) {
+    frameToSave = m_lastLeftFrame; // Fallback
+  }
+
+  if (frameToSave.empty()) {
+    QMessageBox::warning(this, "Capture Error",
+                         "No frame available for capture. Please wait for the "
+                         "camera to initialize.");
+    return;
+  }
+
+  // Save the current frame as right image
   QString fileName = QFileDialog::getSaveFileName(
       this, "Save Right Image",
       m_outputPath + "/right_" +
@@ -608,7 +666,7 @@ void MainWindow::captureRightImage() {
       "PNG Images (*.png);;JPEG Images (*.jpg);;All Files (*)");
 
   if (!fileName.isEmpty()) {
-    if (cv::imwrite(fileName.toStdString(), m_lastRightFrame)) {
+    if (cv::imwrite(fileName.toStdString(), frameToSave)) {
       // Also load it as the current right image
       m_rightImagePath = fileName;
       m_rightImageWidget->setImage(fileName);
@@ -624,10 +682,28 @@ void MainWindow::captureRightImage() {
 }
 
 void MainWindow::captureStereoImage() {
-  if (!m_isCapturing || m_lastLeftFrame.empty() || m_lastRightFrame.empty()) {
+  if (!m_isCapturing) {
+    QMessageBox::warning(
+        this, "Capture Error",
+        "Webcam capture is not running. Please start capture first.");
+    return;
+  }
+
+  // Check for available frames
+  cv::Mat leftFrame = m_lastLeftFrame;
+  cv::Mat rightFrame = m_lastRightFrame;
+
+  if (leftFrame.empty()) {
+    leftFrame = rightFrame; // Use same frame if left is empty
+  }
+  if (rightFrame.empty()) {
+    rightFrame = leftFrame; // Use same frame if right is empty
+  }
+
+  if (leftFrame.empty() || rightFrame.empty()) {
     QMessageBox::warning(this, "Capture Error",
-                         "Both camera frames must be available. Ensure webcam "
-                         "capture is running.");
+                         "No frames available for capture. Please wait for the "
+                         "camera to initialize.");
     return;
   }
 
@@ -640,8 +716,8 @@ void MainWindow::captureStereoImage() {
 
   QDir().mkpath(m_outputPath); // Ensure directory exists
 
-  bool leftSaved = cv::imwrite(leftFileName.toStdString(), m_lastLeftFrame);
-  bool rightSaved = cv::imwrite(rightFileName.toStdString(), m_lastRightFrame);
+  bool leftSaved = cv::imwrite(leftFileName.toStdString(), leftFrame);
+  bool rightSaved = cv::imwrite(rightFileName.toStdString(), rightFrame);
 
   if (leftSaved && rightSaved) {
     // Load both images into the interface
@@ -661,49 +737,84 @@ void MainWindow::captureStereoImage() {
 }
 
 void MainWindow::onFrameReady() {
-  if (!m_isCapturing || !m_cameraManager->areCamerasOpen()) {
+  if (!m_isCapturing || !m_cameraManager->isAnyCameraOpen()) {
     return;
   }
 
-  cv::Mat leftFrame, rightFrame;
+  bool singleCameraMode = (m_selectedLeftCamera == m_selectedRightCamera &&
+                           m_selectedLeftCamera >= 0 && m_leftCameraConnected &&
+                           m_rightCameraConnected);
 
-  // Grab frames from cameras
-  if (m_cameraManager->grabFrames(leftFrame, rightFrame)) {
-    // Store the latest frames
-    if (!leftFrame.empty()) {
-      m_lastLeftFrame = leftFrame.clone();
+  if (singleCameraMode || !m_cameraManager->areCamerasOpen()) {
+    // Single camera mode or fallback mode - show same frame in both views
+    cv::Mat frame;
+    if (m_cameraManager->grabSingleFrame(frame)) {
+      if (!frame.empty()) {
+        // Store frame for both left and right
+        m_lastLeftFrame = frame.clone();
+        m_lastRightFrame = frame.clone();
+
+        // Convert OpenCV Mat to QImage and display
+        cv::Mat displayFrame;
+        cv::cvtColor(frame, displayFrame, cv::COLOR_BGR2RGB);
+
+        QImage qimg(displayFrame.data, displayFrame.cols, displayFrame.rows,
+                    displayFrame.step, QImage::Format_RGB888);
+
+        // Save as temporary file and show in both views
+        QString tempPath = QDir::tempPath() + "/stereo_single_preview.png";
+        qimg.save(tempPath);
+
+        if (m_leftCameraConnected) {
+          m_leftImageWidget->setImage(tempPath);
+        }
+        if (m_rightCameraConnected) {
+          m_rightImageWidget->setImage(tempPath);
+        }
+      }
     }
-    if (!rightFrame.empty()) {
-      m_lastRightFrame = rightFrame.clone();
-    }
+  } else {
+    // Dual camera mode - original logic
+    cv::Mat leftFrame, rightFrame;
 
-    // Update live preview in the image widgets (optional - shows live feed)
-    if (!leftFrame.empty() && m_leftCameraConnected) {
-      // Convert OpenCV Mat to QImage and display
-      cv::Mat displayFrame;
-      cv::cvtColor(leftFrame, displayFrame, cv::COLOR_BGR2RGB);
+    // Grab frames from cameras
+    if (m_cameraManager->grabFrames(leftFrame, rightFrame)) {
+      // Store the latest frames
+      if (!leftFrame.empty()) {
+        m_lastLeftFrame = leftFrame.clone();
+      }
+      if (!rightFrame.empty()) {
+        m_lastRightFrame = rightFrame.clone();
+      }
 
-      QImage qimg(displayFrame.data, displayFrame.cols, displayFrame.rows,
-                  displayFrame.step, QImage::Format_RGB888);
+      // Update live preview in the image widgets (optional - shows live feed)
+      if (!leftFrame.empty() && m_leftCameraConnected) {
+        // Convert OpenCV Mat to QImage and display
+        cv::Mat displayFrame;
+        cv::cvtColor(leftFrame, displayFrame, cv::COLOR_BGR2RGB);
 
-      // Save as temporary file and load (this could be optimized)
-      QString tempPath = QDir::tempPath() + "/stereo_left_preview.png";
-      qimg.save(tempPath);
-      m_leftImageWidget->setImage(tempPath);
-    }
+        QImage qimg(displayFrame.data, displayFrame.cols, displayFrame.rows,
+                    displayFrame.step, QImage::Format_RGB888);
 
-    if (!rightFrame.empty() && m_rightCameraConnected) {
-      // Convert OpenCV Mat to QImage and display
-      cv::Mat displayFrame;
-      cv::cvtColor(rightFrame, displayFrame, cv::COLOR_BGR2RGB);
+        // Save as temporary file and load (this could be optimized)
+        QString tempPath = QDir::tempPath() + "/stereo_left_preview.png";
+        qimg.save(tempPath);
+        m_leftImageWidget->setImage(tempPath);
+      }
 
-      QImage qimg(displayFrame.data, displayFrame.cols, displayFrame.rows,
-                  displayFrame.step, QImage::Format_RGB888);
+      if (!rightFrame.empty() && m_rightCameraConnected) {
+        // Convert OpenCV Mat to QImage and display
+        cv::Mat displayFrame;
+        cv::cvtColor(rightFrame, displayFrame, cv::COLOR_BGR2RGB);
 
-      // Save as temporary file and load (this could be optimized)
-      QString tempPath = QDir::tempPath() + "/stereo_right_preview.png";
-      qimg.save(tempPath);
-      m_rightImageWidget->setImage(tempPath);
+        QImage qimg(displayFrame.data, displayFrame.cols, displayFrame.rows,
+                    displayFrame.step, QImage::Format_RGB888);
+
+        // Save as temporary file and load (this could be optimized)
+        QString tempPath = QDir::tempPath() + "/stereo_right_preview.png";
+        qimg.save(tempPath);
+        m_rightImageWidget->setImage(tempPath);
+      }
     }
   }
 }

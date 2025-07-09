@@ -162,16 +162,24 @@ void CameraSelectorDialog::refreshCameraList() {
   if (numCameras == 0) {
     m_leftCameraCombo->addItem("No cameras found");
     m_rightCameraCombo->addItem("No cameras found");
+    QMessageBox::information(this, "No Cameras",
+                             "No usable cameras detected.\n\n"
+                             "Please check:\n"
+                             "• Camera connections\n"
+                             "• Camera permissions\n"
+                             "• Other applications using cameras");
     return;
   }
+
+  // Add option for no selection
+  m_leftCameraCombo->addItem("(None)", -1);
+  m_rightCameraCombo->addItem("(None)", -1);
 
   // Add cameras to combo boxes
   for (int i = 0; i < numCameras; ++i) {
     QString cameraName;
-    if (i < cameraList.size()) {
-      cameraName = QString("Camera %1: %2")
-                       .arg(i)
-                       .arg(QString::fromStdString(cameraList[i]));
+    if (i < static_cast<int>(cameraList.size())) {
+      cameraName = QString::fromStdString(cameraList[i]);
     } else {
       cameraName = QString("Camera %1").arg(i);
     }
@@ -180,14 +188,28 @@ void CameraSelectorDialog::refreshCameraList() {
     m_rightCameraCombo->addItem(cameraName, i);
   }
 
-  // Set default selections if we have multiple cameras
-  if (numCameras >= 2) {
-    m_leftCameraCombo->setCurrentIndex(0);
-    m_rightCameraCombo->setCurrentIndex(1);
-  } else if (numCameras == 1) {
-    m_leftCameraCombo->setCurrentIndex(0);
-    m_rightCameraCombo->setCurrentIndex(0);
+  // Handle single camera case
+  if (numCameras == 1) {
+    QMessageBox::information(
+        this, "Single Camera Detected",
+        QString(
+            "Only one camera detected: %1\n\n"
+            "For stereo vision you typically need two cameras.\n"
+            "You can still use this camera for mono capture by selecting it "
+            "for either left or right channel.")
+            .arg(QString::fromStdString(cameraList[0])));
+
+    // Auto-select the camera for left channel
+    m_leftCameraCombo->setCurrentIndex(
+        1); // Index 1 is the first camera (after "(None)")
+  } else if (numCameras >= 2) {
+    // Auto-select first two cameras
+    m_leftCameraCombo->setCurrentIndex(1);  // First camera
+    m_rightCameraCombo->setCurrentIndex(2); // Second camera
   }
+
+  // Update camera info display
+  updateCameraInfo();
 }
 
 void CameraSelectorDialog::onLeftCameraChanged(int index) {
@@ -205,36 +227,78 @@ void CameraSelectorDialog::onRightCameraChanged(int index) {
 }
 
 void CameraSelectorDialog::onTestCameras() {
-  if (m_selectedLeftCamera < 0 || m_selectedRightCamera < 0) {
-    QMessageBox::warning(this, "Error",
-                         "Please select both left and right cameras");
+  if (m_selectedLeftCamera < 0 && m_selectedRightCamera < 0) {
+    QMessageBox::warning(this, "Error", "Please select at least one camera");
     return;
   }
 
+  bool singleCameraMode = (m_selectedLeftCamera == m_selectedRightCamera &&
+                           m_selectedLeftCamera >= 0);
+
   // Test camera connections
-  bool success =
-      m_cameraManager->openCameras(m_selectedLeftCamera, m_selectedRightCamera);
+  bool success = false;
 
-  if (success) {
-    m_leftStatusLabel->setText("Connected");
-    m_leftStatusLabel->setStyleSheet("color: green;");
-    m_rightStatusLabel->setText("Connected");
-    m_rightStatusLabel->setStyleSheet("color: green;");
-    m_camerasConfigured = true;
-    m_okButton->setEnabled(true);
+  if (singleCameraMode) {
+    // Single camera mode
+    success = m_cameraManager->openSingleCamera(m_selectedLeftCamera);
 
-    QMessageBox::information(this, "Success",
-                             "Both cameras connected successfully!");
+    if (success) {
+      m_leftStatusLabel->setText("Connected (Single)");
+      m_leftStatusLabel->setStyleSheet("color: green;");
+      m_rightStatusLabel->setText("Connected (Single)");
+      m_rightStatusLabel->setStyleSheet("color: green;");
+      m_camerasConfigured = true;
+      m_okButton->setEnabled(true);
+
+      QMessageBox::information(
+          this, "Success",
+          "Camera connected successfully!\n\n"
+          "Single camera mode: The same camera will be used "
+          "for both left and right channels. This is useful "
+          "for manual stereo capture.");
+    } else {
+      m_leftStatusLabel->setText("Failed");
+      m_leftStatusLabel->setStyleSheet("color: red;");
+      m_rightStatusLabel->setText("Failed");
+      m_rightStatusLabel->setStyleSheet("color: red;");
+      m_camerasConfigured = false;
+      m_okButton->setEnabled(false);
+
+      QMessageBox::warning(this, "Error", "Failed to connect to the camera");
+    }
   } else {
-    m_leftStatusLabel->setText("Failed");
-    m_leftStatusLabel->setStyleSheet("color: red;");
-    m_rightStatusLabel->setText("Failed");
-    m_rightStatusLabel->setStyleSheet("color: red;");
-    m_camerasConfigured = false;
-    m_okButton->setEnabled(false);
+    // Dual camera mode
+    if (m_selectedLeftCamera < 0 || m_selectedRightCamera < 0) {
+      QMessageBox::warning(
+          this, "Error",
+          "Please select both left and right cameras for dual camera mode");
+      return;
+    }
 
-    QMessageBox::warning(this, "Error",
-                         "Failed to connect to one or both cameras");
+    success = m_cameraManager->openCameras(m_selectedLeftCamera,
+                                           m_selectedRightCamera);
+
+    if (success) {
+      m_leftStatusLabel->setText("Connected");
+      m_leftStatusLabel->setStyleSheet("color: green;");
+      m_rightStatusLabel->setText("Connected");
+      m_rightStatusLabel->setStyleSheet("color: green;");
+      m_camerasConfigured = true;
+      m_okButton->setEnabled(true);
+
+      QMessageBox::information(this, "Success",
+                               "Both cameras connected successfully!");
+    } else {
+      m_leftStatusLabel->setText("Failed");
+      m_leftStatusLabel->setStyleSheet("color: red;");
+      m_rightStatusLabel->setText("Failed");
+      m_rightStatusLabel->setStyleSheet("color: red;");
+      m_camerasConfigured = false;
+      m_okButton->setEnabled(false);
+
+      QMessageBox::warning(this, "Error",
+                           "Failed to connect to one or both cameras");
+    }
   }
 }
 
@@ -261,10 +325,21 @@ void CameraSelectorDialog::onPreviewToggled(bool enabled) {
   m_previewEnabled = enabled;
 
   if (enabled) {
-    if (m_selectedLeftCamera >= 0 && m_selectedRightCamera >= 0) {
-      if (m_cameraManager->areCamerasOpen() ||
-          m_cameraManager->openCameras(m_selectedLeftCamera,
-                                       m_selectedRightCamera)) {
+    if ((m_selectedLeftCamera >= 0 || m_selectedRightCamera >= 0)) {
+      bool singleCameraMode = (m_selectedLeftCamera == m_selectedRightCamera &&
+                               m_selectedLeftCamera >= 0);
+
+      bool success = false;
+      if (singleCameraMode) {
+        success = m_cameraManager->isAnyCameraOpen() ||
+                  m_cameraManager->openSingleCamera(m_selectedLeftCamera);
+      } else if (m_selectedLeftCamera >= 0 && m_selectedRightCamera >= 0) {
+        success = m_cameraManager->areCamerasOpen() ||
+                  m_cameraManager->openCameras(m_selectedLeftCamera,
+                                               m_selectedRightCamera);
+      }
+
+      if (success) {
         m_previewTimer->start();
       } else {
         m_previewCheckBox->setChecked(false);
@@ -273,7 +348,8 @@ void CameraSelectorDialog::onPreviewToggled(bool enabled) {
       }
     } else {
       m_previewCheckBox->setChecked(false);
-      QMessageBox::warning(this, "Error", "Please select cameras first");
+      QMessageBox::warning(this, "Error",
+                           "Please select at least one camera first");
     }
   } else {
     m_previewTimer->stop();
@@ -283,33 +359,57 @@ void CameraSelectorDialog::onPreviewToggled(bool enabled) {
 }
 
 void CameraSelectorDialog::updatePreview() {
-  if (!m_cameraManager || !m_cameraManager->areCamerasOpen()) {
+  if (!m_cameraManager || !m_cameraManager->isAnyCameraOpen()) {
     return;
   }
 
-  cv::Mat leftFrame, rightFrame;
-  if (m_cameraManager->grabFrames(leftFrame, rightFrame)) {
-    // Convert and display left frame
-    if (!leftFrame.empty()) {
-      cv::Mat leftDisplay;
-      cv::resize(leftFrame, leftDisplay, cv::Size(160, 120));
-      cv::cvtColor(leftDisplay, leftDisplay, cv::COLOR_BGR2RGB);
+  bool singleCameraMode = (m_selectedLeftCamera == m_selectedRightCamera &&
+                           m_selectedLeftCamera >= 0);
 
-      QImage leftQImage(leftDisplay.data, leftDisplay.cols, leftDisplay.rows,
-                        leftDisplay.step, QImage::Format_RGB888);
-      m_leftPreviewLabel->setPixmap(QPixmap::fromImage(leftQImage));
+  if (singleCameraMode) {
+    // Single camera mode - show same frame in both previews
+    cv::Mat frame;
+    if (m_cameraManager->grabSingleFrame(frame)) {
+      if (!frame.empty()) {
+        cv::Mat display;
+        cv::resize(frame, display, cv::Size(160, 120));
+        cv::cvtColor(display, display, cv::COLOR_BGR2RGB);
+
+        QImage qImage(display.data, display.cols, display.rows, display.step,
+                      QImage::Format_RGB888);
+        QPixmap pixmap = QPixmap::fromImage(qImage);
+
+        // Show same frame in both previews
+        m_leftPreviewLabel->setPixmap(pixmap);
+        m_rightPreviewLabel->setPixmap(pixmap);
+      }
     }
+  } else {
+    // Dual camera mode
+    cv::Mat leftFrame, rightFrame;
+    if (m_cameraManager->grabFrames(leftFrame, rightFrame)) {
+      // Convert and display left frame
+      if (!leftFrame.empty()) {
+        cv::Mat leftDisplay;
+        cv::resize(leftFrame, leftDisplay, cv::Size(160, 120));
+        cv::cvtColor(leftDisplay, leftDisplay, cv::COLOR_BGR2RGB);
 
-    // Convert and display right frame
-    if (!rightFrame.empty()) {
-      cv::Mat rightDisplay;
-      cv::resize(rightFrame, rightDisplay, cv::Size(160, 120));
-      cv::cvtColor(rightDisplay, rightDisplay, cv::COLOR_BGR2RGB);
+        QImage leftQImage(leftDisplay.data, leftDisplay.cols, leftDisplay.rows,
+                          leftDisplay.step, QImage::Format_RGB888);
+        m_leftPreviewLabel->setPixmap(QPixmap::fromImage(leftQImage));
+      }
 
-      QImage rightQImage(rightDisplay.data, rightDisplay.cols,
-                         rightDisplay.rows, rightDisplay.step,
-                         QImage::Format_RGB888);
-      m_rightPreviewLabel->setPixmap(QPixmap::fromImage(rightQImage));
+      // Convert and display right frame
+      if (!rightFrame.empty()) {
+        cv::Mat rightDisplay;
+        cv::resize(rightFrame, rightDisplay, cv::Size(160, 120));
+        cv::cvtColor(rightDisplay, rightDisplay, cv::COLOR_BGR2RGB);
+
+        QImage rightQImage(rightDisplay.data, rightDisplay.cols,
+                           rightDisplay.rows, rightDisplay.step,
+                           QImage::Format_RGB888);
+        m_rightPreviewLabel->setPixmap(QPixmap::fromImage(rightQImage));
+      }
     }
   }
 }
