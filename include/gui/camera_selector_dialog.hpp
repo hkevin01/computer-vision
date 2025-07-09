@@ -1,15 +1,15 @@
 #pragma once
 
-#include <QDialog>
+#include <QCheckBox>
 #include <QComboBox>
+#include <QDialog>
+#include <QGridLayout>
+#include <QGroupBox>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QGroupBox>
-#include <QGridLayout>
 #include <QTimer>
-#include <QCheckBox>
+#include <QVBoxLayout>
 #include <memory>
 
 namespace stereo_vision {
@@ -22,14 +22,15 @@ class CameraSelectorDialog : public QDialog {
   Q_OBJECT
 
 public:
-  explicit CameraSelectorDialog(std::shared_ptr<stereo_vision::CameraManager> cameraManager, 
-                               QWidget *parent = nullptr);
+  explicit CameraSelectorDialog(
+      std::shared_ptr<stereo_vision::CameraManager> cameraManager,
+      QWidget *parent = nullptr);
   ~CameraSelectorDialog();
 
   // Get selected camera indices
   int getSelectedLeftCamera() const;
   int getSelectedRightCamera() const;
-  
+
   // Check if cameras are configured
   bool areCamerasConfigured() const;
 
@@ -45,7 +46,7 @@ private:
   void setupUI();
   void refreshCameraList();
   void updateCameraInfo();
-  void testCameraConnection(int cameraIndex, const QString& name);
+  void testCameraConnection(int cameraIndex, const QString &name);
 
   // UI Components
   QGroupBox *m_cameraSelectionGroup;
@@ -55,13 +56,13 @@ private:
   QLabel *m_rightCameraLabel;
   QLabel *m_leftStatusLabel;
   QLabel *m_rightStatusLabel;
-  
+
   QGroupBox *m_previewGroup;
   QCheckBox *m_previewCheckBox;
   QLabel *m_leftPreviewLabel;
   QLabel *m_rightPreviewLabel;
   QTimer *m_previewTimer;
-  
+
   QPushButton *m_testButton;
   QPushButton *m_refreshButton;
   QPushButton *m_okButton;
