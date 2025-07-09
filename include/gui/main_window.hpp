@@ -16,6 +16,7 @@ class QTimer;
 class QWidget;
 
 #include "camera_calibration.hpp"
+#include "camera_manager.hpp"
 #include "point_cloud_processor.hpp"
 #include "stereo_matcher.hpp"
 
@@ -45,6 +46,16 @@ private slots:
   void showAbout();
   void onParameterChanged();
   void onProcessingFinished();
+
+  // Webcam capture slots
+  void showCameraSelector();
+  void startWebcamCapture();
+  void stopWebcamCapture();
+  void captureLeftImage();
+  void captureRightImage();
+  void captureStereoImage();
+  void onFrameReady();
+  void onCameraSelectionChanged();
 
 private:
   void setupUI();
@@ -90,6 +101,14 @@ private:
   QAction *m_exportAction;
   QAction *m_aboutAction;
 
+  // Webcam capture actions
+  QAction *m_cameraSelectAction;
+  QAction *m_startCaptureAction;
+  QAction *m_stopCaptureAction;
+  QAction *m_captureLeftAction;
+  QAction *m_captureRightAction;
+  QAction *m_captureStereoAction;
+
   // Status bar
   QStatusBar *m_statusBar;
   QProgressBar *m_progressBar;
@@ -100,6 +119,7 @@ private:
   stereo_vision::CameraCalibration::StereoParameters m_stereoParams;
   std::shared_ptr<stereo_vision::StereoMatcher> m_stereoMatcher;
   std::shared_ptr<stereo_vision::PointCloudProcessor> m_pointCloudProcessor;
+  std::shared_ptr<stereo_vision::CameraManager> m_cameraManager;
 
   // Data
   QString m_leftImagePath;
@@ -112,6 +132,16 @@ private:
   bool m_isProcessing;
   bool m_hasCalibration;
   bool m_hasImages;
+
+  // Webcam capture state
+  QTimer *m_captureTimer;
+  bool m_isCapturing;
+  bool m_leftCameraConnected;
+  bool m_rightCameraConnected;
+  int m_selectedLeftCamera;
+  int m_selectedRightCamera;
+  cv::Mat m_lastLeftFrame;
+  cv::Mat m_lastRightFrame;
 };
 
 } // namespace stereo_vision::gui

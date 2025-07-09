@@ -61,6 +61,9 @@ cd stereo-vision-app
 
 - **Stereo Camera Calibration**: Automatic camera calibration using checkerboard patterns
 - **Real-time Stereo Vision**: GPU-accelerated stereo matching algorithms
+- **Webcam Capture Integration**: Direct capture from USB/built-in cameras with device selection
+- **Live Camera Preview**: Real-time preview from left and right cameras
+- **Synchronized Capture**: Capture perfectly synchronized stereo image pairs
 - **Cross-Platform GPU Support**: NVIDIA CUDA and AMD HIP backends
 - **3D Point Cloud Generation**: Convert disparity maps to dense point clouds
 - **Interactive GUI**: User-friendly interface for parameter tuning and visualization
@@ -72,6 +75,56 @@ cd stereo-vision-app
 [![Keyboard](https://img.shields.io/badge/Keyboard-Shortcuts-green.svg)](#)
 [![Real-time](https://img.shields.io/badge/Real--time-Filtering-orange.svg)](#)
 [![Multi-View](https://img.shields.io/badge/Multi-View-Support-purple.svg)](#)
+
+## 📷 Webcam Capture Integration
+
+[![Live Capture](https://img.shields.io/badge/📹-Live%20Capture-red.svg)](#)
+[![Device Selection](https://img.shields.io/badge/🔍-Device%20Selection-blue.svg)](#)
+[![Stereo Sync](https://img.shields.io/badge/⚡-Stereo%20Sync-green.svg)](#)
+[![Real-time Preview](https://img.shields.io/badge/👁️-Live%20Preview-orange.svg)](#)
+
+The application now supports direct webcam capture for real-time stereo vision processing:
+
+### 🎯 Features
+- **Camera Device Detection**: Automatically detect available USB and built-in cameras
+- **Dual Camera Setup**: Configure separate left and right camera devices
+- **Live Preview**: Real-time preview from both cameras simultaneously
+- **Synchronized Capture**: Capture perfectly timed stereo image pairs
+- **Device Testing**: Test camera connections before starting capture
+- **Flexible Configuration**: Support for different camera resolutions and frame rates
+
+### 🎮 Usage
+1. **Select Cameras**: Use `File → Select Cameras...` to configure camera devices
+   - Choose different cameras for left and right channels
+   - Test camera connections with live preview
+   - Configure camera parameters if needed
+
+2. **Start Live Capture**: Use `File → Start Webcam Capture` (Ctrl+Shift+S)
+   - Live preview appears in the image display tabs
+   - Both cameras stream at ~30 FPS
+   - Real-time feedback on capture status
+
+3. **Capture Images**: Multiple capture options available
+   - **Capture Left Image** (L key): Save current left camera frame
+   - **Capture Right Image** (R key): Save current right camera frame  
+   - **Capture Stereo Pair** (Space key): Save synchronized left+right pair
+
+4. **Stop Capture**: Use `File → Stop Webcam Capture` (Ctrl+Shift+T)
+
+### ⌨️ Keyboard Shortcuts
+- **Ctrl+Shift+C**: Open camera selector dialog
+- **Ctrl+Shift+S**: Start webcam capture
+- **Ctrl+Shift+T**: Stop webcam capture
+- **L**: Capture left image (during capture)
+- **R**: Capture right image (during capture)
+- **Space**: Capture synchronized stereo pair
+
+### 🔧 Technical Details
+- **Supported Formats**: PNG, JPEG, BMP, TIFF for captured images
+- **Frame Rate**: Up to 30 FPS live preview (hardware dependent)
+- **Resolution**: Automatic detection of optimal camera resolution
+- **Synchronization**: Frame-level synchronization for stereo pairs
+- **File Naming**: Automatic timestamped file naming for captured images
 
 ### 🖱️ Mouse Controls
 - **Left Mouse + Drag**: Rotate view around the point cloud
@@ -297,6 +350,32 @@ make -j$(nproc)
 ├── docs/              # Documentation
 └── scripts/           # Build and utility scripts
 ```
+
+## 📚 Documentation
+
+[![Complete Documentation](https://img.shields.io/badge/📖-Complete%20Documentation-blue.svg)](docs/)
+[![Setup Guide](https://img.shields.io/badge/🚀-Setup%20Guide-green.svg)](docs/SETUP_REQUIREMENTS.md)
+[![User Manual](https://img.shields.io/badge/📖-User%20Manual-orange.svg)](docs/)
+
+### Available Documentation
+
+- **[Webcam Capture Guide](docs/webcam_capture.md)** - Complete guide to webcam integration and live capture
+- **[Point Cloud Features](docs/point_cloud_features.md)** - Interactive 3D viewer and noise suppression
+- **[Shields & Badges](docs/shields_badges.md)** - Project status and quality indicators
+- **[Setup Requirements](docs/SETUP_REQUIREMENTS.md)** - System requirements and installation
+- **[Development Environment](DEV_ENVIRONMENT.md)** - Development setup and building
+- **[C++ Features](docs/Cplusplus.md)** - Modern C++17 features and patterns
+
+### Quick Reference
+
+| Feature | Documentation | Keyboard Shortcut |
+|---------|---------------|-------------------|
+| Camera Selection | [webcam_capture.md](docs/webcam_capture.md) | Ctrl+Shift+C |
+| Start Capture | [webcam_capture.md](docs/webcam_capture.md) | Ctrl+Shift+S |
+| Capture Stereo | [webcam_capture.md](docs/webcam_capture.md) | Space |
+| Point Cloud Viewer | [point_cloud_features.md](docs/point_cloud_features.md) | Mouse + Keys |
+| Open Left Image | README.md | Ctrl+L |
+| Open Right Image | README.md | Ctrl+R |
 
 ## Contributing
 
