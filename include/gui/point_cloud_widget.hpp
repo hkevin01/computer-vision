@@ -45,9 +45,35 @@ public:
   // Export functionality
   void exportToImage(const QString &filename);
 
+  // Point cloud filtering and noise suppression
+  void enableNoiseFiltering(bool enable);
+  void setNoiseFilterParameters(double leafSize, int meanK,
+                                double stdDevThresh);
+  void applyStatisticalOutlierRemoval();
+  void applyVoxelGridFiltering();
+  void applyRadiusOutlierRemoval(double radius, int minNeighbors);
+
+  // Advanced viewing features
+  void setColorMode(int mode); // 0: RGB, 1: Depth, 2: Height, 3: Intensity
+  void setRenderingQuality(int quality); // 0: Fast, 1: Medium, 2: High
+  void enableSmoothShading(bool enable);
+  void setLightingParameters(float ambient, float diffuse, float specular);
+
+  // Point cloud statistics
+  struct CloudStats {
+    size_t numPoints;
+    float minDepth, maxDepth;
+    float avgDepth;
+    float noiseLevel;
+    QString boundingBox;
+  };
+  CloudStats getPointCloudStatistics() const;
+
 signals:
   void pointCloudChanged();
   void viewChanged();
+  void noiseFilteringStatusChanged(bool enabled);
+  void statisticsUpdated(const CloudStats &stats);
 
 protected:
   void initializeGL() override;
@@ -75,6 +101,12 @@ private:
   void updateCamera();
   void drawAxes();
   void drawGrid();
+
+  // Point cloud processing helpers
+  void applyNoiseFiltering();
+  void updateVertexColors();
+  void computeStatistics() const;
+  QVector3D computePointColor(const pcl::PointXYZRGB &point, float depth) const;
 
   // Matrices
   QMatrix4x4 m_projection;
@@ -109,8 +141,29 @@ private:
 
   // Point cloud data
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr m_pointCloud;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr m_filteredPointCloud;
   std::vector<Vertex> m_vertices;
   bool m_pointCloudDirty;
+
+  // Noise filtering parameters
+  bool m_noiseFilteringEnabled;
+  double m_leafSize;
+  int m_meanK;
+  double m_stdDevThresh;
+  double m_radiusOutlierRadius;
+  int m_radiusOutlierMinNeighbors;
+
+  // Rendering parameters
+  int m_colorMode; // 0: RGB, 1: Depth, 2: Height, 3: Intensity
+  int m_renderingQuality;
+  bool m_smoothShadingEnabled;
+  float m_ambientLight;
+  float m_diffuseLight;
+  float m_specularLight;
+
+  // Statistics
+  mutable CloudStats m_lastStats;
+  mutable bool m_statsNeedUpdate;
 
   // Animation
   QTimer *m_animationTimer;

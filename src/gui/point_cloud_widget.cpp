@@ -12,11 +12,17 @@ namespace stereo_vision::gui {
 PointCloudWidget::PointCloudWidget(QWidget *parent)
     : QOpenGLWidget(parent),
       m_pointCloud(new pcl::PointCloud<pcl::PointXYZRGB>),
+      m_filteredPointCloud(new pcl::PointCloud<pcl::PointXYZRGB>),
       m_shaderProgram(nullptr), m_pointCloudDirty(false), m_mousePressed(false),
       m_pointSize(2.0f), m_backgroundColor(Qt::black), m_wireframeMode(false),
       m_showAxes(true), m_showGrid(true), m_animate(false),
       m_cameraDistance(5.0f), m_cameraYaw(45.0f), m_cameraPitch(30.0f),
-      m_animationAngle(0.0f), m_animationTimer(new QTimer(this)) {
+      m_animationAngle(0.0f), m_animationTimer(new QTimer(this)),
+      m_noiseFilteringEnabled(true), m_leafSize(0.01), m_meanK(50),
+      m_stdDevThresh(1.0), m_radiusOutlierRadius(0.1),
+      m_radiusOutlierMinNeighbors(10), m_colorMode(0), m_renderingQuality(1),
+      m_smoothShadingEnabled(true), m_ambientLight(0.3f), m_diffuseLight(0.7f),
+      m_specularLight(0.2f), m_statsNeedUpdate(true) {
 
   setMinimumSize(400, 300);
   setFocusPolicy(Qt::StrongFocus);
@@ -391,6 +397,276 @@ void PointCloudWidget::drawAxes() {
 void PointCloudWidget::drawGrid() {
   // This would require additional shader setup for lines
   // Simplified implementation - could be expanded
+}
+
+// New method implementations for enhanced point cloud features
+
+void PointCloudWidget::enableNoiseFiltering(bool enable) {
+  if (m_noiseFilteringEnabled != enable) {
+    m_noiseFilteringEnabled = enable;
+    if (enable && m_pointCloud && !m_pointCloud->empty()) {
+      applyNoiseFiltering();
+    }
+    m_pointCloudDirty = true;
+    m_statsNeedUpdate = true;
+    emit noiseFilteringStatusChanged(enable);
+    update();
+  }
+}
+
+void PointCloudWidget::setNoiseFilterParameters(double leafSize, int meanK,
+                                                double stdDevThresh) {
+  m_leafSize = leafSize;
+  m_meanK = meanK;
+  m_stdDevThresh = stdDevThresh;
+
+  if (m_noiseFilteringEnabled && m_pointCloud && !m_pointCloud->empty()) {
+    applyNoiseFiltering();
+    m_pointCloudDirty = true;
+    m_statsNeedUpdate = true;
+    update();
+  }
+}
+
+void PointCloudWidget::applyStatisticalOutlierRemoval() {
+  if (!m_pointCloud || m_pointCloud->empty())
+    return;
+
+  // This would use PCL's StatisticalOutlierRemoval filter
+  // Implementation would require PCL filtering headers
+  m_pointCloudDirty = true;
+  m_statsNeedUpdate = true;
+  update();
+}
+
+void PointCloudWidget::applyVoxelGridFiltering() {
+  if (!m_pointCloud || m_pointCloud->empty())
+    return;
+
+  // This would use PCL's VoxelGrid filter
+  // Implementation would require PCL filtering headers
+  m_pointCloudDirty = true;
+  m_statsNeedUpdate = true;
+  update();
+}
+
+void PointCloudWidget::applyRadiusOutlierRemoval(double radius,
+                                                 int minNeighbors) {
+  m_radiusOutlierRadius = radius;
+  m_radiusOutlierMinNeighbors = minNeighbors;
+
+  if (!m_pointCloud || m_pointCloud->empty())
+    return;
+
+  // This would use PCL's RadiusOutlierRemoval filter
+  // Implementation would require PCL filtering headers
+  m_pointCloudDirty = true;
+  m_statsNeedUpdate = true;
+  update();
+}
+
+void PointCloudWidget::setColorMode(int mode) {
+  if (mode >= 0 && mode <= 3 && m_colorMode != mode) {
+    m_colorMode = mode;
+    updateVertexColors();
+    m_pointCloudDirty = true;
+    update();
+  }
+}
+
+void PointCloudWidget::setRenderingQuality(int quality) {
+  if (quality >= 0 && quality <= 2 && m_renderingQuality != quality) {
+    m_renderingQuality = quality;
+
+    // Adjust point size based on quality
+    switch (quality) {
+    case 0: // Fast
+      m_pointSize = std::max(1.0f, m_pointSize * 0.8f);
+      break;
+    case 1: // Medium
+      // Keep current size
+      break;
+    case 2: // High
+      m_pointSize = std::min(5.0f, m_pointSize * 1.2f);
+      break;
+    }
+    update();
+  }
+}
+
+void PointCloudWidget::enableSmoothShading(bool enable) {
+  m_smoothShadingEnabled = enable;
+  update();
+}
+
+void PointCloudWidget::setLightingParameters(float ambient, float diffuse,
+                                             float specular) {
+  m_ambientLight = std::clamp(ambient, 0.0f, 1.0f);
+  m_diffuseLight = std::clamp(diffuse, 0.0f, 1.0f);
+  m_specularLight = std::clamp(specular, 0.0f, 1.0f);
+  update();
+}
+
+PointCloudWidget::CloudStats PointCloudWidget::getPointCloudStatistics() const {
+  if (m_statsNeedUpdate) {
+    computeStatistics();
+  }
+  return m_lastStats;
+}
+
+void PointCloudWidget::applyNoiseFiltering() {
+  if (!m_pointCloud || m_pointCloud->empty())
+    return;
+
+  // Create a copy for filtering
+  m_filteredPointCloud->clear();
+  *m_filteredPointCloud = *m_pointCloud;
+
+  // Apply filtering based on parameters
+  // This is a simplified implementation - in a real application,
+  // you would use PCL's filtering functions here
+
+  // Example: Simple distance-based outlier removal
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr temp_cloud(
+      new pcl::PointCloud<pcl::PointXYZRGB>);
+
+  for (const auto &point : m_filteredPointCloud->points) {
+    // Keep points within reasonable bounds
+    if (std::abs(point.x) < 10.0f && std::abs(point.y) < 10.0f &&
+        std::abs(point.z) < 10.0f) {
+      temp_cloud->points.push_back(point);
+    }
+  }
+
+  temp_cloud->width = temp_cloud->points.size();
+  temp_cloud->height = 1;
+  temp_cloud->is_dense = false;
+
+  *m_filteredPointCloud = *temp_cloud;
+}
+
+void PointCloudWidget::updateVertexColors() {
+  if (!m_pointCloud || m_pointCloud->empty())
+    return;
+
+  const auto &cloud =
+      m_noiseFilteringEnabled ? m_filteredPointCloud : m_pointCloud;
+
+  for (size_t i = 0; i < m_vertices.size() && i < cloud->points.size(); ++i) {
+    const auto &point = cloud->points[i];
+    QVector3D color;
+
+    switch (m_colorMode) {
+    case 0: // RGB
+      color = QVector3D(point.r / 255.0f, point.g / 255.0f, point.b / 255.0f);
+      break;
+    case 1: // Depth
+    {
+      float depth =
+          std::sqrt(point.x * point.x + point.y * point.y + point.z * point.z);
+      float normalized_depth = std::clamp(depth / 10.0f, 0.0f, 1.0f);
+      color = QVector3D(normalized_depth, 0.5f, 1.0f - normalized_depth);
+    } break;
+    case 2: // Height
+    {
+      float normalized_y = std::clamp((point.y + 5.0f) / 10.0f, 0.0f, 1.0f);
+      color = QVector3D(normalized_y, 1.0f - normalized_y, 0.5f);
+    } break;
+    case 3: // Intensity (using brightness of RGB)
+    {
+      float intensity = (point.r + point.g + point.b) / (3.0f * 255.0f);
+      color = QVector3D(intensity, intensity, intensity);
+    } break;
+    }
+
+    m_vertices[i].color = color;
+  }
+}
+
+void PointCloudWidget::computeStatistics() const {
+  if (!m_pointCloud || m_pointCloud->empty()) {
+    m_lastStats = CloudStats{0, 0.0f, 0.0f, 0.0f, 0.0f, "Empty"};
+    m_statsNeedUpdate = false;
+    return;
+  }
+
+  const auto &cloud =
+      m_noiseFilteringEnabled ? m_filteredPointCloud : m_pointCloud;
+
+  m_lastStats.numPoints = cloud->points.size();
+
+  if (m_lastStats.numPoints > 0) {
+    float minDepth = std::numeric_limits<float>::max();
+    float maxDepth = std::numeric_limits<float>::min();
+    float totalDepth = 0.0f;
+    float noiseCount = 0.0f;
+
+    float minX = std::numeric_limits<float>::max();
+    float maxX = std::numeric_limits<float>::min();
+    float minY = std::numeric_limits<float>::max();
+    float maxY = std::numeric_limits<float>::min();
+    float minZ = std::numeric_limits<float>::max();
+    float maxZ = std::numeric_limits<float>::min();
+
+    for (const auto &point : cloud->points) {
+      float depth =
+          std::sqrt(point.x * point.x + point.y * point.y + point.z * point.z);
+      minDepth = std::min(minDepth, depth);
+      maxDepth = std::max(maxDepth, depth);
+      totalDepth += depth;
+
+      // Simple noise detection: points very far from average
+      if (depth > 20.0f)
+        noiseCount++;
+
+      minX = std::min(minX, point.x);
+      maxX = std::max(maxX, point.x);
+      minY = std::min(minY, point.y);
+      maxY = std::max(maxY, point.y);
+      minZ = std::min(minZ, point.z);
+      maxZ = std::max(maxZ, point.z);
+    }
+
+    m_lastStats.minDepth = minDepth;
+    m_lastStats.maxDepth = maxDepth;
+    m_lastStats.avgDepth = totalDepth / m_lastStats.numPoints;
+    m_lastStats.noiseLevel = noiseCount / m_lastStats.numPoints;
+
+    m_lastStats.boundingBox = QString("X:[%1,%2] Y:[%3,%4] Z:[%5,%6]")
+                                  .arg(minX, 0, 'f', 2)
+                                  .arg(maxX, 0, 'f', 2)
+                                  .arg(minY, 0, 'f', 2)
+                                  .arg(maxY, 0, 'f', 2)
+                                  .arg(minZ, 0, 'f', 2)
+                                  .arg(maxZ, 0, 'f', 2);
+  }
+
+  m_statsNeedUpdate = false;
+}
+
+QVector3D PointCloudWidget::computePointColor(const pcl::PointXYZRGB &point,
+                                              float depth) const {
+  switch (m_colorMode) {
+  case 0: // RGB
+    return QVector3D(point.r / 255.0f, point.g / 255.0f, point.b / 255.0f);
+  case 1: // Depth
+  {
+    float normalized_depth = std::clamp(depth / 10.0f, 0.0f, 1.0f);
+    return QVector3D(normalized_depth, 0.5f, 1.0f - normalized_depth);
+  }
+  case 2: // Height
+  {
+    float normalized_y = std::clamp((point.y + 5.0f) / 10.0f, 0.0f, 1.0f);
+    return QVector3D(normalized_y, 1.0f - normalized_y, 0.5f);
+  }
+  case 3: // Intensity
+  {
+    float intensity = (point.r + point.g + point.b) / (3.0f * 255.0f);
+    return QVector3D(intensity, intensity, intensity);
+  }
+  default:
+    return QVector3D(1.0f, 1.0f, 1.0f);
+  }
 }
 
 } // namespace stereo_vision::gui
