@@ -88,9 +88,19 @@ if(BUILD_GUI)
     set(QT_LIBRARIES "")
     set(QT_VERSION_MAJOR "")
     # Force Qt5 to match system VTK/PCL installation that was compiled against Qt5
-    find_package(Qt5 COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets REQUIRED)
+    find_package(Qt5 COMPONENTS Core Gui Widgets OpenGL REQUIRED)
     set(QT_VERSION_MAJOR 5)
-    list(APPEND QT_LIBRARIES Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL Qt5::OpenGLWidgets)
+    list(APPEND QT_LIBRARIES Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL)
+    
+    # Try to find OpenGLWidgets component (available in Qt 5.4+)
+    find_package(Qt5 COMPONENTS OpenGLWidgets QUIET)
+    if(Qt5OpenGLWidgets_FOUND)
+        list(APPEND QT_LIBRARIES Qt5::OpenGLWidgets)
+        message(STATUS "Qt5OpenGLWidgets found and will be used.")
+    else()
+        message(STATUS "Qt5OpenGLWidgets not found - using Qt5::OpenGL instead.")
+    endif()
+    
     message(STATUS "Using Qt5 for GUI to match system VTK/PCL installation.")
 endif()
 
@@ -140,6 +150,7 @@ endif()
 file(GLOB_RECURSE CORE_SOURCES "src/core/*.cpp")
 file(GLOB_RECURSE GPU_SOURCES "src/gpu/*.cpp")
 file(GLOB_RECURSE GUI_SOURCES "src/gui/*.cpp")
+file(GLOB_RECURSE GUI_HEADERS "include/gui/*.hpp")
 file(GLOB_RECURSE UTIL_SOURCES "src/utils/*.cpp")
 
 # --- Core Library ---
@@ -155,7 +166,15 @@ endif()
 
 # --- GUI Library ---
 if(BUILD_GUI)
-    add_library(stereo_vision_gui ${GUI_SOURCES})
+    add_library(stereo_vision_gui ${GUI_SOURCES} ${GUI_HEADERS})
+    
+    # Enable Qt's automatic MOC, UIC, and RCC
+    set_target_properties(stereo_vision_gui PROPERTIES
+        AUTOMOC ON
+        AUTOUIC ON
+        AUTORCC ON
+    )
+    
     target_link_libraries(stereo_vision_gui PRIVATE
         stereo_vision_core
         ${QT_LIBRARIES}
@@ -167,8 +186,16 @@ endif()
 
 # --- Main Application ---
 add_executable(stereo_vision_app src/main.cpp)
+add_executable(stereo_vision_app_simple src/main_simple.cpp)
+
 if(BUILD_GUI)
     target_link_libraries(stereo_vision_app PRIVATE stereo_vision_gui)
+    # Link Qt5 directly to main executable
+    target_link_libraries(stereo_vision_app PRIVATE Qt5::Core Qt5::Widgets)
+    target_include_directories(stereo_vision_app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    
+    # Simple app
+    target_link_libraries(stereo_vision_app_simple PRIVATE Qt5::Core Qt5::Widgets)
 else()
     target_link_libraries(stereo_vision_app PRIVATE stereo_vision_core)
 endif()

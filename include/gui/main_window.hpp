@@ -19,14 +19,12 @@ class QWidget;
 #include "point_cloud_processor.hpp"
 #include "stereo_matcher.hpp"
 
-// Forward declare our own GUI widgets
 namespace stereo_vision::gui {
+
+// Forward declare our own GUI widgets in the stereo_vision::gui namespace
 class ImageDisplayWidget;
 class ParameterPanel;
 class PointCloudWidget;
-} // namespace stereo_vision::gui
-
-namespace stereo_vision::gui {
 
 class MainWindow : public QMainWindow {
   Q_OBJECT
@@ -110,6 +108,7 @@ private:
   QString m_outputPath;
 
   // Processing state
+  QTimer *m_processingTimer;
   bool m_isProcessing;
   bool m_hasCalibration;
   bool m_hasImages;

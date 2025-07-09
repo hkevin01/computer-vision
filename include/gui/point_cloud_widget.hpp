@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QColor>
 #include <QKeyEvent>
 #include <QMatrix4x4>
 #include <QMouseEvent>
@@ -15,6 +16,8 @@
 #include <opencv2/opencv.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+
+namespace stereo_vision::gui {
 
 class PointCloudWidget : public QOpenGLWidget, protected QOpenGLFunctions {
   Q_OBJECT
@@ -69,6 +72,7 @@ private:
   void setupShaders();
   void setupBuffers();
   void updatePointCloudData();
+  void updateCamera();
   void drawAxes();
   void drawGrid();
 
@@ -118,3 +122,5 @@ private:
   static constexpr float CAMERA_SPEED = 0.1f;
   static constexpr float MOUSE_SENSITIVITY = 0.5f;
 };
+
+} // namespace stereo_vision::gui

@@ -121,6 +121,20 @@ endif()
 
 target_link_libraries(run_tests PRIVATE ${TEST_LIBRARIES})
 
+# Copy include directories from the core library to ensure consistency
+get_target_property(CORE_INCLUDE_DIRS stereo_vision_core INTERFACE_INCLUDE_DIRECTORIES)
+if(CORE_INCLUDE_DIRS)
+    target_include_directories(run_tests PRIVATE ${CORE_INCLUDE_DIRS})
+endif()
+
+# Ensure all necessary system includes are available
+target_include_directories(run_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include
+    ${OpenCV_INCLUDE_DIRS}
+    ${PCL_INCLUDE_DIRS}
+    ${GTEST_INCLUDE_DIRS}
+)
+
 # --- Add Test to CTest ---
 include(GoogleTest)
 gtest_discover_tests(run_tests)

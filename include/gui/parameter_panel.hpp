@@ -14,6 +14,8 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
+namespace stereo_vision::gui {
+
 struct StereoParameters {
   // SGBM parameters
   int minDisparity = 0;
@@ -161,3 +163,5 @@ private:
   // Settings
   QSettings *m_settings;
 };
+
+} // namespace stereo_vision::gui
