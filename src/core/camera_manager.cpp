@@ -16,16 +16,24 @@ int CameraManager::detectCameras() {
   int consecutive_failures = 0;
   int max_consecutive_failures = 3; // Stop after 3 consecutive failures
 
+  std::cout << "=== Camera Detection Started ===" << std::endl;
+  std::cout << "Scanning for available cameras..." << std::endl;
+
   for (int i = 0;
        i < max_test && consecutive_failures < max_consecutive_failures; i++) {
     cv::VideoCapture temp_cap;
+    std::cout << "Testing camera index " << i << "..." << std::endl;
 
     // Try V4L2 backend first (more reliable on Linux)
     bool opened = false;
     if (temp_cap.open(i, cv::CAP_V4L2)) {
       opened = true;
+      std::cout << "  Opened with V4L2 backend" << std::endl;
     } else if (temp_cap.open(i, cv::CAP_ANY)) {
       opened = true;
+      std::cout << "  Opened with ANY backend" << std::endl;
+    } else {
+      std::cout << "  Failed to open device" << std::endl;
     }
 
     if (opened) {
@@ -50,9 +58,12 @@ int CameraManager::detectCameras() {
         count++;
         consecutive_failures = 0; // Reset failure counter
 
-        std::cout << "Detected working camera at index " << i << ": " << width
+        std::cout << "  ✅ Working camera found at index " << i << ": " << width
                   << "x" << height << " @ " << fps << " FPS" << std::endl;
       } else {
+        std::cout
+            << "  ❌ Device opened but cannot capture frames (metadata device?)"
+            << std::endl;
         consecutive_failures++;
       }
 
@@ -62,7 +73,27 @@ int CameraManager::detectCameras() {
     }
   }
 
+  std::cout << "=== Camera Detection Complete ===" << std::endl;
   std::cout << "Total usable cameras detected: " << count << std::endl;
+
+  if (count == 0) {
+    std::cout << "❌ No working cameras found!" << std::endl;
+    std::cout << "Please check:" << std::endl;
+    std::cout << "  - Camera is connected and powered" << std::endl;
+    std::cout << "  - User is in 'video' group: groups $USER | grep video"
+              << std::endl;
+    std::cout << "  - Camera permissions: ls -la /dev/video*" << std::endl;
+  } else if (count == 1) {
+    std::cout << "⚠️  Only ONE camera detected!" << std::endl;
+    std::cout << "For stereo vision, you need TWO separate physical cameras."
+              << std::endl;
+    std::cout << "Single camera mode will be available for testing."
+              << std::endl;
+  } else {
+    std::cout << "✅ Multiple cameras detected - stereo vision available!"
+              << std::endl;
+  }
+
   return count;
 }
 
