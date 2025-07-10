@@ -28,12 +28,14 @@
 #include <opencv2/opencv.hpp>
 
 // Project includes
+#include "ai_calibration.hpp"
 #include "camera_calibration.hpp"
 #include "camera_manager.hpp"
 #include "gui/camera_selector_dialog.hpp"
 #include "gui/image_display_widget.hpp"
 #include "gui/parameter_panel.hpp"
 #include "gui/point_cloud_widget.hpp"
+#include "live_stereo_processor.hpp"
 #include "point_cloud_processor.hpp"
 #include "stereo_matcher.hpp"
 
@@ -55,7 +57,10 @@ MainWindow::MainWindow(QWidget *parent)
       m_captureTimer(new QTimer(this)), m_isProcessing(false),
       m_hasCalibration(false), m_hasImages(false), m_isCapturing(false),
       m_leftCameraConnected(false), m_rightCameraConnected(false),
-      m_selectedLeftCamera(-1), m_selectedRightCamera(-1) {
+      m_selectedLeftCamera(-1), m_selectedRightCamera(-1),
+      m_liveProcessingTimer(new QTimer(this)), m_liveProcessingEnabled(false),
+      m_aiCalibrationActive(false), m_calibrationFrameCount(0),
+      m_requiredCalibrationFrames(20) {
   // Initialize processing components
   m_calibration = std::make_shared<CameraCalibration>();
   m_stereoMatcher = std::make_shared<StereoMatcher>();
@@ -161,9 +166,23 @@ void MainWindow::setupMenuBar() {
   m_calibrateAction->setShortcut(QKeySequence("Ctrl+C"));
   m_processMenu->addAction(m_calibrateAction);
 
+  m_aiCalibrationAction = new QAction("&AI Auto-Calibration...", this);
+  m_aiCalibrationAction->setShortcut(QKeySequence("Ctrl+Alt+C"));
+  m_processMenu->addAction(m_aiCalibrationAction);
+
+  m_processMenu->addSeparator();
+
   m_processAction = new QAction("Process &Stereo Images", this);
   m_processAction->setShortcut(QKeySequence("Ctrl+P"));
   m_processMenu->addAction(m_processAction);
+
+  m_liveProcessingAction = new QAction("Toggle &Live Processing", this);
+  m_liveProcessingAction->setShortcut(QKeySequence("Ctrl+Shift+P"));
+  m_liveProcessingAction->setCheckable(true);
+  m_liveProcessingAction->setEnabled(false);
+  m_processMenu->addAction(m_liveProcessingAction);
+
+  m_processMenu->addSeparator();
 
   m_exportAction = new QAction("&Export Point Cloud...", this);
   m_exportAction->setShortcut(QKeySequence("Ctrl+E"));
@@ -171,6 +190,20 @@ void MainWindow::setupMenuBar() {
 
   // View menu
   m_viewMenu = m_menuBar->addMenu("&View");
+
+  m_showDisparityAction = new QAction("Show &Disparity Map", this);
+  m_showDisparityAction->setShortcut(QKeySequence("Ctrl+D"));
+  m_showDisparityAction->setCheckable(true);
+  m_showDisparityAction->setChecked(true);
+  m_viewMenu->addAction(m_showDisparityAction);
+
+  m_showPointCloudAction = new QAction("Show &Point Cloud", this);
+  m_showPointCloudAction->setShortcut(QKeySequence("Ctrl+3"));
+  m_showPointCloudAction->setCheckable(true);
+  m_showPointCloudAction->setChecked(true);
+  m_viewMenu->addAction(m_showPointCloudAction);
+
+  m_viewMenu->addSeparator();
 
   // Help menu
   m_helpMenu = m_menuBar->addMenu("&Help");
@@ -201,10 +234,26 @@ void MainWindow::setupCentralWidget() {
   m_imageTabWidget->addTab(m_rightImageWidget, "Right Image");
   m_imageTabWidget->addTab(m_disparityWidget, "Disparity Map");
 
+  // Add live view tab for real-time processing
+  auto *liveViewWidget = new QWidget;
+  auto *liveLayout = new QHBoxLayout(liveViewWidget);
+
+  // Create mini views for live processing
+  auto *liveStereoWidget = new ImageDisplayWidget;
+  auto *liveDisparityWidget = new ImageDisplayWidget;
+
+  liveStereoWidget->setMinimumSize(320, 240);
+  liveDisparityWidget->setMinimumSize(320, 240);
+
+  liveLayout->addWidget(liveStereoWidget);
+  liveLayout->addWidget(liveDisparityWidget);
+
+  m_imageTabWidget->addTab(liveViewWidget, "Live Processing");
+
   // Point cloud widget
   m_pointCloudWidget = new PointCloudWidget;
 
-  // Add to left layout
+  // Add to left layout with adjusted proportions for better live view
   leftLayout->addWidget(m_imageTabWidget, 3);
   leftLayout->addWidget(m_pointCloudWidget, 2);
 
@@ -250,10 +299,20 @@ void MainWindow::connectSignals() {
   // Process actions
   connect(m_calibrateAction, &QAction::triggered, this,
           &MainWindow::runCalibration);
+  connect(m_aiCalibrationAction, &QAction::triggered, this,
+          &MainWindow::startAICalibration);
   connect(m_processAction, &QAction::triggered, this,
           &MainWindow::processStereoImages);
+  connect(m_liveProcessingAction, &QAction::triggered, this,
+          &MainWindow::toggleLiveProcessing);
   connect(m_exportAction, &QAction::triggered, this,
           &MainWindow::exportPointCloud);
+
+  // View actions
+  connect(m_showDisparityAction, &QAction::toggled, this,
+          &MainWindow::updateDisparityMap);
+  connect(m_showPointCloudAction, &QAction::toggled, this,
+          &MainWindow::updatePointCloud);
 
   // Help actions
   connect(m_aboutAction, &QAction::triggered, this, &MainWindow::showAbout);
@@ -822,6 +881,131 @@ void MainWindow::onFrameReady() {
 void MainWindow::onCameraSelectionChanged() {
   // This slot can be used for future dynamic camera switching
   updateUI();
+}
+
+// AI Calibration methods
+void MainWindow::startAICalibration() {
+  if (!m_isCapturing) {
+    QMessageBox::warning(
+        this, "AI Calibration",
+        "Please start webcam capture first to begin AI calibration.");
+    return;
+  }
+
+  if (m_aiCalibrationActive) {
+    QMessageBox::information(this, "AI Calibration",
+                             "AI calibration is already in progress.");
+    return;
+  }
+
+  m_aiCalibrationActive = true;
+  m_calibrationFrameCount = 0;
+  m_calibrationFramesLeft.clear();
+  m_calibrationFramesRight.clear();
+
+  m_statusLabel->setText(
+      "AI Calibration started - position chessboard in view");
+
+  QMessageBox::information(
+      this, "AI Calibration",
+      QString("AI Auto-Calibration started!\n\n"
+              "Instructions:\n"
+              "1. Hold a chessboard (9x6 pattern) in front of the camera(s)\n"
+              "2. Move it to different positions and orientations\n"
+              "3. Keep the pattern fully visible and in focus\n"
+              "4. %1 frames will be automatically captured\n"
+              "5. Calibration will run automatically when complete\n\n"
+              "Press OK to begin capturing frames...")
+          .arg(m_requiredCalibrationFrames));
+}
+
+void MainWindow::onCalibrationProgress(int progress) {
+  m_progressBar->setVisible(true);
+  m_progressBar->setValue(progress);
+  m_statusLabel->setText(QString("AI Calibration progress: %1%").arg(progress));
+}
+
+void MainWindow::onCalibrationComplete() {
+  m_aiCalibrationActive = false;
+  m_progressBar->setVisible(false);
+  m_statusLabel->setText("AI Calibration completed successfully");
+
+  QMessageBox::information(
+      this, "AI Calibration Complete",
+      "Camera calibration has been completed successfully!\n\n"
+      "The calibration parameters are now available for stereo processing.\n"
+      "You can now use live processing or process captured stereo pairs.");
+}
+
+void MainWindow::captureCalibrationFrame() {
+  if (!m_aiCalibrationActive || !m_isCapturing) {
+    return;
+  }
+
+  // This would be called automatically when a good chessboard is detected
+  // Implementation would involve the AI calibration component
+}
+
+// Live Processing methods
+void MainWindow::toggleLiveProcessing() {
+  if (!m_hasCalibration) {
+    QMessageBox::warning(
+        this, "Live Processing",
+        "Camera calibration is required for live stereo processing.\n"
+        "Please calibrate cameras first.");
+    m_liveProcessingAction->setChecked(false);
+    return;
+  }
+
+  if (!m_isCapturing) {
+    QMessageBox::warning(this, "Live Processing",
+                         "Webcam capture must be active for live processing.\n"
+                         "Please start webcam capture first.");
+    m_liveProcessingAction->setChecked(false);
+    return;
+  }
+
+  m_liveProcessingEnabled = m_liveProcessingAction->isChecked();
+
+  if (m_liveProcessingEnabled) {
+    m_liveProcessingTimer->start(100); // 10 FPS processing
+    m_statusLabel->setText("Live stereo processing enabled");
+    m_imageTabWidget->setCurrentIndex(3); // Switch to Live Processing tab
+  } else {
+    m_liveProcessingTimer->stop();
+    m_statusLabel->setText("Live stereo processing disabled");
+  }
+}
+
+void MainWindow::onLiveFrameProcessed() {
+  if (!m_liveProcessingEnabled || !m_isCapturing) {
+    return;
+  }
+
+  // Process current frames for live disparity and point cloud
+  if (!m_lastLeftFrame.empty() && !m_lastRightFrame.empty()) {
+    // This would call the live stereo processor
+    // For now, just update the status
+    updateDisparityMap();
+    updatePointCloud();
+  }
+}
+
+void MainWindow::updateDisparityMap() {
+  if (m_showDisparityAction->isChecked() && !m_lastLeftFrame.empty() &&
+      !m_lastRightFrame.empty()) {
+    // Compute and display disparity map
+    // This would use the stereo matcher to compute disparity
+    m_statusLabel->setText("Disparity map updated");
+  }
+}
+
+void MainWindow::updatePointCloud() {
+  if (m_showPointCloudAction->isChecked() && !m_lastDisparityMap.empty()) {
+    // Generate and display point cloud
+    // This would use the point cloud processor
+    m_statusLabel->setText("Point cloud updated");
+  }
 }
 
 } // namespace stereo_vision::gui

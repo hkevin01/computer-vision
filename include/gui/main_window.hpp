@@ -57,6 +57,18 @@ private slots:
   void onFrameReady();
   void onCameraSelectionChanged();
 
+  // Live processing slots
+  void toggleLiveProcessing();
+  void onLiveFrameProcessed();
+  void updateDisparityMap();
+  void updatePointCloud();
+
+  // AI Calibration slots
+  void startAICalibration();
+  void onCalibrationProgress(int progress);
+  void onCalibrationComplete();
+  void captureCalibrationFrame();
+
 private:
   void setupUI();
   void setupMenuBar();
@@ -109,6 +121,15 @@ private:
   QAction *m_captureRightAction;
   QAction *m_captureStereoAction;
 
+  // Live processing actions
+  QAction *m_liveProcessingAction;
+  QAction *m_showDisparityAction;
+  QAction *m_showPointCloudAction;
+
+  // AI Calibration actions
+  QAction *m_aiCalibrationAction;
+  QAction *m_captureCalibFrameAction;
+
   // Status bar
   QStatusBar *m_statusBar;
   QProgressBar *m_progressBar;
@@ -142,6 +163,19 @@ private:
   int m_selectedRightCamera;
   cv::Mat m_lastLeftFrame;
   cv::Mat m_lastRightFrame;
+
+  // Live processing state
+  QTimer *m_liveProcessingTimer;
+  bool m_liveProcessingEnabled;
+  cv::Mat m_lastDisparityMap;
+  cv::Mat m_lastPointCloud;
+
+  // AI Calibration state
+  bool m_aiCalibrationActive;
+  std::vector<cv::Mat> m_calibrationFramesLeft;
+  std::vector<cv::Mat> m_calibrationFramesRight;
+  int m_calibrationFrameCount;
+  int m_requiredCalibrationFrames;
 };
 
 } // namespace stereo_vision::gui

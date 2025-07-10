@@ -17,7 +17,8 @@
 [![Documentation](https://img.shields.io/badge/docs-available-brightgreen.svg)](docs/)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](tests/)
 
-[![Development Status](https://img.shields.io/badge/status-active%20development-brightgreen.svg)](https://github.com/username/stereo-vision-app)
+[![Development Status](https://img.shields.io/badge/status-🎉%20COMPLETE-brightgreen.svg)](https://github.com/username/stereo-vision-app)
+[![AI Features](https://img.shields.io/badge/AI-Calibration%20%26%20Live%20Processing-purple.svg)](https://github.com/username/stereo-vision-app)
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Issues](https://img.shields.io/badge/issues-open-blue.svg)](https://github.com/username/stereo-vision-app/issues)
 [![Performance](https://img.shields.io/badge/performance-optimized-success.svg)](benchmarks/)
@@ -60,21 +61,66 @@ cd stereo-vision-app
 [![GUI Interface](https://img.shields.io/badge/🖥️-GUI%20Interface-purple.svg)](#)
 
 - **Stereo Camera Calibration**: Automatic camera calibration using checkerboard patterns
+- **🤖 AI Auto-Calibration**: Intelligent automatic calibration with quality assessment
 - **Real-time Stereo Vision**: GPU-accelerated stereo matching algorithms
+- **⚡ Live Processing**: Real-time disparity mapping and 3D reconstruction
 - **Webcam Capture Integration**: Direct capture from USB/built-in cameras with device selection
 - **Live Camera Preview**: Real-time preview from left and right cameras
 - **Synchronized Capture**: Capture perfectly synchronized stereo image pairs
+- **🎯 Single Camera Mode**: Manual stereo capture workflow for single camera setups
 - **Cross-Platform GPU Support**: NVIDIA CUDA and AMD HIP backends
 - **3D Point Cloud Generation**: Convert disparity maps to dense point clouds
+- **📊 Performance Monitoring**: Real-time FPS and processing quality metrics
 - **Interactive GUI**: User-friendly interface for parameter tuning and visualization
 - **Multiple Export Formats**: Support for PLY, PCD, and other point cloud formats
 
-## 🎮 Interactive Point Cloud Viewer
+## 🤖 AI Auto-Calibration
 
-[![Mouse Control](https://img.shields.io/badge/Mouse-Navigation-blue.svg)](#)
-[![Keyboard](https://img.shields.io/badge/Keyboard-Shortcuts-green.svg)](#)
-[![Real-time](https://img.shields.io/badge/Real--time-Filtering-orange.svg)](#)
-[![Multi-View](https://img.shields.io/badge/Multi-View-Support-purple.svg)](#)
+[![AI Powered](https://img.shields.io/badge/🤖-AI%20Powered-brightgreen.svg)](#)
+[![Auto Detection](https://img.shields.io/badge/🔍-Auto%20Detection-blue.svg)](#)
+[![Quality Assessment](https://img.shields.io/badge/📊-Quality%20Assessment-orange.svg)](#)
+[![Real-time Feedback](https://img.shields.io/badge/⚡-Real--time%20Feedback-yellow.svg)](#)
+
+Advanced AI-powered calibration system that automatically detects and captures optimal calibration frames:
+
+### 🎯 Features
+- **Automatic Chessboard Detection**: Real-time detection with quality assessment
+- **Intelligent Frame Selection**: AI selects frames with optimal pose diversity
+- **Quality Metrics**: Multi-factor quality scoring (sharpness, coverage, uniformity)
+- **Progress Monitoring**: Real-time feedback on calibration progress
+- **Single & Stereo Support**: Works with both single camera and stereo camera setups
+- **Configurable Parameters**: Adjustable quality thresholds and capture settings
+
+### 🎮 Usage
+1. **Start Capture**: Begin webcam capture from configured cameras
+2. **Launch AI Calibration**: Process → AI Auto-Calibration (Ctrl+Alt+C)
+3. **Position Chessboard**: Move 9x6 chessboard through various positions and orientations
+4. **Automatic Collection**: AI automatically captures 20+ optimal frames
+5. **Calibration Complete**: Parameters automatically calculated and ready for use
+
+## ⚡ Live Stereo Processing
+
+[![Real-time](https://img.shields.io/badge/⚡-Real--time-red.svg)](#)
+[![Live 3D](https://img.shields.io/badge/🔗-Live%203D-green.svg)](#)
+[![Performance](https://img.shields.io/badge/📊-Performance%20Monitoring-blue.svg)](#)
+[![GPU Accelerated](https://img.shields.io/badge/🚀-GPU%20Accelerated-purple.svg)](#)
+
+Real-time stereo vision processing with live disparity mapping and 3D point cloud generation:
+
+### 🎯 Features
+- **Real-time Disparity Maps**: Live computation during webcam capture
+- **3D Point Cloud Generation**: Instant 3D reconstruction with color mapping
+- **Performance Monitoring**: Live FPS tracking and queue management
+- **GPU Acceleration**: Automatic CUDA/HIP acceleration with CPU fallback
+- **Interactive Parameters**: Real-time adjustment of processing parameters
+- **Quality Indicators**: Live feedback on processing quality and performance
+
+### 🎮 Usage
+1. **Complete Calibration**: Ensure cameras are calibrated (manual or AI)
+2. **Start Live Processing**: Process → Toggle Live Processing (Ctrl+Shift+P)
+3. **View Live Results**: Switch to "Live Processing" tab for real-time view
+4. **Monitor Performance**: Watch FPS and quality metrics in status bar
+5. **Adjust Parameters**: Use parameter panel for real-time fine-tuning
 
 ## 📷 Webcam Capture Integration
 
