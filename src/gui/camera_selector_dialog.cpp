@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDebug>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -155,19 +156,37 @@ void CameraSelectorDialog::refreshCameraList() {
     return;
   }
 
+  // Add detailed logging for debugging
+  qDebug() << "=== GUI Camera Detection Debug ===";
+  qDebug() << "About to call detectCameras() from GUI context...";
+
+  // Force refresh of OpenCV backends - sometimes Qt context interferes
+  cv::VideoCapture test_cap;
+  test_cap.release(); // Force OpenCV to reinitialize backends
+
   // Detect available cameras
   int numCameras = m_cameraManager->detectCameras();
+
+  qDebug() << "detectCameras() returned:" << numCameras;
+
   const auto &cameraList = m_cameraManager->getCameraList();
+  qDebug() << "Camera list size:" << cameraList.size();
+
+  for (size_t i = 0; i < cameraList.size(); ++i) {
+    qDebug() << "Camera" << i << ":" << QString::fromStdString(cameraList[i]);
+  }
 
   if (numCameras == 0) {
     m_leftCameraCombo->addItem("No cameras found");
     m_rightCameraCombo->addItem("No cameras found");
-    QMessageBox::information(this, "No Cameras",
-                             "No usable cameras detected.\n\n"
-                             "Please check:\n"
-                             "• Camera connections\n"
-                             "• Camera permissions\n"
-                             "• Other applications using cameras");
+    QMessageBox::information(
+        this, "No Cameras",
+        "No usable cameras detected.\n\n"
+        "Please check:\n"
+        "• Camera connections\n"
+        "• Camera permissions\n"
+        "• Other applications using cameras\n"
+        "\nDebug: Check terminal output for detailed camera detection log.");
     return;
   }
 

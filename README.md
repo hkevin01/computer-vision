@@ -340,10 +340,10 @@ sudo apt install libboost-all-dev libeigen3-dev libglew-dev
 ```
 
 ### Build Scripts Available
-- `./run.sh` - Build and run with GUI (default)
-- `./build.sh` - Build only
-- `./build_amd.sh` - AMD/HIP specific build
-- `./build_debug.sh` - Debug build with symbols
+- `./run.sh` - Build and run with GUI (default, at project root)
+- `./build_scripts/build.sh` - Build only
+- `./build_scripts/build_amd.sh` - AMD/HIP specific build
+- `./build_scripts/build_debug.sh` - Debug build with symbols
 
 ### Manual Build with GPU Backend Selection
 
@@ -386,80 +386,52 @@ make -j$(nproc)
 3. Adjust stereo matching parameters
 4. Generate and export point cloud
 
-## Project Structure
+## 📁 Project Structure
+
+[![Organization](https://img.shields.io/badge/📁-Well%20Organized-green.svg)](#)
+[![Documentation](https://img.shields.io/badge/📖-Comprehensive%20Docs-blue.svg)](documentation/)
+[![Tests](https://img.shields.io/badge/🧪-Isolated%20Tests-orange.svg)](test_programs/)
+[![Scripts](https://img.shields.io/badge/⚙️-Build%20Scripts-purple.svg)](build_scripts/)
 
 ```
-├── src/
-│   ├── core/           # Core stereo vision algorithms
-│   ├── cuda/           # CUDA kernels and GPU processing
-│   ├── gui/            # GTK3 user interface
-│   ├── utils/          # Utility functions
-│   └── main.cpp        # Application entry point
-├── include/            # Header files
-├── data/              # Sample data and test images
-├── tests/             # Unit tests
-├── docs/              # Documentation
-└── scripts/           # Build and utility scripts
+stereo-vision-app/
+├── 📁 src/                     # Source code
+│   ├── core/                   # Core algorithms (stereo, calibration, AI)
+│   ├── gui/                    # Qt GUI components
+│   ├── cuda/                   # CUDA implementations
+│   ├── gpu/                    # GPU abstractions
+│   └── utils/                  # Utility functions
+├── 📁 include/                 # Header files
+│   ├── ai_calibration.hpp      # AI-powered calibration
+│   ├── live_stereo_processor.hpp # Real-time stereo processing
+│   ├── camera_manager.hpp      # Camera management
+│   └── gui/                    # GUI headers
+├── 📁 documentation/           # 📖 All project documentation
+│   ├── features/               # Feature documentation
+│   ├── build/                  # Build system docs
+│   └── setup/                  # Setup guides
+├── 📁 test_programs/           # 🧪 Standalone test programs
+│   ├── test_camera_manager*    # Camera testing
+│   ├── test_direct_camera*     # Direct camera access tests
+│   └── README.md               # Test program guide
+├── 📁 build_scripts/           # ⚙️ Build and utility scripts
+│   ├── build*.sh               # Various build configurations
+│   ├── setup*.sh               # Environment setup scripts
+│   └── README.md               # Script documentation
+├── 📁 logs/                    # 📋 Build and runtime logs
+├── 📁 data/                    # Sample data and calibration files
+├── 📁 docs/                    # Technical documentation
+├── 📁 scripts/                 # Utility scripts
+├── 📁 tests/                   # Unit tests
+├── 📁 cmake/                   # CMake modules
+├── 📄 CMakeLists.txt           # Build configuration
+├── 📄 README.md                # This file
+└── 🚀 run.sh                   # Main build and run script
 ```
 
-## 📚 Documentation
-
-[![Complete Documentation](https://img.shields.io/badge/📖-Complete%20Documentation-blue.svg)](docs/)
-[![Setup Guide](https://img.shields.io/badge/🚀-Setup%20Guide-green.svg)](docs/SETUP_REQUIREMENTS.md)
-[![User Manual](https://img.shields.io/badge/📖-User%20Manual-orange.svg)](docs/)
-
-### Available Documentation
-
-- **[Webcam Capture Guide](docs/webcam_capture.md)** - Complete guide to webcam integration and live capture
-- **[Point Cloud Features](docs/point_cloud_features.md)** - Interactive 3D viewer and noise suppression
-- **[Shields & Badges](docs/shields_badges.md)** - Project status and quality indicators
-- **[Setup Requirements](docs/SETUP_REQUIREMENTS.md)** - System requirements and installation
-- **[Development Environment](DEV_ENVIRONMENT.md)** - Development setup and building
-- **[C++ Features](docs/Cplusplus.md)** - Modern C++17 features and patterns
-
-### Quick Reference
-
-| Feature | Documentation | Keyboard Shortcut |
-|---------|---------------|-------------------|
-| Camera Selection | [webcam_capture.md](docs/webcam_capture.md) | Ctrl+Shift+C |
-| Start Capture | [webcam_capture.md](docs/webcam_capture.md) | Ctrl+Shift+S |
-| Capture Stereo | [webcam_capture.md](docs/webcam_capture.md) | Space |
-| Point Cloud Viewer | [point_cloud_features.md](docs/point_cloud_features.md) | Mouse + Keys |
-| Open Left Image | README.md | Ctrl+L |
-| Open Right Image | README.md | Ctrl+R |
-
-## Contributing
-
-[![Contributors](https://img.shields.io/badge/contributors-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Pull Requests](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/username/stereo-vision-app/pulls)
-[![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-enforced-blue.svg)](CODE_OF_CONDUCT.md)
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## 📞 Support & Community
-
-[![Discussions](https://img.shields.io/badge/GitHub-Discussions-181717.svg?logo=github)](https://github.com/username/stereo-vision-app/discussions)
-[![Issues](https://img.shields.io/badge/GitHub-Issues-181717.svg?logo=github)](https://github.com/username/stereo-vision-app/issues)
-[![Wiki](https://img.shields.io/badge/GitHub-Wiki-181717.svg?logo=github)](https://github.com/username/stereo-vision-app/wiki)
-
-## License
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-<div align="center">
-
-[![Made with ❤️](https://img.shields.io/badge/Made%20with-❤️-red.svg)](https://github.com/username/stereo-vision-app)
-[![C++](https://img.shields.io/badge/Made%20with-C%2B%2B-blue.svg?logo=cplusplus)](https://isocpp.org/)
-[![GPU Accelerated](https://img.shields.io/badge/⚡-GPU%20Accelerated-brightgreen.svg)](https://github.com/username/stereo-vision-app)
-
-**Star ⭐ this repository if you find it helpful!**
-
-</div>
+### 📂 Quick Navigation
+- **Start Here**: [README.md](README.md) → [run.sh](run.sh)
+- **Documentation**: [documentation/](documentation/) 
+- **Test Hardware**: [test_programs/](test_programs/)
+- **Build Issues**: [build_scripts/](build_scripts/) → [logs/](logs/)
+- **Development**: [src/](src/) → [include/](include/)
