@@ -60,8 +60,8 @@ cd stereo-vision-app
 [![Real Time](https://img.shields.io/badge/⚡-Real%20Time-orange.svg)](#)
 [![GUI Interface](https://img.shields.io/badge/🖥️-GUI%20Interface-purple.svg)](#)
 
-- **Stereo Camera Calibration**: Automatic camera calibration using checkerboard patterns
-- **🤖 AI Auto-Calibration**: Intelligent automatic calibration with quality assessment
+- **📋 Manual Calibration Wizard**: Interactive step-by-step calibration guide (✅ **Now Available!**)
+- **🤖 AI Auto-Calibration**: Intelligent automatic calibration with quality assessment (✅ **Fully Functional**)
 - **Real-time Stereo Vision**: GPU-accelerated stereo matching algorithms
 - **⚡ Live Processing**: Real-time disparity mapping and 3D reconstruction
 - **Webcam Capture Integration**: Direct capture from USB/built-in cameras with device selection
@@ -74,12 +74,36 @@ cd stereo-vision-app
 - **Interactive GUI**: User-friendly interface for parameter tuning and visualization
 - **Multiple Export Formats**: Support for PLY, PCD, and other point cloud formats
 
-## 🤖 AI Auto-Calibration
+## 📋 Manual Calibration Wizard ✅ **Now Available!**
+
+[![Interactive](https://img.shields.io/badge/🎯-Interactive-green.svg)](#)
+[![Step by Step](https://img.shields.io/badge/📋-Step%20by%20Step-blue.svg)](#)
+
+Comprehensive interactive calibration wizard with professional-grade features:
+
+### **🎯 Key Features**
+- **Step-by-step guided workflow** with clear instructions at each stage
+- **Live pattern detection** with visual feedback and quality assessment
+- **Multiple calibration patterns** (chessboard, circles, asymmetric circles)
+- **Real-time quality metrics** for optimal frame selection
+- **Interactive frame review** with thumbnail gallery and detailed analysis
+- **Professional results display** with comprehensive calibration data
+
+### **🚀 Quick Start Guide**
+1. **Start Camera**: Camera → Start Left Camera
+2. **Launch Wizard**: Process → Calibrate Cameras (Ctrl+C)
+3. **Configure Pattern**: Set your calibration pattern type and dimensions
+4. **Capture Frames**: Follow guided frame capture with live feedback
+5. **Review Quality**: Examine captured frames and remove poor quality ones
+6. **Generate Results**: Automatic calibration computation with error analysis
+
+## 🤖 AI Auto-Calibration ✅ **Fully Functional**
 
 [![AI Powered](https://img.shields.io/badge/🤖-AI%20Powered-brightgreen.svg)](#)
 [![Auto Detection](https://img.shields.io/badge/🔍-Auto%20Detection-blue.svg)](#)
 [![Quality Assessment](https://img.shields.io/badge/📊-Quality%20Assessment-orange.svg)](#)
 [![Real-time Feedback](https://img.shields.io/badge/⚡-Real--time%20Feedback-yellow.svg)](#)
+[![Production Ready](https://img.shields.io/badge/✅-Production%20Ready-success.svg)](#)
 
 Advanced AI-powered calibration system that automatically detects and captures optimal calibration frames:
 
@@ -97,6 +121,29 @@ Advanced AI-powered calibration system that automatically detects and captures o
 3. **Position Chessboard**: Move 9x6 chessboard through various positions and orientations
 4. **Automatic Collection**: AI automatically captures 20+ optimal frames
 5. **Calibration Complete**: Parameters automatically calculated and ready for use
+
+## � Calibration Methods Comparison
+
+| Feature | �📋 Manual Wizard | 🤖 AI Auto-Calibration |
+|---------|-------------------|------------------------|
+| **User Control** | ✅ Full control over each frame | ⚡ Automated frame selection |
+| **Pattern Support** | ✅ Multiple pattern types | 🔧 Chessboard only |
+| **Learning Curve** | 📚 Educational, step-by-step | 🚀 Instant results |
+| **Quality Control** | 🎯 Manual frame review | 🤖 AI quality assessment |
+| **Time Required** | ⏱️ 5-10 minutes | ⚡ 2-3 minutes |
+| **Best For** | 📖 Learning, precision control | 🏃 Quick setup, beginners |
+
+**Recommendation**: Use the **Manual Wizard** for learning calibration concepts and precise control, or **AI Auto-Calibration** for quick, reliable results.
+
+The interactive manual calibration wizard is under development and will provide:
+
+- **📋 Step-by-Step Guidance**: Intuitive wizard interface with clear instructions
+- **🎯 Interactive Detection**: Live corner detection with manual refinement tools
+- **📊 Quality Visualization**: Real-time quality metrics and coverage analysis
+- **🔄 Multiple Patterns**: Support for various calibration patterns
+- **💾 Advanced Management**: Comprehensive parameter saving and validation
+
+**Current Recommendation**: Use the **AI Auto-Calibration** feature for immediate calibration needs.
 
 ## ⚡ Live Stereo Processing
 

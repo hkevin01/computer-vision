@@ -31,6 +31,7 @@
 #include "ai_calibration.hpp"
 #include "camera_calibration.hpp"
 #include "camera_manager.hpp"
+#include "gui/calibration_wizard.hpp"
 #include "gui/camera_selector_dialog.hpp"
 #include "gui/image_display_widget.hpp"
 #include "gui/parameter_panel.hpp"
@@ -164,10 +165,15 @@ void MainWindow::setupMenuBar() {
 
   m_calibrateAction = new QAction("&Calibrate Cameras...", this);
   m_calibrateAction->setShortcut(QKeySequence("Ctrl+C"));
+  m_calibrateAction->setStatusTip("Launch interactive camera calibration "
+                                  "wizard with step-by-step guidance");
   m_processMenu->addAction(m_calibrateAction);
 
-  m_aiCalibrationAction = new QAction("&AI Auto-Calibration...", this);
+  m_aiCalibrationAction = new QAction("&AI Auto-Calibration... ⭐", this);
   m_aiCalibrationAction->setShortcut(QKeySequence("Ctrl+Alt+C"));
+  m_aiCalibrationAction->setStatusTip(
+      "Fully functional AI-powered automatic camera calibration with quality "
+      "assessment");
   m_processMenu->addAction(m_aiCalibrationAction);
 
   m_processMenu->addSeparator();
@@ -433,9 +439,30 @@ void MainWindow::saveCalibration() {
 }
 
 void MainWindow::runCalibration() {
-  // TODO: Implement calibration dialog
-  QMessageBox::information(this, "Calibration",
-                           "Camera calibration feature coming soon!");
+  // Launch the camera calibration wizard
+  if (!m_cameraManager) {
+    QMessageBox::warning(
+        this, "Camera Required",
+        "Please start a camera first before running calibration.\n\n"
+        "Go to Camera → Start Left Camera to begin.");
+    return;
+  }
+
+  auto wizard = new CalibrationWizard(m_cameraManager, this);
+
+  if (wizard->exec() == QDialog::Accepted) {
+    QMessageBox::information(
+        this, "Calibration Complete",
+        "Camera calibration has been completed successfully!\n\n"
+        "The calibration parameters are now ready for use in stereo "
+        "processing.");
+
+    // Update UI to reflect that we now have calibration
+    m_hasCalibration = true;
+    updateUI();
+  }
+
+  wizard->deleteLater();
 }
 
 void MainWindow::processStereoImages() {

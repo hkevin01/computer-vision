@@ -7,6 +7,7 @@ This directory contains all project documentation organized by category.
 ### [`features/`](features/)
 Documentation about implemented features and capabilities:
 - **ADVANCED_FEATURES_COMPLETE.md** - AI calibration and live processing features
+- **CAMERA_CALIBRATION_WIZARD_COMING_SOON.md** - Manual calibration wizard development status
 - **CAMERA_FIXES_COMPLETE.md** - Camera detection and capture improvements
 - **FINAL_INTEGRATION_COMPLETE.md** - Complete feature integration summary
 - **WEBCAM_DETECTION_FIXED.md** - Webcam detection troubleshooting
