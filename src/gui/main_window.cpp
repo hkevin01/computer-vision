@@ -34,6 +34,7 @@
 #include "gui/calibration_wizard.hpp"
 #include "gui/camera_selector_dialog.hpp"
 #include "gui/image_display_widget.hpp"
+#include "gui/modern_theme.hpp"
 #include "gui/parameter_panel.hpp"
 #include "gui/point_cloud_widget.hpp"
 #include "live_stereo_processor.hpp"

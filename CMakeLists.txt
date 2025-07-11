@@ -153,6 +153,15 @@ file(GLOB_RECURSE GUI_SOURCES "src/gui/*.cpp")
 file(GLOB_RECURSE GUI_HEADERS "include/gui/*.hpp")
 file(GLOB_RECURSE UTIL_SOURCES "src/utils/*.cpp")
 
+# Include modern theme and performance optimization sources
+set(MODERN_GUI_SOURCES
+    "src/gui/modern_theme.cpp"
+    "src/gui/enhanced_image_widget.cpp"
+)
+
+# Add modern sources to GUI sources
+list(APPEND GUI_SOURCES ${MODERN_GUI_SOURCES})
+
 # --- Core Library ---
 add_library(stereo_vision_core ${CORE_SOURCES} ${GPU_SOURCES} ${UTIL_SOURCES})
 target_link_libraries(stereo_vision_core PRIVATE
