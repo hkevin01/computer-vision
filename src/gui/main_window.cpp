@@ -440,7 +440,7 @@ void MainWindow::saveCalibration() {
 
 void MainWindow::runCalibration() {
   // Launch the camera calibration wizard
-  if (!m_cameraManager) {
+  if (!m_cameraManager || !m_cameraManager->isAnyCameraOpen()) {
     QMessageBox::warning(
         this, "Camera Required",
         "Please start a camera first before running calibration.\n\n"

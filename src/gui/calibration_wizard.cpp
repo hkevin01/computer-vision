@@ -472,9 +472,10 @@ void CalibrationWizard::onCameraFrameReceived() {
     return;
 
   // Get frame from camera manager
-  cv::Mat frame = m_cameraManager->getCurrentFrame(0); // Assuming camera 0
-  if (frame.empty())
+  cv::Mat frame;
+  if (!m_cameraManager->grabSingleFrame(frame) || frame.empty()) {
     return;
+  }
 
   m_currentFrame = frame.clone();
 
@@ -667,7 +668,7 @@ void CalibrationWizard::removeSelectedFrame() {
   m_frameQualities.erase(m_frameQualities.begin() + index);
 
   updateFrameList();
-  m_framePreview->clear();
+  m_framePreview->clearImage();
   m_frameInfoLabel->setText("Select a frame to view details");
 }
 
@@ -682,7 +683,7 @@ void CalibrationWizard::clearAllFrames() {
     m_imagePoints.clear();
     m_frameQualities.clear();
     updateFrameList();
-    m_framePreview->clear();
+    m_framePreview->clearImage();
     m_frameInfoLabel->setText("Select a frame to view details");
   }
 }
