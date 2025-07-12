@@ -22,6 +22,7 @@ option(USE_CUDA "Enable CUDA support for NVIDIA GPUs" OFF)
 option(USE_HIP "Enable HIP support for AMD GPUs" OFF)
 option(BUILD_GUI "Build the GUI application" ON)
 option(BUILD_TESTS "Build the tests" ON)
+option(BUILD_BENCHMARKS "Build the benchmarks" OFF)
 
 # --- GPU Backend Detection and Configuration ---
 if(NOT CMAKE_BUILD_TYPE)
@@ -122,6 +123,13 @@ include_directories(
     ${PCL_INCLUDE_DIRS}
 )
 
+# Add include directories for new features
+target_include_directories(stereo_vision_core PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ai
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/multicam
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/benchmark
+)
+
 # Cross-platform VTK include path fix
 if(UNIX AND NOT APPLE)
     # Linux: Check for VTK symlink and create if needed
@@ -153,6 +161,33 @@ file(GLOB_RECURSE GUI_SOURCES "src/gui/*.cpp")
 file(GLOB_RECURSE GUI_HEADERS "include/gui/*.hpp")
 file(GLOB_RECURSE UTIL_SOURCES "src/utils/*.cpp")
 
+# --- AI and Neural Network Sources ---
+set(AI_SOURCES
+    "src/ai/neural_stereo_matcher.cpp"
+)
+
+set(AI_HEADERS
+    "include/ai/neural_stereo_matcher.hpp"
+)
+
+# --- Multi-Camera System Sources ---
+set(MULTICAM_SOURCES
+    "src/multicam/multi_camera_system.cpp"
+)
+
+set(MULTICAM_HEADERS
+    "include/multicam/multi_camera_system.hpp"
+)
+
+# --- Benchmark Sources ---
+set(BENCHMARK_SOURCES
+    "src/benchmark/performance_benchmark.cpp"
+)
+
+set(BENCHMARK_HEADERS
+    "include/benchmark/performance_benchmark.hpp"
+)
+
 # Include modern theme and performance optimization sources
 set(MODERN_GUI_SOURCES
     "src/gui/modern_theme.cpp"
@@ -162,7 +197,17 @@ set(MODERN_GUI_SOURCES
 # Add modern sources to GUI sources
 list(APPEND GUI_SOURCES ${MODERN_GUI_SOURCES})
 
-# --- Core Library ---
+# Add new sources to core library
+list(APPEND CORE_SOURCES ${AI_SOURCES} ${MULTICAM_SOURCES})
+list(APPEND GUI_HEADERS ${AI_HEADERS} ${MULTICAM_HEADERS})
+
+# Add benchmark sources (optional build)
+if(BUILD_BENCHMARKS)
+    list(APPEND CORE_SOURCES ${BENCHMARK_SOURCES})
+    list(APPEND GUI_HEADERS ${BENCHMARK_HEADERS})
+endif()
+
+# --- Core Library (updated) ---
 add_library(stereo_vision_core ${CORE_SOURCES} ${GPU_SOURCES} ${UTIL_SOURCES})
 target_link_libraries(stereo_vision_core PRIVATE
     Threads::Threads
@@ -228,3 +273,45 @@ install(TARGETS stereo_vision_app DESTINATION bin)
 install(DIRECTORY data/ DESTINATION share/stereo_vision_app/data)
 
 message(STATUS "Configuration complete. Build type: ${CMAKE_BUILD_TYPE}")
+
+# --- Optional Dependencies for New Features ---
+
+# TensorRT support for neural networks
+option(WITH_TENSORRT "Enable TensorRT support for neural inference" OFF)
+if(WITH_TENSORRT)
+    find_package(TensorRT QUIET)
+    if(TensorRT_FOUND)
+        target_compile_definitions(stereo_vision_core PRIVATE WITH_TENSORRT)
+        target_link_libraries(stereo_vision_core PRIVATE ${TensorRT_LIBRARIES})
+        target_include_directories(stereo_vision_core PRIVATE ${TensorRT_INCLUDE_DIRS})
+        message(STATUS "TensorRT support enabled")
+    else()
+        message(WARNING "TensorRT requested but not found")
+    endif()
+endif()
+
+# ONNX Runtime support
+option(WITH_ONNX "Enable ONNX Runtime support for neural inference" OFF)
+if(WITH_ONNX)
+    find_package(OnnxRuntime QUIET)
+    if(OnnxRuntime_FOUND)
+        target_compile_definitions(stereo_vision_core PRIVATE WITH_ONNX)
+        target_link_libraries(stereo_vision_core PRIVATE ${OnnxRuntime_LIBRARIES})
+        target_include_directories(stereo_vision_core PRIVATE ${OnnxRuntime_INCLUDE_DIRS})
+        message(STATUS "ONNX Runtime support enabled")
+    else()
+        message(WARNING "ONNX Runtime requested but not found")
+    endif()
+endif()
+
+# Benchmarking support
+option(BUILD_BENCHMARKS "Build performance benchmarking tools" ON)
+
+# Package generation support
+option(PACKAGE_BUILD "Configure build for packaging" OFF)
+if(PACKAGE_BUILD)
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+endif()
+
+# --- Existing Dependencies Section ---
