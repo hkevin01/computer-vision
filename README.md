@@ -441,38 +441,43 @@ make -j$(nproc)
 [![Scripts](https://img.shields.io/badge/⚙️-Build%20Scripts-purple.svg)](build_scripts/)
 
 ```
-stereo-vision-app/
+computer-vision/                # 🎯 Clean, modern project structure
 ├── 📁 src/                     # Source code
-│   ├── core/                   # Core algorithms (stereo, calibration, AI)
+│   ├── core/                   # Core algorithms (stereo, calibration)
+│   ├── ai/                     # Neural network implementations
 │   ├── gui/                    # Qt GUI components
-│   ├── cuda/                   # CUDA implementations
-│   ├── gpu/                    # GPU abstractions
+│   ├── gpu/                    # GPU acceleration (CUDA/HIP)
+│   ├── multicam/               # Multi-camera system
 │   └── utils/                  # Utility functions
-├── 📁 include/                 # Header files
-│   ├── ai_calibration.hpp      # AI-powered calibration
-│   ├── live_stereo_processor.hpp # Real-time stereo processing
-│   ├── camera_manager.hpp      # Camera management
-│   └── gui/                    # GUI headers
-├── 📁 documentation/           # 📖 All project documentation
-│   ├── features/               # Feature documentation
-│   ├── build/                  # Build system docs
-│   └── setup/                  # Setup guides
-├── 📁 test_programs/           # 🧪 Standalone test programs
-│   ├── test_camera_manager*    # Camera testing
-│   ├── test_direct_camera*     # Direct camera access tests
+├── 📁 include/                 # Header files (mirrors src/)
+│   ├── ai/                     # Neural stereo matching
+│   ├── gui/                    # GUI component headers
+│   ├── multicam/               # Multi-camera headers
+│   └── benchmark/              # Performance benchmarking
+├── 📁 tests/                   # Unit and integration tests
+├── 📁 test_programs/           # 🧪 Standalone test utilities
 │   └── README.md               # Test program guide
+├── 📁 documentation/           # 📖 Organized project documentation
+│   ├── features/               # Feature implementation docs
+│   ├── build/                  # Build system documentation
+│   └── setup/                  # Environment setup guides
 ├── 📁 build_scripts/           # ⚙️ Build and utility scripts
 │   ├── build*.sh               # Various build configurations
 │   ├── setup*.sh               # Environment setup scripts
 │   └── README.md               # Script documentation
-├── 📁 logs/                    # 📋 Build and runtime logs
+├── 📁 reports/                 # 📊 Generated reports and benchmarks
+│   └── benchmarks/             # Performance benchmark results
+├── 📁 archive/                 # � Historical documentation and temp files
+│   ├── milestone_docs/         # Completed milestone documentation
+│   └── temp_tests/             # Completed Priority 2 test implementations
 ├── 📁 data/                    # Sample data and calibration files
 ├── 📁 docs/                    # Technical documentation
+├── 📁 logs/                    # 📋 Build and runtime logs
 ├── 📁 scripts/                 # Utility scripts
-├── 📁 tests/                   # Unit tests
 ├── 📁 cmake/                   # CMake modules
 ├── 📄 CMakeLists.txt           # Build configuration
-├── 📄 README.md                # This file
+├── 📄 README.md                # This file (modern, comprehensive)
+├── 📄 PROJECT_MODERNIZATION_STRATEGY.md # Modernization roadmap
 └── 🚀 run.sh                   # Main build and run script
 ```
 
@@ -482,3 +487,20 @@ stereo-vision-app/
 - **Test Hardware**: [test_programs/](test_programs/)
 - **Build Issues**: [build_scripts/](build_scripts/) → [logs/](logs/)
 - **Development**: [src/](src/) → [include/](include/)
+- **Performance Reports**: [reports/benchmarks/](reports/benchmarks/)
+- **Project History**: [archive/milestone_docs/](archive/milestone_docs/)
+
+## 🏆 Latest Achievements
+
+### ✅ Priority 2 Features Complete (Recently Completed)
+- **Neural Network Stereo Matching** - TensorRT/ONNX backends with adaptive optimization
+- **Multi-Camera Support** - Synchronized capture and real-time processing  
+- **Professional Installers** - Cross-platform packaging framework
+- **Enhanced Performance Benchmarking** - Comprehensive testing with HTML/CSV reports
+
+*See [archive/milestone_docs/PRIORITY2_COMPLETE.md](archive/milestone_docs/PRIORITY2_COMPLETE.md) for full details.*
+
+### 📊 Performance Highlights
+- **Neural Networks**: 274 FPS (StereoNet), 268 FPS (PSMNet)
+- **Multi-Camera**: 473 FPS (2 cameras), 236 FPS (4 cameras)
+- **Latest Reports**: Available in [reports/benchmarks/](reports/benchmarks/)

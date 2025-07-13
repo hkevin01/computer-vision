@@ -83,3 +83,60 @@ venv/
 
 # Documentation build
 docs/_build/
+docs/html/
+docs/latex/
+docs/api/
+
+# Test results and coverage
+test_results/
+test_output/
+coverage/
+*.gcov
+*.gcda
+*.gcno
+
+# Performance reports (keep structured reports)
+reports/temp/
+*.html
+*.csv
+!reports/benchmarks/*.html
+!reports/benchmarks/*.csv
+
+# Qt MOC files
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+*.moc
+
+# Qt Creator
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qbs.user.*
+
+# Package files
+*.deb
+*.rpm
+*.msi
+*.dmg
+*.appimage
+
+# Cache directories
+.cache/
+.copilot/
+
+# GPU compiler cache
+.nv_fatbin_cache/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Archive extraction temp
+archive_temp/
+
+# Local configuration overrides
+local_config.json
+user_settings.json
