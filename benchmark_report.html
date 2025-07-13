@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Stereo Vision Benchmark Report</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 40px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+th { background-color: #f2f2f2; }
+.success { color: green; }
+.error { color: red; }
+</style>
+</head>
+<body>
+<h1>Stereo Vision Performance Benchmark Report</h1>
+<h2>System Information</h2>
+<ul>
+<li>OS: Linux</li>
+<li>CPU: Unknown CPU (12 cores)</li>
+<li>GPU: Unknown GPU</li>
+<li>Memory: 8192 MB</li>
+<li>OpenCV: 4.6.0</li>
+</ul>
+<h2>Benchmark Results</h2>
+<table>
+<tr><th>Test Name</th><th>Avg FPS</th><th>Min FPS</th><th>Max FPS</th><th>Avg Latency (ms)</th><th>Memory (MB)</th><th>CPU (%)</th><th>Status</th></tr>
+<tr><td>StereoBM</td><td>268.24</td><td>115.38</td><td>333.22</td><td>3.73</td><td>176.0</td><td>35.0</td><td class="success">SUCCESS</td></tr>
+<tr><td>StereoSGBM</td><td>22.90</td><td>18.17</td><td>24.03</td><td>43.66</td><td>176.0</td><td>57.0</td><td class="success">SUCCESS</td></tr>
+<tr><td>Neural: StereoNet</td><td>273.54</td><td>164.85</td><td>337.72</td><td>3.66</td><td>186.0</td><td>46.0</td><td class="success">SUCCESS</td></tr>
+<tr><td>Neural: PSMNet</td><td>268.05</td><td>126.20</td><td>330.80</td><td>3.73</td><td>218.0</td><td>62.0</td><td class="success">SUCCESS</td></tr>
+<tr><td>Multi-Camera (2 cameras)</td><td>472.67</td><td>0.00</td><td>0.00</td><td>2.12</td><td>358.0</td><td>37.0</td><td class="success">SUCCESS</td></tr>
+<tr><td>Multi-Camera (4 cameras)</td><td>235.67</td><td>0.00</td><td>0.00</td><td>4.24</td><td>720.0</td><td>37.0</td><td class="success">SUCCESS</td></tr>
+</table>
+</body>
+</html>

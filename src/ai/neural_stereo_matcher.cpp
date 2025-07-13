@@ -3,8 +3,11 @@
 #include <chrono>
 #include <algorithm>
 #include <fstream>
+#include <filesystem>
 
-namespace stereo_vision::ai {
+using namespace std;
+
+namespace stereovision::ai {
 
 // Implementation class to hide complex dependencies
 class NeuralStereoMatcher::Impl {
@@ -34,7 +37,7 @@ public:
 };
 
 NeuralStereoMatcher::NeuralStereoMatcher(const ModelConfig& config)
-    : pImpl_(std::make_unique<Impl>()), config_(config) {
+    : pImpl_(make_unique<Impl>()), config_(config) {
     if (!config.model_path.empty()) {
         initialize(config);
     }

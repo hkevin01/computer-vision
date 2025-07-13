@@ -16,7 +16,8 @@
 #include <onnxruntime_cxx_api.h>
 #endif
 
-namespace stereo_vision::ai {
+namespace stereovision {
+namespace ai {
 
 /**
  * @brief Neural network-based stereo matching using TensorRT/ONNX Runtime
@@ -41,14 +42,24 @@ public:
     };
 
     struct ModelConfig {
-        ModelType type = ModelType::HITNET;
+        ModelType type;
         std::string model_path;
-        int input_width = 640;
-        int input_height = 480;
-        float max_disparity = 192.0f;
-        bool use_fp16 = true;           ///< Use half precision for faster inference
-        int batch_size = 1;
-        Backend preferred_backend = Backend::AUTO;
+        int input_width;
+        int input_height;
+        float max_disparity;
+        bool use_fp16;           ///< Use half precision for faster inference
+        int batch_size;
+        Backend preferred_backend;
+        
+        ModelConfig() 
+            : type(ModelType::HITNET)
+            , model_path("")
+            , input_width(640)
+            , input_height(480)
+            , max_disparity(192.0f)
+            , use_fp16(true)
+            , batch_size(1)
+            , preferred_backend(Backend::AUTO) {}
     };
 
     struct InferenceStats {
@@ -62,7 +73,7 @@ public:
     };
 
 public:
-    explicit NeuralStereoMatcher(const ModelConfig& config = ModelConfig{});
+    explicit NeuralStereoMatcher(const ModelConfig& config = ModelConfig());
     ~NeuralStereoMatcher();
 
     // Non-copyable but movable
@@ -187,14 +198,21 @@ public:
 class AdaptiveNeuralMatcher {
 public:
     struct AdaptiveConfig {
-        double target_fps = 30.0;
-        double min_quality = 0.5;
-        double max_quality = 0.95;
-        bool enable_dynamic_resolution = true;
-        bool enable_model_switching = true;
+        double target_fps;
+        double min_quality;
+        double max_quality;
+        bool enable_dynamic_resolution;
+        bool enable_model_switching;
+        
+        AdaptiveConfig() 
+            : target_fps(30.0)
+            , min_quality(0.5)
+            , max_quality(0.95)
+            , enable_dynamic_resolution(true)
+            , enable_model_switching(true) {}
     };
 
-    explicit AdaptiveNeuralMatcher(const AdaptiveConfig& config = AdaptiveConfig{});
+    explicit AdaptiveNeuralMatcher(const AdaptiveConfig& config = AdaptiveConfig());
 
     /**
      * @brief Process stereo pair with automatic quality adjustment
@@ -207,7 +225,7 @@ public:
     struct AdaptiveState {
         double current_fps;
         double current_quality;
-        ModelType current_model;
+        NeuralStereoMatcher::ModelType current_model;
         cv::Size current_resolution;
         bool is_adapting;
     };

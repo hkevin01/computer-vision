@@ -8,10 +8,11 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 #include <opencv2/opencv.hpp>
-#include "camera_manager.hpp"
 
-namespace stereo_vision::multicam {
+namespace stereovision {
+namespace multicam {
 
 /**
  * @brief Multi-camera stereo vision system supporting 2+ synchronized cameras
@@ -182,7 +183,8 @@ public:
      * @param frames Synchronized frame set
      * @return Enhanced 3D point cloud
      */
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr generatePointCloud(const SynchronizedFrames& frames);
+    // Generate point cloud from synchronized frames
+    cv::Mat generatePointCloud(const SynchronizedFrames& frames);
 
     /**
      * @brief Get current processing statistics
@@ -228,7 +230,7 @@ public:
 private:
     // Camera management
     std::vector<CameraConfig> camera_configs_;
-    std::vector<std::unique_ptr<CameraManager>> cameras_;
+    std::vector<std::unique_ptr<cv::VideoCapture>> cameras_;
     MultiCameraCalibration calibration_;
 
     // Synchronization
@@ -308,23 +310,32 @@ public:
 class RealtimeMultiCameraProcessor {
 public:
     struct ProcessingConfig {
-        bool enable_disparity = true;
-        bool enable_point_cloud = true;
-        bool enable_object_detection = false;
-        int target_fps = 30;
-        cv::Size processing_resolution = cv::Size(640, 480);
-        int max_disparity = 128;
-        bool use_gpu = true;
+        bool enable_disparity;
+        bool enable_point_cloud;
+        bool enable_object_detection;
+        int target_fps;
+        cv::Size processing_resolution;
+        int max_disparity;
+        bool use_gpu;
+        
+        ProcessingConfig() 
+            : enable_disparity(true)
+            , enable_point_cloud(true)
+            , enable_object_detection(false)
+            , target_fps(30)
+            , processing_resolution(640, 480)
+            , max_disparity(128)
+            , use_gpu(true) {}
     };
 
-    explicit RealtimeMultiCameraProcessor(const ProcessingConfig& config = ProcessingConfig{});
+    explicit RealtimeMultiCameraProcessor(const ProcessingConfig& config = ProcessingConfig());
 
     /**
      * @brief Process synchronized frames in real-time
      */
     struct ProcessingResults {
         std::vector<cv::Mat> disparity_maps;
-        pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud;
+        cv::Mat point_cloud;
         std::vector<cv::Rect> detected_objects;
         double processing_time_ms;
         bool success;

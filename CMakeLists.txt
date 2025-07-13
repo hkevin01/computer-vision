@@ -123,13 +123,6 @@ include_directories(
     ${PCL_INCLUDE_DIRS}
 )
 
-# Add include directories for new features
-target_include_directories(stereo_vision_core PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/ai
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/multicam
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/benchmark
-)
-
 # Cross-platform VTK include path fix
 if(UNIX AND NOT APPLE)
     # Linux: Check for VTK symlink and create if needed
@@ -163,29 +156,29 @@ file(GLOB_RECURSE UTIL_SOURCES "src/utils/*.cpp")
 
 # --- AI and Neural Network Sources ---
 set(AI_SOURCES
-    "src/ai/neural_stereo_matcher.cpp"
+    "src/ai/neural_stereo_matcher_simple.cpp"
 )
 
 set(AI_HEADERS
-    "include/ai/neural_stereo_matcher.hpp"
+    "include/ai/neural_stereo_matcher_simple.hpp"
 )
 
 # --- Multi-Camera System Sources ---
 set(MULTICAM_SOURCES
-    "src/multicam/multi_camera_system.cpp"
+    "src/multicam/multi_camera_system_simple.cpp"
 )
 
 set(MULTICAM_HEADERS
-    "include/multicam/multi_camera_system.hpp"
+    "include/multicam/multi_camera_system_simple.hpp"
 )
 
 # --- Benchmark Sources ---
 set(BENCHMARK_SOURCES
-    "src/benchmark/performance_benchmark.cpp"
+    "src/benchmark/performance_benchmark_simple.cpp"
 )
 
 set(BENCHMARK_HEADERS
-    "include/benchmark/performance_benchmark.hpp"
+    "include/benchmark/performance_benchmark_simple.hpp"
 )
 
 # Include modern theme and performance optimization sources
@@ -209,6 +202,14 @@ endif()
 
 # --- Core Library (updated) ---
 add_library(stereo_vision_core ${CORE_SOURCES} ${GPU_SOURCES} ${UTIL_SOURCES})
+
+# Add include directories for new features
+target_include_directories(stereo_vision_core PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ai
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/multicam
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/benchmark
+)
+
 target_link_libraries(stereo_vision_core PRIVATE
     Threads::Threads
     ${OpenCV_LIBS}

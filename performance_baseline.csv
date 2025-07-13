@@ -1,0 +1,9 @@
+# Benchmark Baseline
+# Generated on: 1752420342588349984
+test_name,avg_fps,min_fps,max_fps,avg_latency_ms,memory_usage_mb,cpu_usage_percent
+StereoBM,268.241,115.38,333.222,3.728,176,35
+StereoSGBM,22.9025,18.1673,24.0258,43.6634,176,57
+Neural: StereoNet,273.545,164.853,337.724,3.65571,186,46
+Neural: PSMNet,268.046,126.199,330.797,3.7307,218,62
+Multi-Camera (2 cameras),472.667,0,0,2.11566,358,37
+Multi-Camera (4 cameras),235.667,0,0,4.24328,720,37
