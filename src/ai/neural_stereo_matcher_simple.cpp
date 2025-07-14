@@ -1,4 +1,4 @@
-#include "include/ai/neural_stereo_matcher_simple.hpp"
+#include "ai/neural_stereo_matcher_simple.hpp"
 #include <iostream>
 #include <algorithm>
 #include <numeric>

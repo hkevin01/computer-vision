@@ -84,7 +84,8 @@ public:
     };
 
 public:
-    explicit EnhancedNeuralMatcher(const ModelConfig& config = ModelConfig());
+    EnhancedNeuralMatcher();
+    explicit EnhancedNeuralMatcher(const ModelConfig& config);
     ~EnhancedNeuralMatcher();
 
     // Non-copyable but movable
@@ -221,12 +222,12 @@ public:
     /**
      * @brief List all available pre-trained models
      */
-    static std::vector<std::pair<ModelType, std::string>> getAvailableModels();
+    static std::vector<std::pair<EnhancedNeuralMatcher::ModelType, std::string>> getAvailableModels();
 
     /**
      * @brief Download pre-trained model if not present
      */
-    static bool downloadModel(ModelType type, const std::string& models_dir = "models/");
+    static bool downloadModel(EnhancedNeuralMatcher::ModelType type, const std::string& models_dir = "models/");
 };
 
 /**
@@ -251,17 +252,17 @@ public:
     /**
      * @brief Download model from remote repository
      */
-    bool downloadModel(ModelType type, bool force_redownload = false);
+    bool downloadModel(EnhancedNeuralMatcher::ModelType type, bool force_redownload = false);
 
     /**
      * @brief Verify model integrity
      */
-    bool verifyModel(ModelType type);
+    bool verifyModel(EnhancedNeuralMatcher::ModelType type);
 
     /**
      * @brief Get path to downloaded model
      */
-    std::string getModelPath(ModelType type);
+    std::string getModelPath(EnhancedNeuralMatcher::ModelType type);
 
     /**
      * @brief List all available models
@@ -271,11 +272,11 @@ public:
     /**
      * @brief Get model registry
      */
-    static const std::map<ModelType, ModelInfo>& getModelRegistry();
+    static const std::map<EnhancedNeuralMatcher::ModelType, ModelInfo>& getModelRegistry();
 
 private:
     std::string models_dir_;
-    static const std::map<ModelType, ModelInfo> model_registry_;
+    static const std::map<EnhancedNeuralMatcher::ModelType, ModelInfo> model_registry_;
     
     bool downloadFromUrl(const std::string& url, const std::string& output_path);
     bool verifyChecksum(const std::string& file_path, const std::string& expected_hash);

@@ -409,7 +409,7 @@ void EnhancedImageWidget::mouseReleaseEvent(QMouseEvent *event) {
   QWidget::mouseReleaseEvent(event);
 }
 
-void EnhancedImageWidget::enterEvent(QEnterEvent *event) {
+void EnhancedImageWidget::enterEvent(QEvent *event) {
   if (d->hoverEffectEnabled) {
     d->hovered = true;
     d->hoverAnimation->setStartValue(d->hoverOpacity);

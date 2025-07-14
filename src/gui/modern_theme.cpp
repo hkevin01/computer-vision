@@ -352,7 +352,7 @@ void ModernWidget::paintEvent(QPaintEvent *event) {
   style()->drawPrimitive(QStyle::PE_Widget, &opt, &painter, this);
 }
 
-void ModernWidget::enterEvent(QEnterEvent *event) {
+void ModernWidget::enterEvent(QEvent *event) {
   m_hovered = true;
   m_hoverAnimation->setStartValue(m_hoverOpacity);
   m_hoverAnimation->setEndValue(1.0);

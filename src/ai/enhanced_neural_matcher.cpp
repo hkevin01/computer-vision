@@ -100,6 +100,11 @@ EnhancedNeuralMatcher::EnhancedNeuralMatcher(const ModelConfig& config)
     }
 }
 
+EnhancedNeuralMatcher::EnhancedNeuralMatcher()
+    : pImpl_(make_unique<Impl>()), config_() {
+    initialize(config_);
+}
+
 EnhancedNeuralMatcher::~EnhancedNeuralMatcher() {
     if (pImpl_) {
         pImpl_->cleanup();

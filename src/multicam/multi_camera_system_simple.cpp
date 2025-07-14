@@ -1,4 +1,4 @@
-#include "include/multicam/multi_camera_system_simple.hpp"
+#include "multicam/multi_camera_system_simple.hpp"
 #include <iostream>
 #include <algorithm>
 #include <thread>

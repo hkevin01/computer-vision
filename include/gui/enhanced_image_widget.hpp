@@ -6,7 +6,7 @@
 #include <QTimer>
 #include <QWidget>
 #include <memory>
-#include <opencv2/opencv.hpp>
+#include <opencv2/core.hpp>
 
 namespace stereo_vision::gui {
 
@@ -68,7 +68,7 @@ protected:
   void mousePressEvent(QMouseEvent *event) override;
   void mouseMoveEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
-  void enterEvent(QEnterEvent *event) override;
+  void enterEvent(QEvent *event) override;
   void leaveEvent(QEvent *event) override;
 
 private slots:
