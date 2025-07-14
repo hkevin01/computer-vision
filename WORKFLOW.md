@@ -334,6 +334,71 @@ pre-commit run --all-files
 ./run.sh --tests
 ```
 
+## 🤖 AI/ML Development Workflow
+
+### Phase 1: Neural Network Integration (Week 1-2)
+```bash
+# Install AI/ML dependencies
+sudo apt install libonnxruntime-dev libtensorrt-dev
+
+# Download pre-trained models
+python tools/model_manager.py download-all
+
+# Build with neural network support
+./run.sh --clean --ai-support
+
+# Test neural network integration
+./run.sh --tests --neural-networks
+```
+
+### Phase 2: GPU Acceleration (Week 2-3)
+```bash
+# Enable CUDA/HIP support
+./run.sh --cuda --build-only
+
+# Test GPU acceleration
+./run.sh --tests --gpu-tests
+
+# Benchmark performance
+python tools/model_manager.py benchmark --all
+```
+
+### Phase 3: Advanced Computer Vision (Week 3-4)
+```bash
+# Test advanced CV features
+./run.sh --tests --advanced-cv
+
+# Run quality assessment
+./run.sh --tests --quality-metrics
+
+# Generate performance reports
+./run.sh --benchmark --generate-report
+```
+
+### Phase 4: Model Optimization (Week 4-5)
+```bash
+# Optimize models for production
+python tools/model_optimizer.py --quantize --target-fps 60
+
+# Test adaptive algorithms
+./run.sh --tests --adaptive-algorithms
+
+# Validate end-to-end pipeline
+./run.sh --tests --full-pipeline
+```
+
+### Phase 5: Integration & Production (Week 5-6)
+```bash
+# Final integration testing
+./run.sh --tests --integration
+
+# Performance validation
+./run.sh --benchmark --production-ready
+
+# Generate deployment package
+./run.sh --package --release
+```
+
 ## 🚀 Release Process
 
 ### Version Management
@@ -349,7 +414,39 @@ pre-commit run --all-files
 - [ ] Security scan clean
 - [ ] Changelog updated
 - [ ] Version bumped
+- [ ] AI models validated
+- [ ] GPU acceleration tested
+- [ ] Neural network accuracy verified
+
+## 🧠 AI/ML Testing Workflow
+
+### Model Testing
+```bash
+# Test individual models
+./build/test_neural_network --model hitnet
+./build/test_neural_network --model raftstereo
+./build/test_neural_network --model crestereo
+
+# Compare model performance
+python tools/model_manager.py benchmark --compare-all
+
+# Validate against ground truth
+./build/test_accuracy --dataset kitti --model-all
+```
+
+### Quality Assurance
+```bash
+# Run comprehensive AI/ML tests
+./run.sh --tests --ai-comprehensive
+
+# Memory leak detection for AI models
+valgrind --leak-check=full ./build/stereo_vision_app --neural
+
+# GPU memory profiling
+nvidia-smi dmon -s puct -d 1 &
+./build/stereo_vision_app --neural --gpu
+```
 
 ---
 
-*For additional help, see [CONTRIBUTING.md](CONTRIBUTING.md) or create an issue.*
+*For additional help, see [CONTRIBUTING.md](CONTRIBUTING.md), [AI_ML_IMPROVEMENTS_SUMMARY.md](AI_ML_IMPROVEMENTS_SUMMARY.md), or create an issue.*

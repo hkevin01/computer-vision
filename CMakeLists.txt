@@ -23,6 +23,10 @@ option(USE_HIP "Enable HIP support for AMD GPUs" OFF)
 option(BUILD_GUI "Build the GUI application" ON)
 option(BUILD_TESTS "Build the tests" ON)
 option(BUILD_BENCHMARKS "Build the benchmarks" OFF)
+option(WITH_NEURAL_NETWORKS "Enable neural network support with ONNX Runtime" ON)
+option(WITH_TENSORRT "Enable TensorRT support for NVIDIA GPUs" OFF)
+option(WITH_OPENVINO "Enable Intel OpenVINO support" OFF)
+option(WITH_ADVANCED_CV "Enable advanced OpenCV features (ximgproc, etc.)" ON)
 
 # --- GPU Backend Detection and Configuration ---
 if(NOT CMAKE_BUILD_TYPE)
@@ -80,8 +84,135 @@ else()
 endif()
 
 # --- Find Dependencies ---
+# AI/ML dependency discovery
+if(WITH_NEURAL_NETWORKS)
+    find_package(PkgConfig QUIET)
+    
+    # Find ONNX Runtime
+    set(ONNXRUNTIME_FOUND FALSE)
+    find_path(ONNXRUNTIME_INCLUDE_DIR onnxruntime_cxx_api.h PATHS 
+        /usr/include/onnxruntime 
+        /usr/local/include/onnxruntime
+        /opt/onnxruntime/include)
+    find_library(ONNXRUNTIME_LIBRARIES onnxruntime PATHS 
+        /usr/lib 
+        /usr/local/lib 
+        /opt/onnxruntime/lib)
+    if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARIES)
+        set(ONNXRUNTIME_FOUND TRUE)
+        message(STATUS "Found ONNX Runtime: ${ONNXRUNTIME_LIBRARIES}")
+    else()
+        message(WARNING "ONNX Runtime not found. Install with: sudo apt-get install libonnxruntime-dev")
+    endif()
+    
+    # Find TensorRT (optional)
+    if(WITH_TENSORRT)
+        find_path(TENSORRT_INCLUDE_DIR NvInfer.h PATHS 
+            /usr/include/x86_64-linux-gnu 
+            /usr/local/include
+            /usr/local/cuda/include)
+        find_library(TENSORRT_LIBRARY nvinfer PATHS 
+            /usr/lib/x86_64-linux-gnu 
+            /usr/local/lib
+            /usr/local/cuda/lib64)
+        if(TENSORRT_INCLUDE_DIR AND TENSORRT_LIBRARY)
+            message(STATUS "Found TensorRT: ${TENSORRT_LIBRARY}")
+        else()
+            message(WARNING "TensorRT not found. Neural networks will use ONNX Runtime fallback.")
+        endif()
+    endif()
+    
+    # Find OpenVINO (optional)
+    if(WITH_OPENVINO)
+        find_package(PkgConfig QUIET)
+        if(PkgConfig_FOUND)
+            pkg_check_modules(OPENVINO QUIET openvino)
+            if(OPENVINO_FOUND)
+                message(STATUS "Found OpenVINO: ${OPENVINO_LIBRARIES}")
+            else()
+                message(WARNING "OpenVINO not found. Neural networks will use ONNX Runtime fallback.")
+            endif()
+        endif()
+    endif()
+endif()
+
 find_package(Threads REQUIRED)
-find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc calib3d)
+find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc calib3d stereo)
+
+# Enhanced OpenCV components for GPU acceleration
+if(WITH_OPENCV_CUDA AND USE_CUDA)
+    find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc calib3d stereo cudaimgproc cudastereo)
+    if(OpenCV_CUDA_VERSION)
+        message(STATUS "Found OpenCV with CUDA support: ${OpenCV_CUDA_VERSION}")
+        add_definitions(-DUSE_OPENCV_CUDA)
+    else()
+        message(WARNING "OpenCV found but without CUDA support")
+    endif()
+endif()
+
+# Advanced OpenCV components for enhanced computer vision
+if(WITH_ADVANCED_CV)
+    find_package(OpenCV QUIET COMPONENTS ximgproc photo dnn)
+    if(OpenCV_ximgproc_FOUND)
+        list(APPEND OpenCV_LIBS opencv_ximgproc)
+        add_definitions(-DWITH_OPENCV_XIMGPROC)
+        message(STATUS "OpenCV ximgproc module found - enabling advanced CV features")
+    endif()
+    if(OpenCV_photo_FOUND)
+        list(APPEND OpenCV_LIBS opencv_photo)
+        add_definitions(-DWITH_OPENCV_PHOTO)
+        message(STATUS "OpenCV photo module found - enabling HDR and denoising")
+    endif()
+    if(OpenCV_dnn_FOUND)
+        list(APPEND OpenCV_LIBS opencv_dnn)
+        add_definitions(-DWITH_OPENCV_DNN)
+        message(STATUS "OpenCV DNN module found - enabling neural network inference")
+    endif()
+endif()
+
+# Neural Network Support with ONNX Runtime
+if(WITH_NEURAL_NETWORKS)
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(ONNXRUNTIME QUIET onnxruntime)
+        if(ONNXRUNTIME_FOUND)
+            add_definitions(-DWITH_ONNX)
+            message(STATUS "ONNX Runtime found - enabling neural network inference")
+        else()
+            message(WARNING "ONNX Runtime not found. Install with: sudo apt install libonnxruntime-dev")
+        endif()
+    else()
+        message(WARNING "PkgConfig not found - cannot detect ONNX Runtime")
+    endif()
+endif()
+
+# TensorRT Support (NVIDIA only)
+if(WITH_TENSORRT AND USE_CUDA)
+    find_path(TENSORRT_INCLUDE_DIR NvInfer.h HINTS /usr/include/x86_64-linux-gnu /usr/local/cuda/include)
+    find_library(TENSORRT_LIBRARY nvinfer HINTS /usr/lib/x86_64-linux-gnu /usr/local/cuda/lib64)
+    
+    if(TENSORRT_INCLUDE_DIR AND TENSORRT_LIBRARY)
+        add_definitions(-DWITH_TENSORRT)
+        message(STATUS "TensorRT found - enabling high-performance inference")
+    else()
+        message(WARNING "TensorRT not found. Install NVIDIA TensorRT SDK.")
+    endif()
+endif()
+
+# Intel OpenVINO Support
+if(WITH_OPENVINO)
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(OPENVINO QUIET openvino)
+        if(OPENVINO_FOUND)
+            add_definitions(-DWITH_OPENVINO)
+            message(STATUS "Intel OpenVINO found - enabling optimized inference")
+        else()
+            message(WARNING "Intel OpenVINO not found")
+        endif()
+    endif()
+endif()
+
 message(STATUS "OpenCV version: ${OpenCV_VERSION}")
 
 # --- GUI Configuration (Qt) ---
@@ -157,10 +288,12 @@ file(GLOB_RECURSE UTIL_SOURCES "src/utils/*.cpp")
 # --- AI and Neural Network Sources ---
 set(AI_SOURCES
     "src/ai/neural_stereo_matcher_simple.cpp"
+    "src/ai/enhanced_neural_matcher.cpp"
 )
 
 set(AI_HEADERS
     "include/ai/neural_stereo_matcher_simple.hpp"
+    "include/ai/enhanced_neural_matcher.hpp"
 )
 
 # --- Multi-Camera System Sources ---
@@ -214,7 +347,25 @@ target_link_libraries(stereo_vision_core PRIVATE
     Threads::Threads
     ${OpenCV_LIBS}
     ${PCL_LIBRARIES}
+    spdlog::spdlog
 )
+
+# Add AI/ML dependencies if available
+if(WITH_NEURAL_NETWORKS AND ONNXRUNTIME_FOUND)
+    target_link_libraries(stereo_vision_core PRIVATE ${ONNXRUNTIME_LIBRARIES})
+    target_include_directories(stereo_vision_core PRIVATE ${ONNXRUNTIME_INCLUDE_DIRS})
+endif()
+
+if(WITH_TENSORRT AND TENSORRT_INCLUDE_DIR AND TENSORRT_LIBRARY)
+    target_link_libraries(stereo_vision_core PRIVATE ${TENSORRT_LIBRARY})
+    target_include_directories(stereo_vision_core PRIVATE ${TENSORRT_INCLUDE_DIR})
+endif()
+
+if(WITH_OPENVINO AND OPENVINO_FOUND)
+    target_link_libraries(stereo_vision_core PRIVATE ${OPENVINO_LIBRARIES})
+    target_include_directories(stereo_vision_core PRIVATE ${OPENVINO_INCLUDE_DIRS})
+endif()
+
 if(USE_HIP)
     target_link_libraries(stereo_vision_core PRIVATE hip::host)
 endif()
@@ -249,8 +400,8 @@ if(BUILD_GUI)
     target_link_libraries(stereo_vision_app PRIVATE Qt5::Core Qt5::Widgets)
     target_include_directories(stereo_vision_app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     
-    # Simple app
-    target_link_libraries(stereo_vision_app_simple PRIVATE Qt5::Core Qt5::Widgets)
+    # Simple app with core library
+    target_link_libraries(stereo_vision_app_simple PRIVATE stereo_vision_core Qt5::Core Qt5::Widgets)
 else()
     target_link_libraries(stereo_vision_app PRIVATE stereo_vision_core)
 endif()
