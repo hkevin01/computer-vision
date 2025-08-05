@@ -62,6 +62,9 @@ cd stereo-vision-app
 
 - **📋 Manual Calibration Wizard**: Interactive step-by-step calibration guide (✅ **Now Available!**)
 - **🤖 AI Auto-Calibration**: Intelligent automatic calibration with quality assessment (✅ **Fully Functional**)
+- **🧠 Enhanced Neural Matcher**: Real AI stereo matching with ONNX Runtime integration (✅ **Just Added!**)
+- **⚡ Multi-Model Support**: HITNet, RAFT-Stereo, CREStereo with adaptive selection
+- **🚀 TensorRT Optimization**: GPU-accelerated neural inference for maximum performance
 - **Real-time Stereo Vision**: GPU-accelerated stereo matching algorithms
 - **⚡ Live Processing**: Real-time disparity mapping and 3D reconstruction
 - **Webcam Capture Integration**: Direct capture from USB/built-in cameras with device selection
@@ -144,6 +147,45 @@ The interactive manual calibration wizard is under development and will provide:
 - **💾 Advanced Management**: Comprehensive parameter saving and validation
 
 **Current Recommendation**: Use the **AI Auto-Calibration** feature for immediate calibration needs.
+
+## 🧠 Enhanced Neural Matcher ✅ **Just Added!**
+
+[![Neural AI](https://img.shields.io/badge/🧠-Neural%20AI-brightgreen.svg)](#)
+[![ONNX Runtime](https://img.shields.io/badge/⚡-ONNX%20Runtime-blue.svg)](#)
+[![TensorRT](https://img.shields.io/badge/🚀-TensorRT%20Optimized-orange.svg)](#)
+[![Multi Model](https://img.shields.io/badge/🎯-Multi%20Model-purple.svg)](#)
+[![Production Ready](https://img.shields.io/badge/✅-Production%20Ready-success.svg)](#)
+
+Revolutionary AI-powered stereo matching with real neural network inference capabilities:
+
+### 🎯 Key Features
+- **Real Neural Network Inference**: Genuine ONNX Runtime integration (no more placeholders!)
+- **Multiple Model Architecture Support**: HITNet (speed), RAFT-Stereo (accuracy), CREStereo (balanced)
+- **Adaptive Backend Selection**: TensorRT optimization with intelligent CPU/GPU fallback
+- **Professional Model Management**: Automatic model loading, validation, and error handling
+- **Production-Ready Implementation**: Comprehensive logging, error handling, and performance monitoring
+
+### 🚀 Supported Neural Models
+- **HITNet**: High-speed inference optimized for real-time applications
+- **RAFT-Stereo**: Maximum accuracy for precision-critical scenarios
+- **CREStereo**: Balanced performance for general-purpose stereo matching
+- **Custom Models**: Extensible architecture for additional ONNX-compatible models
+
+### 🎮 Usage
+1. **Model Selection**: Choose neural model based on speed/accuracy requirements
+2. **Automatic Setup**: Model manager handles loading and optimization
+3. **Real-time Inference**: Process stereo pairs with genuine AI acceleration
+4. **Quality Monitoring**: Live performance metrics and quality assessment
+5. **Fallback Support**: Seamless fallback to traditional methods if needed
+
+### 🔧 Technical Implementation
+- **ONNX Runtime 1.15+**: Industry-standard neural inference engine
+- **TensorRT Integration**: NVIDIA GPU optimization for maximum performance
+- **Smart Memory Management**: Efficient model caching and memory optimization
+- **Error Recovery**: Robust error handling with graceful degradation
+- **Cross-Platform Support**: Windows, Linux, macOS with unified API
+
+**Recommendation**: Use **HITNet** for real-time applications, **RAFT-Stereo** for maximum accuracy, or **CREStereo** for balanced performance.
 
 ## ⚡ Live Stereo Processing
 
@@ -233,7 +275,7 @@ The application now supports direct webcam capture for real-time stereo vision p
 ### ⌨️ Keyboard Shortcuts
 - **R**: Reset view to default position
 - **1**: Front view
-- **2**: Side view  
+- **2**: Side view
 - **3**: Top view
 - **A**: Toggle auto-rotation animation
 - **G**: Toggle grid display
@@ -290,7 +332,7 @@ The application now supports direct webcam capture for real-time stereo vision p
 This project supports both NVIDIA and AMD GPUs:
 
 - **NVIDIA GPUs**: Uses CUDA for acceleration
-- **AMD GPUs**: Uses ROCm/HIP for acceleration  
+- **AMD GPUs**: Uses ROCm/HIP for acceleration
 - **CPU Fallback**: Automatic fallback to CPU-only mode if no GPU is detected
 
 ## Technology Stack
@@ -301,9 +343,11 @@ This project supports both NVIDIA and AMD GPUs:
 [![Qt6](https://img.shields.io/badge/Qt-6.0%2B-41CD52.svg?logo=qt)](https://www.qt.io/)
 [![PCL](https://img.shields.io/badge/PCL-1.12%2B-FF6B6B.svg)](https://pointclouds.org/)
 [![VTK](https://img.shields.io/badge/VTK-9.0%2B-1f5582.svg)](https://vtk.org/)
+[![ONNX Runtime](https://img.shields.io/badge/ONNX%20Runtime-1.15%2B-00A1C9.svg?logo=onnx)](https://onnxruntime.ai/)
+[![TensorRT](https://img.shields.io/badge/TensorRT-8.5%2B-76B900.svg?logo=nvidia)](https://developer.nvidia.com/tensorrt)
+
 [![Boost](https://img.shields.io/badge/Boost-C%2B%2B%20Libraries-orange.svg)](https://www.boost.org/)
 [![Eigen](https://img.shields.io/badge/Eigen-3-blue.svg)](https://eigen.tuxfamily.org/)
-
 [![OpenGL](https://img.shields.io/badge/OpenGL-3.3%2B-5586A4.svg?logo=opengl)](https://www.opengl.org/)
 [![GLFW](https://img.shields.io/badge/GLFW-3.3%2B-orange.svg)](https://www.glfw.org/)
 [![spdlog](https://img.shields.io/badge/spdlog-Fast%20Logging-blue.svg)](https://github.com/gabime/spdlog)
@@ -324,15 +368,23 @@ This project supports both NVIDIA and AMD GPUs:
 [![macOS](https://img.shields.io/badge/macOS-10.15%2B-000000.svg?logo=apple)](https://www.apple.com/macos/)
 
 ### Required Libraries
-- **OpenCV** (>= 4.5): Computer vision and image processing
+
+- **OpenCV** (>= 4.5): Computer vision and image processing with CUDA/OpenCL support
 - **PCL** (Point Cloud Library >= 1.12): Point cloud processing and visualization
-- **Qt6** (>= 6.0): GUI framework
+- **Qt6** (>= 6.0): GUI framework with modern Windows 11 styling
 - **VTK** (>= 9.0): Visualization toolkit (dependency of PCL)
-- **CMake** (>= 3.18): Build system
+- **CMake** (>= 3.18): Build system with AI/ML integration support
+
+### AI/ML Runtime Libraries
+
+- **ONNX Runtime** (>= 1.15): Neural network inference engine for stereo matching
+- **TensorRT** (>= 8.5, Optional): NVIDIA GPU acceleration for neural models
+- **OpenCV DNN** (>= 4.5): Deep neural network support for enhanced stereo vision
 
 ### GPU Runtime (Optional)
-- **NVIDIA**: CUDA Toolkit (>= 11.0)
-- **AMD**: ROCm (>= 5.0) with HIP support
+
+- **NVIDIA**: CUDA Toolkit (>= 11.0) with TensorRT for optimal neural model performance
+- **AMD**: ROCm (>= 5.0) with HIP support for GPU acceleration
 
 ## Installation
 
@@ -394,24 +446,24 @@ sudo apt install libboost-all-dev libeigen3-dev libglew-dev
 
 ### Manual Build with GPU Backend Selection
 
-#### For NVIDIA GPUs:
+#### For NVIDIA GPUs with AI/ML:
 ```bash
 mkdir build && cd build
-cmake .. -DUSE_CUDA=ON -DUSE_HIP=OFF
+cmake .. -DUSE_CUDA=ON -DUSE_HIP=OFF -DWITH_ONNX=ON -DWITH_TENSORRT=ON
 make -j$(nproc)
 ```
 
-#### For AMD GPUs:
+#### For AMD GPUs with AI/ML:
 ```bash
 mkdir build && cd build
-cmake .. -DUSE_CUDA=OFF -DUSE_HIP=ON
+cmake .. -DUSE_CUDA=OFF -DUSE_HIP=ON -DWITH_ONNX=ON -DWITH_TENSORRT=OFF
 make -j$(nproc)
 ```
 
-#### CPU-only:
+#### CPU-only with Neural Networks:
 ```bash
 mkdir build && cd build
-cmake .. -DUSE_CUDA=OFF -DUSE_HIP=OFF
+cmake .. -DUSE_CUDA=OFF -DUSE_HIP=OFF -DWITH_ONNX=ON -DWITH_TENSORRT=OFF
 make -j$(nproc)
 ```
 
@@ -441,16 +493,16 @@ make -j$(nproc)
 [![Scripts](https://img.shields.io/badge/⚙️-Build%20Scripts-purple.svg)](build_scripts/)
 
 ```
-computer-vision/                # 🎯 Clean, modern project structure
+computer-vision/                # 🎯 Clean, modern project structure with AI/ML integration
 ├── 📁 src/                     # Source code
 │   ├── core/                   # Core algorithms (stereo, calibration)
-│   ├── ai/                     # Neural network implementations
-│   ├── gui/                    # Qt GUI components
+│   ├── ai/                     # Neural network implementations (Enhanced Neural Matcher)
+│   ├── gui/                    # Qt GUI components with modern Windows 11 styling
 │   ├── gpu/                    # GPU acceleration (CUDA/HIP)
 │   ├── multicam/               # Multi-camera system
 │   └── utils/                  # Utility functions
 ├── 📁 include/                 # Header files (mirrors src/)
-│   ├── ai/                     # Neural stereo matching
+│   ├── ai/                     # Neural stereo matching (enhanced_neural_matcher.hpp)
 │   ├── gui/                    # GUI component headers
 │   ├── multicam/               # Multi-camera headers
 │   └── benchmark/              # Performance benchmarking
@@ -483,7 +535,7 @@ computer-vision/                # 🎯 Clean, modern project structure
 
 ### 📂 Quick Navigation
 - **Start Here**: [README.md](README.md) → [run.sh](run.sh)
-- **Documentation**: [documentation/](documentation/) 
+- **Documentation**: [documentation/](documentation/)
 - **Test Hardware**: [test_programs/](test_programs/)
 - **Build Issues**: [build_scripts/](build_scripts/) → [logs/](logs/)
 - **Development**: [src/](src/) → [include/](include/)
@@ -492,15 +544,29 @@ computer-vision/                # 🎯 Clean, modern project structure
 
 ## 🏆 Latest Achievements
 
-### ✅ Priority 2 Features Complete (Recently Completed)
+### ✅ Latest AI/ML Enhancements (Just Completed)
+- **🧠 Enhanced Neural Matcher** - Advanced AI stereo matching with multiple model support
+- **🚀 ONNX Runtime Integration** - Real neural network inference replacing placeholder implementations
+- **🎯 Multiple Model Support** - HITNet, RAFT-Stereo, CREStereo with adaptive selection
+- **⚡ TensorRT Optimization** - Optional GPU acceleration for maximum performance
+- **🔧 Smart Model Management** - Automatic model loading, validation, and fallback handling
+
+### 🎯 AI/ML Technical Achievements
+- **Enhanced Neural Matcher**: Real ONNX Runtime integration with production-ready inference
+- **Model Architecture Support**: HITNet (high-speed), RAFT-Stereo (accuracy), CREStereo (balanced)
+- **Adaptive Backend**: TensorRT optimization with CPU/GPU fallback handling
+- **Professional API**: Clean C++ interface with comprehensive error handling and logging
+
+### ✅ Priority 2 Features Complete (Previously Completed)
 - **Neural Network Stereo Matching** - TensorRT/ONNX backends with adaptive optimization
-- **Multi-Camera Support** - Synchronized capture and real-time processing  
+- **Multi-Camera Support** - Synchronized capture and real-time processing
 - **Professional Installers** - Cross-platform packaging framework
 - **Enhanced Performance Benchmarking** - Comprehensive testing with HTML/CSV reports
 
 *See [archive/milestone_docs/PRIORITY2_COMPLETE.md](archive/milestone_docs/PRIORITY2_COMPLETE.md) for full details.*
 
 ### 📊 Performance Highlights
+- **Enhanced Neural Models**: Real-time inference with ONNX Runtime optimization
 - **Neural Networks**: 274 FPS (StereoNet), 268 FPS (PSMNet)
 - **Multi-Camera**: 473 FPS (2 cameras), 236 FPS (4 cameras)
 - **Latest Reports**: Available in [reports/benchmarks/](reports/benchmarks/)
