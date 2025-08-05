@@ -52,12 +52,17 @@ protected:
   void hideEvent(QHideEvent *event) override;
   void paintEvent(QPaintEvent *event) override;
   void keyPressEvent(QKeyEvent *event) override;
+  void mousePressEvent(QMouseEvent *event) override;
+  void enterEvent(QEvent *event) override;
+  void leaveEvent(QEvent *event) override;
 
 private slots:
   void onStepChanged(int step);
   void onCalibrationProgress(int progress);
   void onAnimationFinished();
   void updateQualityAssessment();
+  void updateOverlay();
+  void animateQualityIndicator();
 
 private:
   void setupModernUI();
@@ -172,7 +177,7 @@ signals:
 protected:
   void paintEvent(QPaintEvent *event) override;
   void mousePressEvent(QMouseEvent *event) override;
-  void enterEvent(QEnterEvent *event) override;
+  void enterEvent(QEvent *event) override;
   void leaveEvent(QEvent *event) override;
 
 private slots:
@@ -180,8 +185,12 @@ private slots:
   void animateQualityIndicator();
 
 private:
+  struct Private;
+  std::unique_ptr<Private> d;
+
+private:
   struct PreviewPrivate;
-  std::unique_ptr<PreviewPrivate> d;
+  const std::unique_ptr<PreviewPrivate> preview_d;
 };
 
 } // namespace stereo_vision::gui
