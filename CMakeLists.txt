@@ -87,16 +87,16 @@ endif()
 # AI/ML dependency discovery
 if(WITH_NEURAL_NETWORKS)
     find_package(PkgConfig QUIET)
-    
+
     # Find ONNX Runtime
     set(ONNXRUNTIME_FOUND FALSE)
-    find_path(ONNXRUNTIME_INCLUDE_DIR onnxruntime_cxx_api.h PATHS 
-        /usr/include/onnxruntime 
+    find_path(ONNXRUNTIME_INCLUDE_DIR onnxruntime_cxx_api.h PATHS
+        /usr/include/onnxruntime
         /usr/local/include/onnxruntime
         /opt/onnxruntime/include)
-    find_library(ONNXRUNTIME_LIBRARIES onnxruntime PATHS 
-        /usr/lib 
-        /usr/local/lib 
+    find_library(ONNXRUNTIME_LIBRARIES onnxruntime PATHS
+        /usr/lib
+        /usr/local/lib
         /opt/onnxruntime/lib)
     if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARIES)
         set(ONNXRUNTIME_FOUND TRUE)
@@ -104,15 +104,15 @@ if(WITH_NEURAL_NETWORKS)
     else()
         message(WARNING "ONNX Runtime not found. Install with: sudo apt-get install libonnxruntime-dev")
     endif()
-    
+
     # Find TensorRT (optional)
     if(WITH_TENSORRT)
-        find_path(TENSORRT_INCLUDE_DIR NvInfer.h PATHS 
-            /usr/include/x86_64-linux-gnu 
+        find_path(TENSORRT_INCLUDE_DIR NvInfer.h PATHS
+            /usr/include/x86_64-linux-gnu
             /usr/local/include
             /usr/local/cuda/include)
-        find_library(TENSORRT_LIBRARY nvinfer PATHS 
-            /usr/lib/x86_64-linux-gnu 
+        find_library(TENSORRT_LIBRARY nvinfer PATHS
+            /usr/lib/x86_64-linux-gnu
             /usr/local/lib
             /usr/local/cuda/lib64)
         if(TENSORRT_INCLUDE_DIR AND TENSORRT_LIBRARY)
@@ -121,7 +121,7 @@ if(WITH_NEURAL_NETWORKS)
             message(WARNING "TensorRT not found. Neural networks will use ONNX Runtime fallback.")
         endif()
     endif()
-    
+
     # Find OpenVINO (optional)
     if(WITH_OPENVINO)
         find_package(PkgConfig QUIET)
@@ -190,7 +190,7 @@ endif()
 if(WITH_TENSORRT AND USE_CUDA)
     find_path(TENSORRT_INCLUDE_DIR NvInfer.h HINTS /usr/include/x86_64-linux-gnu /usr/local/cuda/include)
     find_library(TENSORRT_LIBRARY nvinfer HINTS /usr/lib/x86_64-linux-gnu /usr/local/cuda/lib64)
-    
+
     if(TENSORRT_INCLUDE_DIR AND TENSORRT_LIBRARY)
         add_definitions(-DWITH_TENSORRT)
         message(STATUS "TensorRT found - enabling high-performance inference")
@@ -220,10 +220,10 @@ if(BUILD_GUI)
     set(QT_LIBRARIES "")
     set(QT_VERSION_MAJOR "")
     # Force Qt5 to match system VTK/PCL installation that was compiled against Qt5
-    find_package(Qt5 COMPONENTS Core Gui Widgets OpenGL REQUIRED)
+    find_package(Qt5 COMPONENTS Core Gui Widgets OpenGL Concurrent REQUIRED)
     set(QT_VERSION_MAJOR 5)
     list(APPEND QT_LIBRARIES Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL)
-    
+
     # Try to find OpenGLWidgets component (available in Qt 5.4+)
     find_package(Qt5 COMPONENTS OpenGLWidgets QUIET)
     if(Qt5OpenGLWidgets_FOUND)
@@ -232,7 +232,7 @@ if(BUILD_GUI)
     else()
         message(STATUS "Qt5OpenGLWidgets not found - using Qt5::OpenGL instead.")
     endif()
-    
+
     message(STATUS "Using Qt5 for GUI to match system VTK/PCL installation.")
 endif()
 
@@ -285,6 +285,15 @@ file(GLOB_RECURSE GUI_SOURCES "src/gui/*.cpp")
 file(GLOB_RECURSE GUI_HEADERS "include/gui/*.hpp")
 file(GLOB_RECURSE UTIL_SOURCES "src/utils/*.cpp")
 
+# --- Batch Processing Sources ---
+set(BATCH_SOURCES
+    "src/batch_processor.cpp"
+)
+
+set(BATCH_HEADERS
+    "include/batch_processor.hpp"
+)
+
 # --- AI and Neural Network Sources ---
 set(AI_SOURCES
     "src/ai/neural_stereo_matcher_simple.cpp"
@@ -324,8 +333,8 @@ set(MODERN_GUI_SOURCES
 list(APPEND GUI_SOURCES ${MODERN_GUI_SOURCES})
 
 # Add new sources to core library
-list(APPEND CORE_SOURCES ${AI_SOURCES} ${MULTICAM_SOURCES})
-list(APPEND GUI_HEADERS ${AI_HEADERS} ${MULTICAM_HEADERS})
+list(APPEND CORE_SOURCES ${AI_SOURCES} ${MULTICAM_SOURCES} ${BATCH_SOURCES})
+list(APPEND GUI_HEADERS ${AI_HEADERS} ${MULTICAM_HEADERS} ${BATCH_HEADERS})
 
 # Add benchmark sources (optional build)
 if(BUILD_BENCHMARKS)
@@ -373,14 +382,14 @@ endif()
 # --- GUI Library ---
 if(BUILD_GUI)
     add_library(stereo_vision_gui ${GUI_SOURCES} ${GUI_HEADERS})
-    
+
     # Enable Qt's automatic MOC, UIC, and RCC
     set_target_properties(stereo_vision_gui PROPERTIES
         AUTOMOC ON
         AUTOUIC ON
         AUTORCC ON
     )
-    
+
     target_link_libraries(stereo_vision_gui PRIVATE
         stereo_vision_core
         ${QT_LIBRARIES}
@@ -394,12 +403,32 @@ endif()
 add_executable(stereo_vision_app src/main.cpp)
 add_executable(stereo_vision_app_simple src/main_simple.cpp)
 
+# --- Live Stereo Parameter Tuning Tool ---
+if(BUILD_GUI)
+    add_executable(live_stereo_tuning src/live_stereo_tuning_main.cpp)
+    target_link_libraries(live_stereo_tuning PRIVATE stereo_vision_gui stereo_vision_core)
+    target_link_libraries(live_stereo_tuning PRIVATE Qt5::Core Qt5::Widgets)
+    target_include_directories(live_stereo_tuning PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    # Batch processing test application
+    add_executable(batch_processing_test src/batch_processing_test.cpp)
+    target_link_libraries(batch_processing_test PRIVATE stereo_vision_gui stereo_vision_core)
+    target_link_libraries(batch_processing_test PRIVATE Qt5::Core Qt5::Widgets Qt5::Concurrent)
+    target_include_directories(batch_processing_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    set_target_properties(batch_processing_test PROPERTIES AUTOMOC ON)
+endif()
+
+# --- Core batch processing test (no GUI dependencies) ---
+add_executable(batch_core_test src/batch_core_test.cpp)
+target_link_libraries(batch_core_test PRIVATE Qt5::Core)
+target_include_directories(batch_core_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 if(BUILD_GUI)
     target_link_libraries(stereo_vision_app PRIVATE stereo_vision_gui)
     # Link Qt5 directly to main executable
     target_link_libraries(stereo_vision_app PRIVATE Qt5::Core Qt5::Widgets)
     target_include_directories(stereo_vision_app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    
+
     # Simple app with core library
     target_link_libraries(stereo_vision_app_simple PRIVATE stereo_vision_core Qt5::Core Qt5::Widgets)
 else()

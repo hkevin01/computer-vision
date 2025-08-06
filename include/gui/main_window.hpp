@@ -27,6 +27,12 @@ class ImageDisplayWidget;
 class ParameterPanel;
 class PointCloudWidget;
 
+} // namespace stereo_vision::gui
+
+namespace stereo_vision::batch {
+class BatchProcessingWindow;
+namespace stereo_vision::gui {
+
 class MainWindow : public QMainWindow {
   Q_OBJECT
 
@@ -69,6 +75,9 @@ private slots:
   void onCalibrationComplete();
   void captureCalibrationFrame();
 
+  // Batch processing slots
+  void openBatchProcessing();
+
 private:
   void setupUI();
   void setupMenuBar();
@@ -110,6 +119,7 @@ private:
   QAction *m_exitAction;
   QAction *m_calibrateAction;
   QAction *m_processAction;
+  QAction *m_batchProcessAction;
   QAction *m_exportAction;
   QAction *m_aboutAction;
 
@@ -169,6 +179,9 @@ private:
   bool m_liveProcessingEnabled;
   cv::Mat m_lastDisparityMap;
   cv::Mat m_lastPointCloud;
+
+  // Batch processing window
+  stereo_vision::BatchProcessingWindow* m_batchProcessingWindow;
 
   // AI Calibration state
   bool m_aiCalibrationActive;

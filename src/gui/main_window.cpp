@@ -31,6 +31,7 @@
 #include "ai_calibration.hpp"
 #include "camera_calibration.hpp"
 #include "camera_manager.hpp"
+#include "gui/batch_processing_window.hpp"
 #include "gui/calibration_wizard.hpp"
 #include "gui/camera_selector_dialog.hpp"
 #include "gui/image_display_widget.hpp"
@@ -62,7 +63,7 @@ MainWindow::MainWindow(QWidget *parent)
       m_selectedLeftCamera(-1), m_selectedRightCamera(-1),
       m_liveProcessingTimer(new QTimer(this)), m_liveProcessingEnabled(false),
       m_aiCalibrationActive(false), m_calibrationFrameCount(0),
-      m_requiredCalibrationFrames(20) {
+      m_requiredCalibrationFrames(20), m_batchProcessingWindow(nullptr) {
   // Initialize processing components
   m_calibration = std::make_shared<CameraCalibration>();
   m_stereoMatcher = std::make_shared<StereoMatcher>();
@@ -86,6 +87,11 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 MainWindow::~MainWindow() {
+  // Clean up batch processing window
+  if (m_batchProcessingWindow) {
+    delete m_batchProcessingWindow;
+    m_batchProcessingWindow = nullptr;
+  }
   // shared_ptr objects are automatically destroyed
 }
 
@@ -182,6 +188,11 @@ void MainWindow::setupMenuBar() {
   m_processAction = new QAction("Process &Stereo Images", this);
   m_processAction->setShortcut(QKeySequence("Ctrl+P"));
   m_processMenu->addAction(m_processAction);
+
+  m_batchProcessAction = new QAction("&Batch Processing...", this);
+  m_batchProcessAction->setShortcut(QKeySequence("Ctrl+B"));
+  m_batchProcessAction->setStatusTip("Open batch processing window for multiple stereo pairs");
+  m_processMenu->addAction(m_batchProcessAction);
 
   m_liveProcessingAction = new QAction("Toggle &Live Processing", this);
   m_liveProcessingAction->setShortcut(QKeySequence("Ctrl+Shift+P"));
@@ -310,6 +321,8 @@ void MainWindow::connectSignals() {
           &MainWindow::startAICalibration);
   connect(m_processAction, &QAction::triggered, this,
           &MainWindow::processStereoImages);
+  connect(m_batchProcessAction, &QAction::triggered, this,
+          &MainWindow::openBatchProcessing);
   connect(m_liveProcessingAction, &QAction::triggered, this,
           &MainWindow::toggleLiveProcessing);
   connect(m_exportAction, &QAction::triggered, this,
@@ -1034,6 +1047,16 @@ void MainWindow::updatePointCloud() {
     // This would use the point cloud processor
     m_statusLabel->setText("Point cloud updated");
   }
+}
+
+void MainWindow::openBatchProcessing() {
+  if (!m_batchProcessingWindow) {
+    m_batchProcessingWindow = new stereo_vision::BatchProcessingWindow(this);
+  }
+
+  m_batchProcessingWindow->show();
+  m_batchProcessingWindow->raise();
+  m_batchProcessingWindow->activateWindow();
 }
 
 } // namespace stereo_vision::gui
