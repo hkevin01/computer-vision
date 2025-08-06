@@ -1,19 +1,23 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QWidget>
 #include <QString>
-
-// Forward declare Qt classes to reduce header dependencies
-class QAction;
-class QMenu;
-class QMenuBar;
-class QProgressBar;
-class QLabel;
-class QSplitter;
-class QStatusBar;
-class QTabWidget;
-class QTimer;
-class QWidget;
+#include <QTimer>
+#include <QAction>
+#include <QMenu>
+#include <QMenuBar>
+#include <QProgressBar>
+#include <QLabel>
+#include <QSplitter>
+#include <QStatusBar>
+#include <QTabWidget>
+#include <QStandardPaths>
+#include <QFileDialog>
+#include <QDateTime>
+#include <QDir>
+#include <memory>
+#include <opencv2/opencv.hpp>
 
 #include "camera_calibration.hpp"
 #include "camera_manager.hpp"
@@ -26,11 +30,14 @@ namespace stereo_vision::gui {
 class ImageDisplayWidget;
 class ParameterPanel;
 class PointCloudWidget;
+class EpipolarChecker;
 
 } // namespace stereo_vision::gui
 
 namespace stereo_vision::batch {
 class BatchProcessingWindow;
+} // namespace stereo_vision::batch
+
 namespace stereo_vision::gui {
 
 class MainWindow : public QMainWindow {
@@ -78,6 +85,9 @@ private slots:
   // Batch processing slots
   void openBatchProcessing();
 
+  // Epipolar checker slots
+  void openEpipolarChecker();
+
 private:
   void setupUI();
   void setupMenuBar();
@@ -120,6 +130,7 @@ private:
   QAction *m_calibrateAction;
   QAction *m_processAction;
   QAction *m_batchProcessAction;
+  QAction *m_epipolarCheckerAction;
   QAction *m_exportAction;
   QAction *m_aboutAction;
 
@@ -181,7 +192,10 @@ private:
   cv::Mat m_lastPointCloud;
 
   // Batch processing window
-  stereo_vision::BatchProcessingWindow* m_batchProcessingWindow;
+  stereo_vision::batch::BatchProcessingWindow* m_batchProcessingWindow;
+
+  // Epipolar checker window
+  EpipolarChecker* m_epipolarChecker;
 
   // AI Calibration state
   bool m_aiCalibrationActive;

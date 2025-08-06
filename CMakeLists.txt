@@ -323,6 +323,17 @@ set(BENCHMARK_HEADERS
     "include/benchmark/performance_benchmark_simple.hpp"
 )
 
+# --- Advanced Calibration Sources ---
+set(CALIBRATION_SOURCES
+    "src/calibration/eight_point_algorithm.cpp"
+    "src/calibration/tsai_calibration.cpp"
+    "src/calibration/advanced_calibration_manager.cpp"
+)
+
+set(CALIBRATION_HEADERS
+    "include/calibration/advanced_calibration.hpp"
+)
+
 # Include modern theme and performance optimization sources
 set(MODERN_GUI_SOURCES
     "src/gui/modern_theme.cpp"
@@ -333,8 +344,8 @@ set(MODERN_GUI_SOURCES
 list(APPEND GUI_SOURCES ${MODERN_GUI_SOURCES})
 
 # Add new sources to core library
-list(APPEND CORE_SOURCES ${AI_SOURCES} ${MULTICAM_SOURCES} ${BATCH_SOURCES})
-list(APPEND GUI_HEADERS ${AI_HEADERS} ${MULTICAM_HEADERS} ${BATCH_HEADERS})
+list(APPEND CORE_SOURCES ${AI_SOURCES} ${MULTICAM_SOURCES} ${BATCH_SOURCES} ${CALIBRATION_SOURCES})
+list(APPEND GUI_HEADERS ${AI_HEADERS} ${MULTICAM_HEADERS} ${BATCH_HEADERS} ${CALIBRATION_HEADERS})
 
 # Add benchmark sources (optional build)
 if(BUILD_BENCHMARKS)
@@ -422,6 +433,11 @@ endif()
 add_executable(batch_core_test src/batch_core_test.cpp)
 target_link_libraries(batch_core_test PRIVATE Qt5::Core)
 target_include_directories(batch_core_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+# --- Advanced Calibration Test ---
+add_executable(test_advanced_calibration test_programs/test_advanced_calibration.cpp)
+target_link_libraries(test_advanced_calibration PRIVATE stereo_vision_core)
+target_include_directories(test_advanced_calibration PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 if(BUILD_GUI)
     target_link_libraries(stereo_vision_app PRIVATE stereo_vision_gui)

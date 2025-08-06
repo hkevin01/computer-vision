@@ -1,15 +1,11 @@
 #include "gui/main_window.hpp"
 
-// Standard library includes
-#include <memory>
-
 // Qt includes
 #include <QAction>
 #include <QApplication>
 #include <QDateTime>
 #include <QDir>
 #include <QFileDialog>
-#include <QFileInfo>
 #include <QKeySequence>
 #include <QLabel>
 #include <QMenuBar>
@@ -24,51 +20,46 @@
 #include <QWidget>
 
 // OpenCV includes
-#include <opencv2/imgproc.hpp>
 #include <opencv2/opencv.hpp>
 
 // Project includes
-#include "ai_calibration.hpp"
-#include "camera_calibration.hpp"
-#include "camera_manager.hpp"
-#include "gui/batch_processing_window.hpp"
-#include "gui/calibration_wizard.hpp"
-#include "gui/camera_selector_dialog.hpp"
-#include "gui/image_display_widget.hpp"
-#include "gui/modern_theme.hpp"
-#include "gui/parameter_panel.hpp"
-#include "gui/point_cloud_widget.hpp"
-#include "live_stereo_processor.hpp"
-#include "point_cloud_processor.hpp"
-#include "stereo_matcher.hpp"
+#include "gui/epipolar_checker.hpp"
 
 namespace stereo_vision::gui {
 
-// Using declarations should be inside the namespace
-using stereo_vision::CameraCalibration;
-using stereo_vision::PointCloudProcessor;
-using stereo_vision::StereoMatcher;
-
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), m_centralWidget(nullptr), m_mainSplitter(nullptr),
-      m_imageTabWidget(nullptr), m_leftImageWidget(nullptr),
-      m_rightImageWidget(nullptr), m_disparityWidget(nullptr),
-      m_pointCloudWidget(nullptr), m_parameterPanel(nullptr),
-      m_progressBar(nullptr), m_statusLabel(nullptr), m_calibration(nullptr),
-      m_stereoMatcher(nullptr), m_pointCloudProcessor(nullptr),
-      m_cameraManager(nullptr), m_processingTimer(new QTimer(this)),
-      m_captureTimer(new QTimer(this)), m_isProcessing(false),
-      m_hasCalibration(false), m_hasImages(false), m_isCapturing(false),
-      m_leftCameraConnected(false), m_rightCameraConnected(false),
-      m_selectedLeftCamera(-1), m_selectedRightCamera(-1),
-      m_liveProcessingTimer(new QTimer(this)), m_liveProcessingEnabled(false),
-      m_aiCalibrationActive(false), m_calibrationFrameCount(0),
-      m_requiredCalibrationFrames(20), m_batchProcessingWindow(nullptr) {
-  // Initialize processing components
-  m_calibration = std::make_shared<CameraCalibration>();
-  m_stereoMatcher = std::make_shared<StereoMatcher>();
-  m_pointCloudProcessor = std::make_shared<PointCloudProcessor>();
-  m_cameraManager = std::make_shared<stereo_vision::CameraManager>();
+    : QMainWindow(parent),
+      m_centralWidget(nullptr),
+      m_mainSplitter(nullptr),
+      m_imageTabWidget(nullptr),
+      m_leftImageWidget(nullptr),
+      m_rightImageWidget(nullptr),
+      m_disparityWidget(nullptr),
+      m_pointCloudWidget(nullptr),
+      m_parameterPanel(nullptr),
+      m_progressBar(nullptr),
+      m_statusLabel(nullptr),
+      m_calibration(nullptr),
+      m_stereoMatcher(nullptr),
+      m_pointCloudProcessor(nullptr),
+      m_cameraManager(nullptr),
+      m_processingTimer(new QTimer(this)),
+      m_captureTimer(new QTimer(this)),
+      m_isProcessing(false),
+      m_hasCalibration(false),
+      m_hasImages(false),
+      m_isCapturing(false),
+      m_leftCameraConnected(false),
+      m_rightCameraConnected(false),
+      m_selectedLeftCamera(-1),
+      m_selectedRightCamera(-1),
+      m_liveProcessingTimer(new QTimer(this)),
+      m_liveProcessingEnabled(false),
+      m_aiCalibrationActive(false),
+      m_calibrationFrameCount(0),
+      m_requiredCalibrationFrames(20),
+      m_batchProcessingWindow(nullptr),
+      m_epipolarChecker(nullptr) {
 
   setupUI();
   connectSignals();
@@ -80,19 +71,14 @@ MainWindow::MainWindow(QWidget *parent)
   resize(1600, 1000);
 
   // Set default output path
-  m_outputPath =
-      QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
-      "/StereoVision";
+  m_outputPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/StereoVision";
   QDir().mkpath(m_outputPath);
 }
 
 MainWindow::~MainWindow() {
-  // Clean up batch processing window
-  if (m_batchProcessingWindow) {
-    delete m_batchProcessingWindow;
-    m_batchProcessingWindow = nullptr;
-  }
-  // shared_ptr objects are automatically destroyed
+  // Clean up windows
+  delete m_epipolarChecker;
+  delete m_batchProcessingWindow;
 }
 
 void MainWindow::setupUI() {
@@ -100,6 +86,83 @@ void MainWindow::setupUI() {
   setupCentralWidget();
   setupStatusBar();
 }
+
+void MainWindow::setupMenuBar() {
+  QMenuBar *menuBar = this->menuBar();
+
+  // Tools menu
+  QMenu *toolsMenu = menuBar->addMenu("&Tools");
+
+  m_epipolarCheckerAction = new QAction("&Epipolar Line Checker...", this);
+  m_epipolarCheckerAction->setShortcut(QKeySequence("Ctrl+Shift+E"));
+  m_epipolarCheckerAction->setStatusTip("Open epipolar line checker for calibration quality assessment");
+  toolsMenu->addAction(m_epipolarCheckerAction);
+}
+
+void MainWindow::setupCentralWidget() {
+  m_centralWidget = new QWidget;
+  setCentralWidget(m_centralWidget);
+}
+
+void MainWindow::setupStatusBar() {
+  QStatusBar *statusBar = this->statusBar();
+  m_statusLabel = new QLabel("Ready");
+  m_progressBar = new QProgressBar;
+  m_progressBar->setVisible(false);
+
+  statusBar->addWidget(m_statusLabel);
+  statusBar->addPermanentWidget(m_progressBar);
+}
+
+void MainWindow::connectSignals() {
+  connect(m_epipolarCheckerAction, &QAction::triggered, this, &MainWindow::openEpipolarChecker);
+}
+
+void MainWindow::updateUI() {
+  // Basic UI update implementation
+}
+
+void MainWindow::openEpipolarChecker() {
+  if (!m_epipolarChecker) {
+    m_epipolarChecker = new EpipolarChecker(this);
+  }
+
+  m_epipolarChecker->show();
+  m_epipolarChecker->raise();
+  m_epipolarChecker->activateWindow();
+}
+
+// Stub implementations for required slots
+void MainWindow::openLeftImage() {}
+void MainWindow::openRightImage() {}
+void MainWindow::openStereoFolder() {}
+void MainWindow::loadCalibration() {}
+void MainWindow::saveCalibration() {}
+void MainWindow::runCalibration() {}
+void MainWindow::processStereoImages() {}
+void MainWindow::exportPointCloud() {}
+void MainWindow::showAbout() {}
+void MainWindow::onParameterChanged() {}
+void MainWindow::onProcessingFinished() {}
+void MainWindow::showCameraSelector() {}
+void MainWindow::startWebcamCapture() {}
+void MainWindow::stopWebcamCapture() {}
+void MainWindow::captureLeftImage() {}
+void MainWindow::captureRightImage() {}
+void MainWindow::captureStereoImage() {}
+void MainWindow::onFrameReady() {}
+void MainWindow::onCameraSelectionChanged() {}
+void MainWindow::toggleLiveProcessing() {}
+void MainWindow::onLiveFrameProcessed() {}
+void MainWindow::updateDisparityMap() {}
+void MainWindow::updatePointCloud() {}
+void MainWindow::startAICalibration() {}
+void MainWindow::onCalibrationProgress(int progress) {}
+void MainWindow::onCalibrationComplete() {}
+void MainWindow::captureCalibrationFrame() {}
+void MainWindow::openBatchProcessing() {}
+
+} // namespace stereo_vision::gui
 
 void MainWindow::setupMenuBar() {
   m_menuBar = menuBar();
@@ -193,6 +256,11 @@ void MainWindow::setupMenuBar() {
   m_batchProcessAction->setShortcut(QKeySequence("Ctrl+B"));
   m_batchProcessAction->setStatusTip("Open batch processing window for multiple stereo pairs");
   m_processMenu->addAction(m_batchProcessAction);
+
+  m_epipolarCheckerAction = new QAction("&Epipolar Line Checker...", this);
+  m_epipolarCheckerAction->setShortcut(QKeySequence("Ctrl+Shift+E"));
+  m_epipolarCheckerAction->setStatusTip("Open epipolar line checker for calibration quality assessment");
+  m_processMenu->addAction(m_epipolarCheckerAction);
 
   m_liveProcessingAction = new QAction("Toggle &Live Processing", this);
   m_liveProcessingAction->setShortcut(QKeySequence("Ctrl+Shift+P"));
@@ -323,6 +391,8 @@ void MainWindow::connectSignals() {
           &MainWindow::processStereoImages);
   connect(m_batchProcessAction, &QAction::triggered, this,
           &MainWindow::openBatchProcessing);
+  connect(m_epipolarCheckerAction, &QAction::triggered, this,
+          &MainWindow::openEpipolarChecker);
   connect(m_liveProcessingAction, &QAction::triggered, this,
           &MainWindow::toggleLiveProcessing);
   connect(m_exportAction, &QAction::triggered, this,
@@ -1051,12 +1121,22 @@ void MainWindow::updatePointCloud() {
 
 void MainWindow::openBatchProcessing() {
   if (!m_batchProcessingWindow) {
-    m_batchProcessingWindow = new stereo_vision::BatchProcessingWindow(this);
+    m_batchProcessingWindow = new stereo_vision::batch::BatchProcessingWindow(this);
   }
 
   m_batchProcessingWindow->show();
   m_batchProcessingWindow->raise();
   m_batchProcessingWindow->activateWindow();
+}
+
+void MainWindow::openEpipolarChecker() {
+  if (!m_epipolarChecker) {
+    m_epipolarChecker = new EpipolarChecker(this);
+  }
+
+  m_epipolarChecker->show();
+  m_epipolarChecker->raise();
+  m_epipolarChecker->activateWindow();
 }
 
 } // namespace stereo_vision::gui
