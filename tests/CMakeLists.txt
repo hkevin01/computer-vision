@@ -13,7 +13,7 @@ if(NOT GTest_FOUND)
     find_path(GTEST_INCLUDE_DIR gtest/gtest.h PATHS /usr/include)
     find_library(GTEST_LIBRARY gtest PATHS /usr/lib/x86_64-linux-gnu /usr/lib)
     find_library(GTEST_MAIN_LIBRARY gtest_main PATHS /usr/lib/x86_64-linux-gnu /usr/lib)
-    
+
     if(GTEST_INCLUDE_DIR AND GTEST_LIBRARY AND GTEST_MAIN_LIBRARY)
         message(STATUS "Found system GTest libraries")
         add_library(GTest::GTest STATIC IMPORTED)
@@ -21,31 +21,31 @@ if(NOT GTest_FOUND)
             IMPORTED_LOCATION ${GTEST_LIBRARY}
             INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INCLUDE_DIR}
         )
-        
+
         add_library(GTest::Main STATIC IMPORTED)
         set_target_properties(GTest::Main PROPERTIES
             IMPORTED_LOCATION ${GTEST_MAIN_LIBRARY}
             INTERFACE_INCLUDE_DIRECTORIES ${GTEST_INCLUDE_DIR}
         )
-        
+
         set(GTest_FOUND TRUE)
         set(GTEST_INCLUDE_DIRS ${GTEST_INCLUDE_DIR})
         message(STATUS "Using system GTest installation")
     else()
         message(STATUS "GTest not found on system, downloading and building...")
         include(FetchContent)
-        
+
         FetchContent_Declare(
             googletest
             GIT_REPOSITORY https://github.com/google/googletest.git
             GIT_TAG        release-1.12.1
         )
-        
+
         # For Windows: Prevent overriding the parent project's compiler/linker settings
         set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-        
+
         FetchContent_MakeAvailable(googletest)
-        
+
         # Create aliases for compatibility
         if(NOT TARGET GTest::GTest)
             add_library(GTest::GTest ALIAS gtest)
@@ -53,7 +53,7 @@ if(NOT GTest_FOUND)
         if(NOT TARGET GTest::Main)
             add_library(GTest::Main ALIAS gtest_main)
         endif()
-        
+
         set(GTEST_INCLUDE_DIRS ${googletest_SOURCE_DIR}/googletest/include)
         message(STATUS "GTest downloaded and configured successfully")
     endif()
@@ -96,6 +96,12 @@ include_directories(
 set(TEST_SOURCES
     main.cpp
     test_core.cpp
+    # Edge case testing framework
+    edge_case_framework.cpp
+    test_camera_calibration_edge_cases.cpp
+    test_neural_matcher_edge_cases.cpp
+    test_point_cloud_edge_cases.cpp
+    test_system_edge_cases.cpp
 )
 
 # Add GUI tests only if GUI is enabled
@@ -103,7 +109,18 @@ if(BUILD_GUI)
     list(APPEND TEST_SOURCES test_gui.cpp)
 endif()
 
+# Create main test executable
 add_executable(run_tests ${TEST_SOURCES})
+
+# Create edge case test executable (comprehensive testing)
+add_executable(run_edge_case_tests
+    main.cpp
+    edge_case_framework.cpp
+    test_camera_calibration_edge_cases.cpp
+    test_neural_matcher_edge_cases.cpp
+    test_point_cloud_edge_cases.cpp
+    test_system_edge_cases.cpp
+)
 
 # --- Link Libraries ---
 set(TEST_LIBRARIES
@@ -119,12 +136,24 @@ if(BUILD_GUI)
     list(APPEND TEST_LIBRARIES stereo_vision_gui ${QT_TEST_LIBRARIES})
 endif()
 
+# Add AI/ML libraries if available
+if(WITH_ONNX)
+    list(APPEND TEST_LIBRARIES ${ONNX_RUNTIME_LIBS})
+endif()
+
+if(WITH_TENSORRT)
+    list(APPEND TEST_LIBRARIES ${TENSORRT_LIBS})
+endif()
+
+# Link libraries to both test executables
 target_link_libraries(run_tests PRIVATE ${TEST_LIBRARIES})
+target_link_libraries(run_edge_case_tests PRIVATE ${TEST_LIBRARIES})
 
 # Copy include directories from the core library to ensure consistency
 get_target_property(CORE_INCLUDE_DIRS stereo_vision_core INTERFACE_INCLUDE_DIRECTORIES)
 if(CORE_INCLUDE_DIRS)
     target_include_directories(run_tests PRIVATE ${CORE_INCLUDE_DIRS})
+    target_include_directories(run_edge_case_tests PRIVATE ${CORE_INCLUDE_DIRS})
 endif()
 
 # Ensure all necessary system includes are available
@@ -135,6 +164,37 @@ target_include_directories(run_tests PRIVATE
     ${GTEST_INCLUDE_DIRS}
 )
 
+target_include_directories(run_edge_case_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include
+    ${OpenCV_INCLUDE_DIRS}
+    ${PCL_INCLUDE_DIRS}
+    ${GTEST_INCLUDE_DIRS}
+)
+
+# --- Compiler Options for Edge Case Tests ---
+# Enable additional warnings and sanitizers for edge case testing
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(run_edge_case_tests PRIVATE
+        -Wall -Wextra -Wpedantic
+        -Wno-unused-parameter
+        -Wno-sign-compare
+    )
+
+    # Enable sanitizers in debug mode for edge case detection
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_compile_options(run_edge_case_tests PRIVATE
+            -fsanitize=address
+            -fsanitize=undefined
+            -fno-omit-frame-pointer
+        )
+        target_link_options(run_edge_case_tests PRIVATE
+            -fsanitize=address
+            -fsanitize=undefined
+        )
+    endif()
+endif()
+
 # --- Add Test to CTest ---
 include(GoogleTest)
 gtest_discover_tests(run_tests)
+gtest_discover_tests(run_edge_case_tests)
