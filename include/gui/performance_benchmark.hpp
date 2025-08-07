@@ -124,6 +124,7 @@ class AutoPerformanceOptimizer : public QObject {
 
 public:
   explicit AutoPerformanceOptimizer(QObject *parent = nullptr);
+  ~AutoPerformanceOptimizer();
 
   // System capability detection
   struct SystemCapabilities {

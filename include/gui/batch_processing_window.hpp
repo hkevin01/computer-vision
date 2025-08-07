@@ -30,7 +30,7 @@
 
 #include "batch_processor.hpp"
 
-namespace stereo_vision {
+namespace stereo_vision::batch {
 
 class BatchProcessingWindow : public QMainWindow {
     Q_OBJECT
@@ -75,6 +75,7 @@ private:
     void setupOutputTab();
     void setupMenuBar();
     void setupStatusBar();
+    QGroupBox* createDirectoryGroup();
 
     void connectSignals();
     void loadSettings();
@@ -165,6 +166,6 @@ private:
     static const int COLUMN_ERROR = 7;
 };
 
-} // namespace stereo_vision
+} // namespace stereo_vision::batch
 
 #endif // BATCH_PROCESSING_WINDOW_HPP

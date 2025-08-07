@@ -1,5 +1,9 @@
 #pragma once
 
+// System includes
+#include <memory>
+
+// Qt includes
 #include <QMainWindow>
 #include <QWidget>
 #include <QString>
@@ -9,6 +13,7 @@
 #include <QMenuBar>
 #include <QProgressBar>
 #include <QLabel>
+#include <QSize>
 #include <QSplitter>
 #include <QStatusBar>
 #include <QTabWidget>
@@ -16,13 +21,20 @@
 #include <QFileDialog>
 #include <QDateTime>
 #include <QDir>
-#include <memory>
+#include <QVBoxLayout>
+#include <QMessageBox>
+
+// OpenCV includes
 #include <opencv2/opencv.hpp>
 
+// Project includes
 #include "camera_calibration.hpp"
 #include "camera_manager.hpp"
 #include "point_cloud_processor.hpp"
 #include "stereo_matcher.hpp"
+#include "gui/image_display_widget.hpp"
+#include "gui/point_cloud_widget.hpp"
+#include "gui/batch_processing_window.hpp"
 
 namespace stereo_vision::gui {
 

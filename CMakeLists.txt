@@ -27,6 +27,7 @@ option(WITH_NEURAL_NETWORKS "Enable neural network support with ONNX Runtime" ON
 option(WITH_TENSORRT "Enable TensorRT support for NVIDIA GPUs" OFF)
 option(WITH_OPENVINO "Enable Intel OpenVINO support" OFF)
 option(WITH_ADVANCED_CV "Enable advanced OpenCV features (ximgproc, etc.)" ON)
+option(WITH_OPENMP "Enable OpenMP support" ON)
 
 # --- GPU Backend Detection and Configuration ---
 if(NOT CMAKE_BUILD_TYPE)
@@ -247,6 +248,18 @@ endif()
 find_package(PCL 1.12 REQUIRED)
 message(STATUS "PCL version: ${PCL_VERSION}")
 
+# --- Find OpenMP ---
+if(WITH_OPENMP)
+    find_package(OpenMP QUIET)
+    if(OpenMP_CXX_FOUND)
+        add_definitions(-DWITH_OPENMP)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+        message(STATUS "OpenMP found - enabling parallel processing")
+    else()
+        message(STATUS "OpenMP not found - parallel processing will be disabled")
+    endif()
+endif()
+
 # --- Include Directories ---
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -363,6 +376,12 @@ target_include_directories(stereo_vision_core PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include/benchmark
 )
 
+# Add OpenMP flags
+if(OpenMP_CXX_FOUND)
+    target_compile_options(stereo_vision_core PRIVATE ${OpenMP_CXX_FLAGS})
+    target_link_libraries(stereo_vision_core PRIVATE OpenMP::OpenMP_CXX)
+endif()
+
 target_link_libraries(stereo_vision_core PRIVATE
     Threads::Threads
     ${OpenCV_LIBS}
@@ -401,9 +420,22 @@ if(BUILD_GUI)
         AUTORCC ON
     )
 
+    target_include_directories(stereo_vision_gui PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${Qt5Core_INCLUDE_DIRS}
+        ${Qt5Widgets_INCLUDE_DIRS}
+        ${Qt5OpenGL_INCLUDE_DIRS}
+        ${Qt5Concurrent_INCLUDE_DIRS}
+    )
+        AUTORCC ON
+    )
+
     target_link_libraries(stereo_vision_gui PRIVATE
         stereo_vision_core
-        ${QT_LIBRARIES}
+        Qt5::Core
+        Qt5::Widgets
+        Qt5::OpenGL
+        Qt5::Concurrent
         ${OpenCV_LIBS}
         ${PCL_LIBRARIES}
         spdlog::spdlog

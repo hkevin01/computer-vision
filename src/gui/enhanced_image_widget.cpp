@@ -542,3 +542,15 @@ void ImageProcessor::run() {
 }
 
 } // namespace stereo_vision::gui
+
+struct stereo_vision::gui::ModernProgressIndicator::IndicatorPrivate {
+    double progress = 0.0;
+    bool indeterminate = false;
+    QColor color = QColor(0, 120, 215);
+    QTimer* animationTimer = nullptr;
+    double animationProgress = 0.0;
+    int animationDirection = 1;
+};
+
+// Destructor for PIMPL class
+stereo_vision::gui::ModernProgressIndicator::~ModernProgressIndicator() = default;

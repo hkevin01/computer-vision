@@ -113,6 +113,7 @@ class ModernProgressIndicator : public QWidget {
 
 public:
   explicit ModernProgressIndicator(QWidget *parent = nullptr);
+  ~ModernProgressIndicator();
 
   void setProgress(double progress); // 0.0 to 1.0
   void setIndeterminate(bool enabled);

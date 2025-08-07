@@ -1,28 +1,39 @@
-#include "gui/main_window.hpp"
-
-// Qt includes
-#include <QAction>
 #include <QApplication>
-#include <QDateTime>
-#include <QDir>
-#include <QFileDialog>
-#include <QKeySequence>
-#include <QLabel>
-#include <QMenuBar>
-#include <QMessageBox>
-#include <QProgressBar>
-#include <QSplitter>
-#include <QStandardPaths>
-#include <QStatusBar>
-#include <QTabWidget>
-#include <QTimer>
-#include <QVBoxLayout>
 #include <QWidget>
+#include <QMainWindow>
+#include <QAction>
+#include <QMenuBar>
+#include <QMenu>
+#include <QStatusBar>
+#include <QLabel>
+#include <QProgressBar>
+#include <QTimer>
+#include <QSplitter>
+#include <QTabWidget>
+#include <QVBoxLayout>
+#include <QDir>
+#include <QStandardPaths>
+#include <QDateTime>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QKeySequence>
+#include <QString>
+#include <QThread>
+#include <QSize>
+#include <QObject>
+
+// Function to register required types
+static void registerQtTypes() {
+    qRegisterMetaType<QAction*>("QAction*");
+    qRegisterMetaType<QTimer*>("QTimer*");
+}
 
 // OpenCV includes
 #include <opencv2/opencv.hpp>
 
-// Project includes
+// Project includes (after Qt/OpenCV)
+#include "gui/main_window.hpp"
+#include "gui/batch_processing_window.hpp"
 #include "gui/epipolar_checker.hpp"
 
 namespace stereo_vision::gui {
@@ -61,372 +72,286 @@ MainWindow::MainWindow(QWidget *parent)
       m_batchProcessingWindow(nullptr),
       m_epipolarChecker(nullptr) {
 
-  setupUI();
-  connectSignals();
-  updateUI();
+    setupUI();
+    connectSignals();
+    updateUI();
 
-  // Set window properties
-  setWindowTitle("Stereo Vision 3D Point Cloud Generator");
-  setMinimumSize(1200, 800);
-  resize(1600, 1000);
+    // Set window properties
+    // Set up window using direct member access
+    m_centralWidget = new QWidget(this);
+    setCentralWidget(m_centralWidget);
+    m_mainSplitter = new QSplitter(Qt::Horizontal);
+    m_imageTabWidget = new QTabWidget;
+    m_mainSplitter->addWidget(m_imageTabWidget);
 
-  // Set default output path
-  m_outputPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/StereoVision";
-  QDir().mkpath(m_outputPath);
+    // Set window properties directly
+    setWindowTitle("Stereo Vision 3D Point Cloud Generator");
+    setFixedSize(1200, 800);
+
+    // Set default output path
+    m_outputPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/StereoVision";
+    QDir().mkpath(m_outputPath);
 }
 
 MainWindow::~MainWindow() {
-  // Clean up windows
-  delete m_epipolarChecker;
-  delete m_batchProcessingWindow;
+    // Clean up windows
+    delete m_epipolarChecker;
+    delete m_batchProcessingWindow;
 }
 
 void MainWindow::setupUI() {
-  setupMenuBar();
-  setupCentralWidget();
-  setupStatusBar();
+    setupMenuBar();
+    setupCentralWidget();
+    setupStatusBar();
 }
 
 void MainWindow::setupMenuBar() {
-  QMenuBar *menuBar = this->menuBar();
+    m_menuBar = menuBar();
 
-  // Tools menu
-  QMenu *toolsMenu = menuBar->addMenu("&Tools");
+    // Create File menu actions
+    m_openLeftAction = new QAction("Open &Left Image...", this);
+    m_openRightAction = new QAction("Open &Right Image...", this);
+    m_openFolderAction = new QAction("Open Stereo &Folder...", this);
+    m_cameraSelectAction = new QAction("Select &Cameras...", this);
+    m_startCaptureAction = new QAction("&Start Webcam Capture", this);
+    m_stopCaptureAction = new QAction("S&top Webcam Capture", this);
+    m_captureLeftAction = new QAction("Capture &Left Image", this);
+    m_captureRightAction = new QAction("Capture &Right Image", this);
+    m_captureStereoAction = new QAction("Capture &Stereo Pair", this);
+    m_loadCalibrationAction = new QAction("&Load Calibration...", this);
+    m_saveCalibrationAction = new QAction("&Save Calibration...", this);
+    m_exitAction = new QAction("E&xit", this);
 
-  m_epipolarCheckerAction = new QAction("&Epipolar Line Checker...", this);
-  m_epipolarCheckerAction->setShortcut(QKeySequence("Ctrl+Shift+E"));
-  m_epipolarCheckerAction->setStatusTip("Open epipolar line checker for calibration quality assessment");
-  toolsMenu->addAction(m_epipolarCheckerAction);
+    // Create Process menu actions
+    m_calibrateAction = new QAction("&Calibrate Cameras...", this);
+    m_aiCalibrationAction = new QAction("&AI Auto-Calibration... ⭐", this);
+    m_processAction = new QAction("Process &Stereo Images", this);
+    m_batchProcessAction = new QAction("&Batch Processing...", this);
+    m_epipolarCheckerAction = new QAction("&Epipolar Checker", this);
+    m_liveProcessingAction = new QAction("&Live Processing", this);
+    m_exportAction = new QAction("&Export Point Cloud", this);
+
+    // Set up shortcuts
+    m_openLeftAction->setShortcut(QKeySequence("Ctrl+L"));
+    m_openRightAction->setShortcut(QKeySequence("Ctrl+R"));
+    m_openFolderAction->setShortcut(QKeySequence("Ctrl+F"));
+    m_cameraSelectAction->setShortcut(QKeySequence("Ctrl+Shift+C"));
+    m_startCaptureAction->setShortcut(QKeySequence("Ctrl+Shift+S"));
+    m_stopCaptureAction->setShortcut(QKeySequence("Ctrl+Shift+T"));
+    m_captureLeftAction->setShortcut(QKeySequence("L"));
+    m_captureRightAction->setShortcut(QKeySequence("R"));
+    m_captureStereoAction->setShortcut(QKeySequence("Space"));
+    m_loadCalibrationAction->setShortcut(QKeySequence("Ctrl+O"));
+    m_saveCalibrationAction->setShortcut(QKeySequence("Ctrl+S"));
+    m_exitAction->setShortcut(QKeySequence("Ctrl+Q"));
+    m_calibrateAction->setShortcut(QKeySequence("Ctrl+C"));
+    m_aiCalibrationAction->setShortcut(QKeySequence("Ctrl+Alt+C"));
+    m_processAction->setShortcut(QKeySequence("Ctrl+P"));
+    m_batchProcessAction->setShortcut(QKeySequence("Ctrl+B"));
+    m_epipolarCheckerAction->setShortcut(QKeySequence("Ctrl+Shift+E"));
+    m_liveProcessingAction->setShortcut(QKeySequence("Ctrl+Shift+P"));
+    m_exportAction->setShortcut(QKeySequence("Ctrl+E"));
+
+    // Set initial states
+    m_startCaptureAction->setEnabled(false);
+    m_stopCaptureAction->setEnabled(false);
+    m_captureLeftAction->setEnabled(false);
+    m_captureRightAction->setEnabled(false);
+    m_captureStereoAction->setEnabled(false);
+    m_liveProcessingAction->setCheckable(true);
+
+    // Set status tips
+    m_calibrateAction->setStatusTip("Launch interactive camera calibration wizard with step-by-step guidance");
+    m_aiCalibrationAction->setStatusTip("Fully functional AI-powered automatic camera calibration with quality assessment");
+    m_batchProcessAction->setStatusTip("Open batch processing window for multiple stereo pairs");
+    m_epipolarCheckerAction->setStatusTip("Open epipolar line checker for calibration quality assessment");
+
+    // Create menus
+    m_fileMenu = m_menuBar->addMenu("&File");
+    m_processMenu = m_menuBar->addMenu("&Process");
+
+    // Populate File menu
+    m_fileMenu->addAction(m_openLeftAction);
+    m_fileMenu->addAction(m_openRightAction);
+    m_fileMenu->addAction(m_openFolderAction);
+    m_fileMenu->addSeparator();
+    m_fileMenu->addAction(m_cameraSelectAction);
+    m_fileMenu->addAction(m_startCaptureAction);
+    m_fileMenu->addAction(m_stopCaptureAction);
+    m_fileMenu->addAction(m_captureLeftAction);
+    m_fileMenu->addAction(m_captureRightAction);
+    m_fileMenu->addAction(m_captureStereoAction);
+    m_fileMenu->addSeparator();
+    m_fileMenu->addAction(m_loadCalibrationAction);
+    m_fileMenu->addAction(m_saveCalibrationAction);
+    m_fileMenu->addSeparator();
+    m_fileMenu->addAction(m_exitAction);
+
+    // Populate Process menu
+    m_processMenu->addAction(m_calibrateAction);
+    m_processMenu->addAction(m_aiCalibrationAction);
+    m_processMenu->addSeparator();
+    m_processMenu->addAction(m_processAction);
+    m_processMenu->addAction(m_batchProcessAction);
+
+    m_processMenu->addAction(m_epipolarCheckerAction);
+    m_processMenu->addAction(m_liveProcessingAction);
+    m_processMenu->addSeparator();
+    m_processMenu->addAction(m_exportAction);
+
+    // Create and populate View menu
+    m_viewMenu = m_menuBar->addMenu("&View");
+
+    m_showDisparityAction = new QAction("Show &Disparity Map", this);
+    m_showPointCloudAction = new QAction("Show &Point Cloud", this);
+
+    m_showDisparityAction->setShortcut(QKeySequence("Ctrl+D"));
+    m_showDisparityAction->setCheckable(true);
+    m_showDisparityAction->setChecked(true);
+
+    m_showPointCloudAction->setShortcut(QKeySequence("Ctrl+3"));
+    m_showPointCloudAction->setCheckable(true);
+    m_showPointCloudAction->setChecked(true);
+
+    m_viewMenu->addAction(m_showDisparityAction);
+    m_viewMenu->addAction(m_showPointCloudAction);
+    m_viewMenu->addSeparator();
+
+    // Create and populate Help menu
+    m_helpMenu = m_menuBar->addMenu("&Help");
+    m_aboutAction = new QAction("&About", this);
+    m_helpMenu->addAction(m_aboutAction);
 }
 
 void MainWindow::setupCentralWidget() {
-  m_centralWidget = new QWidget;
-  setCentralWidget(m_centralWidget);
+    m_centralWidget = new QWidget;
+    setCentralWidget(m_centralWidget);
+
+    // Main splitter
+    m_mainSplitter = new QSplitter(Qt::Horizontal);
+
+    // Left side: Image display and 3D view
+    auto *leftWidget = new QWidget;
+    auto *leftLayout = new QVBoxLayout(leftWidget);
+
+    // Image tab widget
+    m_imageTabWidget = new QTabWidget;
+
+    m_leftImageWidget = new ImageDisplayWidget;
+    m_rightImageWidget = new ImageDisplayWidget;
+    m_disparityWidget = new ImageDisplayWidget;
+
+    m_imageTabWidget->addTab(m_leftImageWidget, "Left Image");
+    m_imageTabWidget->addTab(m_rightImageWidget, "Right Image");
+    m_imageTabWidget->addTab(m_disparityWidget, "Disparity Map");
+
+    // Add live view tab for real-time processing
+    auto *liveViewWidget = new QWidget;
+    auto *liveLayout = new QHBoxLayout(liveViewWidget);
+
+    // Create mini views for live processing
+    auto *liveStereoWidget = new ImageDisplayWidget;
+    auto *liveDisparityWidget = new ImageDisplayWidget;
+
+    liveStereoWidget->setMinimumSize(320, 240);
+    liveDisparityWidget->setMinimumSize(320, 240);
+
+    liveLayout->addWidget(liveStereoWidget);
+    liveLayout->addWidget(liveDisparityWidget);
+
+    m_imageTabWidget->addTab(liveViewWidget, "Live Processing");
+
+    // Point cloud widget
+    m_pointCloudWidget = new PointCloudWidget;
+
+    // Add to left layout with adjusted proportions for better live view
+    leftLayout->addWidget(m_imageTabWidget, 3);
+    leftLayout->addWidget(m_pointCloudWidget, 2);
+
+    // Right side: Parameter panel
+    m_parameterPanel = new ParameterPanel;
+
+    // Add to main splitter
+    m_mainSplitter->addWidget(leftWidget);
+    m_mainSplitter->addWidget(m_parameterPanel);
+    m_mainSplitter->setStretchFactor(0, 3);
+    m_mainSplitter->setStretchFactor(1, 1);
+
+    // Main layout
+    auto *mainLayout = new QVBoxLayout(m_centralWidget);
+    mainLayout->addWidget(m_mainSplitter);
 }
 
 void MainWindow::setupStatusBar() {
-  QStatusBar *statusBar = this->statusBar();
-  m_statusLabel = new QLabel("Ready");
-  m_progressBar = new QProgressBar;
-  m_progressBar->setVisible(false);
+    m_statusBar = statusBar();
 
-  statusBar->addWidget(m_statusLabel);
-  statusBar->addPermanentWidget(m_progressBar);
+    m_statusLabel = new QLabel("Ready");
+    m_statusBar->addWidget(m_statusLabel);
+
+    m_progressBar = new QProgressBar;
+    m_progressBar->setVisible(false);
+    m_statusBar->addPermanentWidget(m_progressBar);
 }
 
 void MainWindow::connectSignals() {
-  connect(m_epipolarCheckerAction, &QAction::triggered, this, &MainWindow::openEpipolarChecker);
-}
-
-void MainWindow::updateUI() {
-  // Basic UI update implementation
-}
-
-void MainWindow::openEpipolarChecker() {
-  if (!m_epipolarChecker) {
-    m_epipolarChecker = new EpipolarChecker(this);
-  }
-
-  m_epipolarChecker->show();
-  m_epipolarChecker->raise();
-  m_epipolarChecker->activateWindow();
-}
-
-// Stub implementations for required slots
-void MainWindow::openLeftImage() {}
-void MainWindow::openRightImage() {}
-void MainWindow::openStereoFolder() {}
-void MainWindow::loadCalibration() {}
-void MainWindow::saveCalibration() {}
-void MainWindow::runCalibration() {}
-void MainWindow::processStereoImages() {}
-void MainWindow::exportPointCloud() {}
-void MainWindow::showAbout() {}
-void MainWindow::onParameterChanged() {}
-void MainWindow::onProcessingFinished() {}
-void MainWindow::showCameraSelector() {}
-void MainWindow::startWebcamCapture() {}
-void MainWindow::stopWebcamCapture() {}
-void MainWindow::captureLeftImage() {}
-void MainWindow::captureRightImage() {}
-void MainWindow::captureStereoImage() {}
-void MainWindow::onFrameReady() {}
-void MainWindow::onCameraSelectionChanged() {}
-void MainWindow::toggleLiveProcessing() {}
-void MainWindow::onLiveFrameProcessed() {}
-void MainWindow::updateDisparityMap() {}
-void MainWindow::updatePointCloud() {}
-void MainWindow::startAICalibration() {}
-void MainWindow::onCalibrationProgress(int progress) {}
-void MainWindow::onCalibrationComplete() {}
-void MainWindow::captureCalibrationFrame() {}
-void MainWindow::openBatchProcessing() {}
-
-} // namespace stereo_vision::gui
-
-void MainWindow::setupMenuBar() {
-  m_menuBar = menuBar();
-
-  // File menu
-  m_fileMenu = m_menuBar->addMenu("&File");
-
-  m_openLeftAction = new QAction("Open &Left Image...", this);
-  m_openLeftAction->setShortcut(QKeySequence("Ctrl+L"));
-  m_fileMenu->addAction(m_openLeftAction);
-
-  m_openRightAction = new QAction("Open &Right Image...", this);
-  m_openRightAction->setShortcut(QKeySequence("Ctrl+R"));
-  m_fileMenu->addAction(m_openRightAction);
-
-  m_openFolderAction = new QAction("Open Stereo &Folder...", this);
-  m_openFolderAction->setShortcut(QKeySequence("Ctrl+F"));
-  m_fileMenu->addAction(m_openFolderAction);
-
-  m_fileMenu->addSeparator();
-
-  // Webcam capture menu
-  m_cameraSelectAction = new QAction("Select &Cameras...", this);
-  m_cameraSelectAction->setShortcut(QKeySequence("Ctrl+Shift+C"));
-  m_fileMenu->addAction(m_cameraSelectAction);
-
-  m_startCaptureAction = new QAction("&Start Webcam Capture", this);
-  m_startCaptureAction->setShortcut(QKeySequence("Ctrl+Shift+S"));
-  m_startCaptureAction->setEnabled(false);
-  m_fileMenu->addAction(m_startCaptureAction);
-
-  m_stopCaptureAction = new QAction("S&top Webcam Capture", this);
-  m_stopCaptureAction->setShortcut(QKeySequence("Ctrl+Shift+T"));
-  m_stopCaptureAction->setEnabled(false);
-  m_fileMenu->addAction(m_stopCaptureAction);
-
-  m_captureLeftAction = new QAction("Capture &Left Image", this);
-  m_captureLeftAction->setShortcut(QKeySequence("L"));
-  m_captureLeftAction->setEnabled(false);
-  m_fileMenu->addAction(m_captureLeftAction);
-
-  m_captureRightAction = new QAction("Capture &Right Image", this);
-  m_captureRightAction->setShortcut(QKeySequence("R"));
-  m_captureRightAction->setEnabled(false);
-  m_fileMenu->addAction(m_captureRightAction);
-
-  m_captureStereoAction = new QAction("Capture &Stereo Pair", this);
-  m_captureStereoAction->setShortcut(QKeySequence("Space"));
-  m_captureStereoAction->setEnabled(false);
-  m_fileMenu->addAction(m_captureStereoAction);
-
-  m_fileMenu->addSeparator();
-
-  m_loadCalibrationAction = new QAction("&Load Calibration...", this);
-  m_loadCalibrationAction->setShortcut(QKeySequence("Ctrl+O"));
-  m_fileMenu->addAction(m_loadCalibrationAction);
-
-  m_saveCalibrationAction = new QAction("&Save Calibration...", this);
-  m_saveCalibrationAction->setShortcut(QKeySequence("Ctrl+S"));
-  m_fileMenu->addAction(m_saveCalibrationAction);
-
-  m_fileMenu->addSeparator();
-
-  m_exitAction = new QAction("E&xit", this);
-  m_exitAction->setShortcut(QKeySequence("Ctrl+Q"));
-  m_fileMenu->addAction(m_exitAction);
-
-  // Process menu
-  m_processMenu = m_menuBar->addMenu("&Process");
-
-  m_calibrateAction = new QAction("&Calibrate Cameras...", this);
-  m_calibrateAction->setShortcut(QKeySequence("Ctrl+C"));
-  m_calibrateAction->setStatusTip("Launch interactive camera calibration "
-                                  "wizard with step-by-step guidance");
-  m_processMenu->addAction(m_calibrateAction);
-
-  m_aiCalibrationAction = new QAction("&AI Auto-Calibration... ⭐", this);
-  m_aiCalibrationAction->setShortcut(QKeySequence("Ctrl+Alt+C"));
-  m_aiCalibrationAction->setStatusTip(
-      "Fully functional AI-powered automatic camera calibration with quality "
-      "assessment");
-  m_processMenu->addAction(m_aiCalibrationAction);
-
-  m_processMenu->addSeparator();
-
-  m_processAction = new QAction("Process &Stereo Images", this);
-  m_processAction->setShortcut(QKeySequence("Ctrl+P"));
-  m_processMenu->addAction(m_processAction);
-
-  m_batchProcessAction = new QAction("&Batch Processing...", this);
-  m_batchProcessAction->setShortcut(QKeySequence("Ctrl+B"));
-  m_batchProcessAction->setStatusTip("Open batch processing window for multiple stereo pairs");
-  m_processMenu->addAction(m_batchProcessAction);
-
-  m_epipolarCheckerAction = new QAction("&Epipolar Line Checker...", this);
-  m_epipolarCheckerAction->setShortcut(QKeySequence("Ctrl+Shift+E"));
-  m_epipolarCheckerAction->setStatusTip("Open epipolar line checker for calibration quality assessment");
-  m_processMenu->addAction(m_epipolarCheckerAction);
-
-  m_liveProcessingAction = new QAction("Toggle &Live Processing", this);
-  m_liveProcessingAction->setShortcut(QKeySequence("Ctrl+Shift+P"));
-  m_liveProcessingAction->setCheckable(true);
-  m_liveProcessingAction->setEnabled(false);
-  m_processMenu->addAction(m_liveProcessingAction);
-
-  m_processMenu->addSeparator();
-
-  m_exportAction = new QAction("&Export Point Cloud...", this);
-  m_exportAction->setShortcut(QKeySequence("Ctrl+E"));
-  m_processMenu->addAction(m_exportAction);
-
-  // View menu
-  m_viewMenu = m_menuBar->addMenu("&View");
-
-  m_showDisparityAction = new QAction("Show &Disparity Map", this);
-  m_showDisparityAction->setShortcut(QKeySequence("Ctrl+D"));
-  m_showDisparityAction->setCheckable(true);
-  m_showDisparityAction->setChecked(true);
-  m_viewMenu->addAction(m_showDisparityAction);
-
-  m_showPointCloudAction = new QAction("Show &Point Cloud", this);
-  m_showPointCloudAction->setShortcut(QKeySequence("Ctrl+3"));
-  m_showPointCloudAction->setCheckable(true);
-  m_showPointCloudAction->setChecked(true);
-  m_viewMenu->addAction(m_showPointCloudAction);
-
-  m_viewMenu->addSeparator();
-
-  // Help menu
-  m_helpMenu = m_menuBar->addMenu("&Help");
-
-  m_aboutAction = new QAction("&About", this);
-  m_helpMenu->addAction(m_aboutAction);
-}
-
-void MainWindow::setupCentralWidget() {
-  m_centralWidget = new QWidget;
-  setCentralWidget(m_centralWidget);
-
-  // Main splitter
-  m_mainSplitter = new QSplitter(Qt::Horizontal);
-
-  // Left side: Image display and 3D view
-  auto *leftWidget = new QWidget;
-  auto *leftLayout = new QVBoxLayout(leftWidget);
-
-  // Image tab widget
-  m_imageTabWidget = new QTabWidget;
-
-  m_leftImageWidget = new ImageDisplayWidget;
-  m_rightImageWidget = new ImageDisplayWidget;
-  m_disparityWidget = new ImageDisplayWidget;
-
-  m_imageTabWidget->addTab(m_leftImageWidget, "Left Image");
-  m_imageTabWidget->addTab(m_rightImageWidget, "Right Image");
-  m_imageTabWidget->addTab(m_disparityWidget, "Disparity Map");
-
-  // Add live view tab for real-time processing
-  auto *liveViewWidget = new QWidget;
-  auto *liveLayout = new QHBoxLayout(liveViewWidget);
-
-  // Create mini views for live processing
-  auto *liveStereoWidget = new ImageDisplayWidget;
-  auto *liveDisparityWidget = new ImageDisplayWidget;
-
-  liveStereoWidget->setMinimumSize(320, 240);
-  liveDisparityWidget->setMinimumSize(320, 240);
-
-  liveLayout->addWidget(liveStereoWidget);
-  liveLayout->addWidget(liveDisparityWidget);
-
-  m_imageTabWidget->addTab(liveViewWidget, "Live Processing");
-
-  // Point cloud widget
-  m_pointCloudWidget = new PointCloudWidget;
-
-  // Add to left layout with adjusted proportions for better live view
-  leftLayout->addWidget(m_imageTabWidget, 3);
-  leftLayout->addWidget(m_pointCloudWidget, 2);
-
-  // Right side: Parameter panel
-  m_parameterPanel = new ParameterPanel;
-
-  // Add to main splitter
-  m_mainSplitter->addWidget(leftWidget);
-  m_mainSplitter->addWidget(m_parameterPanel);
-  m_mainSplitter->setStretchFactor(0, 3);
-  m_mainSplitter->setStretchFactor(1, 1);
-
-  // Main layout
-  auto *mainLayout = new QVBoxLayout(m_centralWidget);
-  mainLayout->addWidget(m_mainSplitter);
-}
-
-void MainWindow::setupStatusBar() {
-  m_statusBar = statusBar();
-
-  m_statusLabel = new QLabel("Ready");
-  m_statusBar->addWidget(m_statusLabel);
-
-  m_progressBar = new QProgressBar;
-  m_progressBar->setVisible(false);
-  m_statusBar->addPermanentWidget(m_progressBar);
-}
-
-void MainWindow::connectSignals() {
-  // File actions
-  connect(m_openLeftAction, &QAction::triggered, this,
+    // File actions
+    connect(m_openLeftAction, &QAction::triggered, this,
           &MainWindow::openLeftImage);
-  connect(m_openRightAction, &QAction::triggered, this,
+    connect(m_openRightAction, &QAction::triggered, this,
           &MainWindow::openRightImage);
-  connect(m_openFolderAction, &QAction::triggered, this,
+    connect(m_openFolderAction, &QAction::triggered, this,
           &MainWindow::openStereoFolder);
-  connect(m_loadCalibrationAction, &QAction::triggered, this,
+    connect(m_loadCalibrationAction, &QAction::triggered, this,
           &MainWindow::loadCalibration);
-  connect(m_saveCalibrationAction, &QAction::triggered, this,
+    connect(m_saveCalibrationAction, &QAction::triggered, this,
           &MainWindow::saveCalibration);
-  connect(m_exitAction, &QAction::triggered, this, &QWidget::close);
+    connect(m_exitAction, &QAction::triggered, this, &QWidget::close);
 
-  // Process actions
-  connect(m_calibrateAction, &QAction::triggered, this,
+    // Process actions
+    connect(m_calibrateAction, &QAction::triggered, this,
           &MainWindow::runCalibration);
-  connect(m_aiCalibrationAction, &QAction::triggered, this,
+    connect(m_aiCalibrationAction, &QAction::triggered, this,
           &MainWindow::startAICalibration);
-  connect(m_processAction, &QAction::triggered, this,
+    connect(m_processAction, &QAction::triggered, this,
           &MainWindow::processStereoImages);
-  connect(m_batchProcessAction, &QAction::triggered, this,
+    connect(m_batchProcessAction, &QAction::triggered, this,
           &MainWindow::openBatchProcessing);
-  connect(m_epipolarCheckerAction, &QAction::triggered, this,
+    connect(m_epipolarCheckerAction, &QAction::triggered, this,
           &MainWindow::openEpipolarChecker);
-  connect(m_liveProcessingAction, &QAction::triggered, this,
+    connect(m_liveProcessingAction, &QAction::triggered, this,
           &MainWindow::toggleLiveProcessing);
-  connect(m_exportAction, &QAction::triggered, this,
+    connect(m_exportAction, &QAction::triggered, this,
           &MainWindow::exportPointCloud);
 
-  // View actions
-  connect(m_showDisparityAction, &QAction::toggled, this,
+    // View actions
+    connect(m_showDisparityAction, &QAction::toggled, this,
           &MainWindow::updateDisparityMap);
-  connect(m_showPointCloudAction, &QAction::toggled, this,
+    connect(m_showPointCloudAction, &QAction::toggled, this,
           &MainWindow::updatePointCloud);
 
-  // Help actions
-  connect(m_aboutAction, &QAction::triggered, this, &MainWindow::showAbout);
+    // Help actions
+    connect(m_aboutAction, &QAction::triggered, this, &MainWindow::showAbout);
 
-  // Webcam capture actions
-  connect(m_cameraSelectAction, &QAction::triggered, this,
+    // Webcam capture actions
+    connect(m_cameraSelectAction, &QAction::triggered, this,
           &MainWindow::showCameraSelector);
-  connect(m_startCaptureAction, &QAction::triggered, this,
+    connect(m_startCaptureAction, &QAction::triggered, this,
           &MainWindow::startWebcamCapture);
-  connect(m_stopCaptureAction, &QAction::triggered, this,
+    connect(m_stopCaptureAction, &QAction::triggered, this,
           &MainWindow::stopWebcamCapture);
-  connect(m_captureLeftAction, &QAction::triggered, this,
+    connect(m_captureLeftAction, &QAction::triggered, this,
           &MainWindow::captureLeftImage);
-  connect(m_captureRightAction, &QAction::triggered, this,
+    connect(m_captureRightAction, &QAction::triggered, this,
           &MainWindow::captureRightImage);
-  connect(m_captureStereoAction, &QAction::triggered, this,
+    connect(m_captureStereoAction, &QAction::triggered, this,
           &MainWindow::captureStereoImage);
 
-  // Parameter panel
-  connect(m_parameterPanel, &ParameterPanel::parametersChanged, this,
+    // Parameter panel
+    connect(m_parameterPanel, &ParameterPanel::parametersChanged, this,
           &MainWindow::onParameterChanged);
 
-  // Processing timer
-  connect(m_processingTimer, &QTimer::timeout, this,
+    // Processing timer
+    connect(m_processingTimer, &QTimer::timeout, this,
           &MainWindow::onProcessingFinished);
 }
 
@@ -677,66 +602,56 @@ void MainWindow::startWebcamCapture() {
   if (!m_leftCameraConnected && !m_rightCameraConnected) {
     QMessageBox::warning(
         this, "No Cameras",
-        "Please select cameras first using 'Select Cameras...'");
+        "No cameras are connected. Please connect at least one camera first.");
     return;
   }
 
   bool singleCameraMode = (m_selectedLeftCamera == m_selectedRightCamera &&
-                           m_selectedLeftCamera >= 0 && m_leftCameraConnected &&
-                           m_rightCameraConnected);
+                         m_selectedLeftCamera >= 0 && m_leftCameraConnected &&
+                         m_rightCameraConnected);
 
-  // Handle single camera mode vs dual camera mode
   bool success = false;
+
   if (singleCameraMode) {
-    // Single camera mode - open one camera that will be used for both channels
     QMessageBox::information(
         this, "Single Camera Mode",
-        "Using the same camera for left and right channels.\n"
-        "This is useful for manual stereo capture - you can move the camera "
-        "between captures to create stereo pairs.\n\n"
-        "The live preview will show the same image in both panels.\n"
-        "Use the capture buttons to save images for stereo processing.");
+        "Opening camera in single camera mode for manual stereo capture.");
+
     success = m_cameraManager->openSingleCamera(m_selectedLeftCamera);
     m_statusLabel->setText("Single camera mode active - manual stereo capture");
+  } else if (m_leftCameraConnected && m_rightCameraConnected) {
+    // Both cameras selected and different
+    success = m_cameraManager->openCameras(m_selectedLeftCamera,
+                                          m_selectedRightCamera);
+    m_statusLabel->setText(
+        "Stereo camera pair active - synchronized capture");
+  } else if (m_leftCameraConnected) {
+    success = m_cameraManager->openSingleCamera(m_selectedLeftCamera);
+    m_statusLabel->setText("Left camera only mode active");
   } else {
-    // Dual camera mode or single camera mode - try to open cameras
-    // appropriately
-    if (m_leftCameraConnected && m_rightCameraConnected) {
-      success = m_cameraManager->openCameras(m_selectedLeftCamera,
-                                             m_selectedRightCamera);
-      m_statusLabel->setText(
-          "Dual camera mode active - synchronized stereo capture");
-    } else if (m_leftCameraConnected) {
-      success = m_cameraManager->openSingleCamera(m_selectedLeftCamera);
-      m_statusLabel->setText("Left camera only mode active");
-    } else if (m_rightCameraConnected) {
-      success = m_cameraManager->openSingleCamera(m_selectedRightCamera);
-      m_statusLabel->setText("Right camera only mode active");
-    }
+    success = m_cameraManager->openSingleCamera(m_selectedRightCamera);
+    m_statusLabel->setText("Right camera only mode active");
   }
 
   if (!success) {
-    QString errorMsg =
-        singleCameraMode
-            ? "Failed to open camera. Please check connection and permissions."
-            : "Failed to open selected cameras. Please check connections and "
-              "permissions.";
+    QString errorMsg = "Failed to open camera(s). Please check your camera "
+                        "connections and try again.";
     QMessageBox::critical(this, "Camera Error", errorMsg);
     return;
   }
 
-  // Start capture timer for live preview
+  // Start capture timer
   m_captureTimer->start(33); // ~30 FPS
   m_isCapturing = true;
 
-  // Update UI
+  // Update UI state
   m_startCaptureAction->setEnabled(false);
   m_stopCaptureAction->setEnabled(true);
-  m_captureLeftAction->setEnabled(true);   // Always enabled during capture
-  m_captureRightAction->setEnabled(true);  // Always enabled during capture
+  m_captureLeftAction->setEnabled(true); // Always enabled during capture
+  m_captureRightAction->setEnabled(true); // Always enabled during capture
   m_captureStereoAction->setEnabled(true); // Always enabled in capture mode
 
-  // Connect capture timer
+  // Connect timer to frame update slot
   connect(m_captureTimer, &QTimer::timeout, this, &MainWindow::onFrameReady);
 }
 

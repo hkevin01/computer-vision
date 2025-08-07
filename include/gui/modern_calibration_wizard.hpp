@@ -85,6 +85,7 @@ class ModernStepIndicator : public QWidget {
 
 public:
   explicit ModernStepIndicator(QWidget *parent = nullptr);
+  ~ModernStepIndicator();
 
   void setStepCount(int count);
   void setCurrentStep(int step);
@@ -121,6 +122,7 @@ class ModernProgressRing : public QWidget {
 
 public:
   explicit ModernProgressRing(QWidget *parent = nullptr);
+  ~ModernProgressRing();
 
   double progress() const;
   void setProgress(double progress, bool animated = true);

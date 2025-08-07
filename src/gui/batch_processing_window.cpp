@@ -11,6 +11,32 @@
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QDebug>
+#include <QMenuBar>
+#include <QMenu>
+#include <QAction>
+#include <QStatusBar>
+#include <QStyle>
+#include <QWidget>
+#include <QMainWindow>
+#include <QTimer>
+#include <QGroupBox>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QGridLayout>
+#include <QLabel>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QProgressBar>
+#include <QTextEdit>
+#include <QTableWidget>
+#include <QSpinBox>
+#include <QDoubleSpinBox>
+#include <QComboBox>
+#include <QCheckBox>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QSplitter>
+#include <QTabWidget>
 
 namespace stereo_vision {
 

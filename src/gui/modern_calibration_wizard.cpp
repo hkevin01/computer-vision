@@ -19,6 +19,15 @@ struct ModernCalibrationWizard::Private {
   QLabel* statusLabel = nullptr;
   QPropertyAnimation* progressAnimation = nullptr;
   QGraphicsBlurEffect* glassEffect = nullptr;
+
+  // UI Elements
+  ModernStepIndicator* stepIndicator = nullptr;
+  ModernProgressRing* progressRing = nullptr;
+  ModernCameraPreview* preview = nullptr;
+
+  // State
+  int currentStep = 0;
+  bool isCalibrating = false;
 };
 
 struct ModernCalibrationWizard::StepPrivate {
@@ -381,3 +390,26 @@ void ModernCalibrationWizard::animateQualityIndicator() {
 }
 
 } // namespace stereo_vision::gui
+
+struct stereo_vision::gui::ModernStepIndicator::StepPrivate {
+    int stepCount = 0;
+    int currentStep = 0;
+    QStringList stepTitles;
+    QList<bool> stepCompleted;
+    QColor primaryColor = QColor(0, 120, 215);
+    QColor secondaryColor = QColor(200, 200, 200);
+};
+
+struct stereo_vision::gui::ModernProgressRing::RingPrivate {
+    double progress = 0.0;
+    double animationProgress = 0.0;
+    QColor ringColor = QColor(0, 120, 215);
+    QColor backgroundColor = QColor(240, 240, 240);
+    QColor textColor = QColor(0, 0, 0);
+    QTimer* animationTimer = nullptr;
+    QPropertyAnimation* animation = nullptr;
+};
+
+// Destructors for PIMPL classes
+stereo_vision::gui::ModernStepIndicator::~ModernStepIndicator() = default;
+stereo_vision::gui::ModernProgressRing::~ModernProgressRing() = default;
