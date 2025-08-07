@@ -427,8 +427,6 @@ if(BUILD_GUI)
         ${Qt5OpenGL_INCLUDE_DIRS}
         ${Qt5Concurrent_INCLUDE_DIRS}
     )
-        AUTORCC ON
-    )
 
     target_link_libraries(stereo_vision_gui PRIVATE
         stereo_vision_core
