@@ -38,7 +38,7 @@
 #include <QSplitter>
 #include <QTabWidget>
 
-namespace stereo_vision {
+namespace stereo_vision::batch {
 
 BatchProcessingWindow::BatchProcessingWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -914,6 +914,6 @@ void BatchProcessingWindow::showDetailedProgress() {
     QMessageBox::information(this, "Detailed Progress", "Feature not yet implemented.");
 }
 
-} // namespace stereo_vision
+} // namespace stereo_vision::batch
 
 #include "batch_processing_window.moc"

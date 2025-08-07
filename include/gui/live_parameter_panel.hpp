@@ -2,6 +2,7 @@
 
 #include <QLabel>
 #include <QProgressBar>
+#include <QTime>
 #include <QTimer>
 #include <opencv2/opencv.hpp>
 

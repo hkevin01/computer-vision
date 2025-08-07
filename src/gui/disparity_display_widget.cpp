@@ -324,7 +324,7 @@ void DisparityDisplayWidget::onFitToWindowClicked() {
 
     // Calculate zoom factor to fit the image in the scroll area
     QSize scrollAreaSize = m_scrollArea->size();
-    QSize imageSize = m_originalDisparity.size();
+    QSize imageSize(m_originalDisparity.cols, m_originalDisparity.rows);
 
     double scaleX =
         static_cast<double>(scrollAreaSize.width() - 20) / imageSize.width();  // 20px margin
