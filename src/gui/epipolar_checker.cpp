@@ -1092,4 +1092,22 @@ void EpipolarChecker::runAutomaticVerification() {
         "This feature requires additional computer vision algorithms and will be implemented as needed.");
 }
 
+void EpipolarChecker::onParameterChanged() {
+    // Update the epipolar line visualization when parameters change
+    updateEpipolarLines();
+    updateVisualization();
+}
+
+void EpipolarChecker::calculateStatistics() {
+    // Update statistics display and calculations
+    updateStatistics();
+    updateStatisticsText();
+}
+
+void EpipolarChecker::onVisualizationSettingsChanged() {
+    // Update visualization when display settings change
+    updateDisplaySettings();
+    updateVisualization();
+}
+
 } // namespace stereo_vision::gui

@@ -7,6 +7,8 @@
 #include <random>
 #include <thread>
 #include <chrono>
+#include <atomic>
+#include <exception>
 
 namespace stereo_vision {
 namespace testing {
@@ -49,7 +51,44 @@ public:
 
     // Concurrent access testing
     template<typename Func>
-    static void testConcurrentAccess(Func func, int thread_count = 10, int iterations = 100);
+    static void testConcurrentAccess(Func func, int thread_count = 10, int iterations = 100) {
+        std::vector<std::thread> threads;
+        std::atomic<bool> start_flag{false};
+        std::vector<std::exception_ptr> exceptions(thread_count);
+
+        // Launch threads
+        for (int i = 0; i < thread_count; ++i) {
+            threads.emplace_back([&, i]() {
+                // Wait for start signal
+                while (!start_flag.load()) {
+                    std::this_thread::yield();
+                }
+
+                try {
+                    for (int j = 0; j < iterations; ++j) {
+                        func();
+                    }
+                } catch (...) {
+                    exceptions[i] = std::current_exception();
+                }
+            });
+        }
+
+        // Start all threads simultaneously
+        start_flag.store(true);
+
+        // Wait for completion
+        for (auto& thread : threads) {
+            thread.join();
+        }
+
+        // Check for exceptions
+        for (int i = 0; i < thread_count; ++i) {
+            if (exceptions[i]) {
+                std::rethrow_exception(exceptions[i]);
+            }
+        }
+    }
 
     // Precision testing utilities
     static bool isWithinTolerance(double actual, double expected, double tolerance = 1e-9);

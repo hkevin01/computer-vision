@@ -33,6 +33,9 @@ static void registerQtTypes() {
 
 // Project includes (after Qt/OpenCV)
 #include "gui/main_window.hpp"
+#include "gui/parameter_panel.hpp"
+#include "gui/calibration_wizard.hpp"
+#include "gui/camera_selector_dialog.hpp"
 #include "gui/batch_processing_window.hpp"
 #include "gui/epipolar_checker.hpp"
 

@@ -552,5 +552,65 @@ struct stereo_vision::gui::ModernProgressIndicator::IndicatorPrivate {
     int animationDirection = 1;
 };
 
+stereo_vision::gui::ModernProgressIndicator::ModernProgressIndicator(QWidget *parent)
+    : QWidget(parent), d(std::make_unique<IndicatorPrivate>()) {
+    setMinimumHeight(4);
+    setMaximumHeight(4);
+
+    d->animationTimer = new QTimer(this);
+    connect(d->animationTimer, &QTimer::timeout, this, &ModernProgressIndicator::updateAnimation);
+}
+
 // Destructor for PIMPL class
 stereo_vision::gui::ModernProgressIndicator::~ModernProgressIndicator() = default;
+
+void stereo_vision::gui::ModernProgressIndicator::setProgress(double progress) {
+    d->progress = qBound(0.0, progress, 1.0);
+    update();
+}
+
+void stereo_vision::gui::ModernProgressIndicator::setIndeterminate(bool enabled) {
+    d->indeterminate = enabled;
+    if (enabled) {
+        d->animationTimer->start(16); // ~60 FPS
+    } else {
+        d->animationTimer->stop();
+    }
+    update();
+}
+
+void stereo_vision::gui::ModernProgressIndicator::setColor(const QColor &color) {
+    d->color = color;
+    update();
+}
+
+void stereo_vision::gui::ModernProgressIndicator::paintEvent(QPaintEvent *event) {
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    QRect progressRect = rect();
+
+    // Draw background
+    painter.fillRect(progressRect, QColor(240, 240, 240));
+
+    if (d->indeterminate) {
+        // Draw animated indeterminate progress
+        int barWidth = width() / 3;
+        int position = static_cast<int>(d->animationProgress * (width() + barWidth)) - barWidth;
+        QRect animRect(position, 0, barWidth, height());
+        painter.fillRect(animRect.intersected(progressRect), d->color);
+    } else {
+        // Draw determinate progress
+        int progressWidth = static_cast<int>(width() * d->progress);
+        QRect fillRect(0, 0, progressWidth, height());
+        painter.fillRect(fillRect, d->color);
+    }
+}
+
+void stereo_vision::gui::ModernProgressIndicator::updateAnimation() {
+    d->animationProgress += 0.02 * d->animationDirection;
+    if (d->animationProgress >= 1.0) {
+        d->animationProgress = 0.0;
+    }
+    update();
+}

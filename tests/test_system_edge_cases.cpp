@@ -316,7 +316,7 @@ TEST_F(SystemLevelEdgeCaseTest, RaceConditionDetection) {
     // Log some error messages for debugging
     if (!error_messages.empty()) {
         std::cout << "Sample concurrent operation errors:\n";
-        for (size_t i = 0; i < std::min(5u, error_messages.size()); ++i) {
+        for (size_t i = 0; i < std::min(static_cast<size_t>(5u), error_messages.size()); ++i) {
             std::cout << "  " << error_messages[i] << "\n";
         }
     }
