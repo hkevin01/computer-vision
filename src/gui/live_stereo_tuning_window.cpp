@@ -464,5 +464,3 @@ void LiveStereoTuningWindow::updateStatusBar(const QString& message) {
 }
 
 }  // namespace stereo_vision::gui
-
-#include "live_stereo_tuning_window.moc"

@@ -373,5 +373,3 @@ void DisparityDisplayWidget::fitToWindow() {
 }
 
 }  // namespace stereo_vision::gui
-
-#include "disparity_display_widget.moc"

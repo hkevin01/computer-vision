@@ -10,6 +10,9 @@ launch_gui() {
     local extra_args="$3"
 
     echo "📋 Launching $app with $method..."
+    if [ -n "$extra_args" ]; then
+        echo "🔧 Extra arguments: $extra_args"
+    fi
 
     case "$method" in
         "wayland")

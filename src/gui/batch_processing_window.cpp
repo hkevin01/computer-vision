@@ -915,5 +915,3 @@ void BatchProcessingWindow::showDetailedProgress() {
 }
 
 } // namespace stereo_vision::batch
-
-#include "batch_processing_window.moc"

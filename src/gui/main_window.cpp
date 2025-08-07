@@ -38,6 +38,7 @@ static void registerQtTypes() {
 #include "gui/camera_selector_dialog.hpp"
 #include "gui/batch_processing_window.hpp"
 #include "gui/epipolar_checker.hpp"
+#include "camera_manager.hpp"
 
 namespace stereo_vision::gui {
 
@@ -78,6 +79,9 @@ MainWindow::MainWindow(QWidget *parent)
     setupUI();
     connectSignals();
     updateUI();
+
+    // Initialize camera manager
+    m_cameraManager = std::make_shared<stereo_vision::CameraManager>();
 
     // Set window properties
     // Set up window using direct member access

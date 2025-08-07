@@ -60,7 +60,9 @@ TEST_F(NeuralMatcherEdgeCaseTest, ExtremeImageSizes) {
     for (const auto& size : edge_sizes) {
         if (size.width > 0 && size.height > 0 && size.width < 8192 && size.height < 8192) {
             try {
-                auto [left, right] = createTestStereoPair(size);
+                std::pair<cv::Mat, cv::Mat> stereo_pair = createTestStereoPair(size);
+                cv::Mat left = stereo_pair.first;
+                cv::Mat right = stereo_pair.second;
 
                 // Configure for CPU backend to avoid GPU memory issues with extreme sizes
                 EnhancedNeuralMatcher::ModelConfig config;
@@ -68,9 +70,9 @@ TEST_F(NeuralMatcherEdgeCaseTest, ExtremeImageSizes) {
                 config.type = EnhancedNeuralMatcher::ModelType::HITNET;
 
                 cv::Mat disparity;
-                disparity = matcher_->computeDisparity(left, right); bool success = !disparity.empty();
+                disparity = matcher_->computeDisparity(left, right);
 
-                if (success && !disparity.empty()) {
+                if (!disparity.empty()) {
                     // Verify disparity map has reasonable values
                     double min_val, max_val;
                     cv::minMaxLoc(disparity, &min_val, &max_val);
@@ -99,7 +101,9 @@ TEST_F(NeuralMatcherEdgeCaseTest, NumericalOverflowHandling) {
     auto edge_values = stereo_vision::testing::EdgeCaseTestFramework::getFloatingPointEdgeCases();
 
     // Create test images
-    auto [left, right] = createTestStereoPair(cv::Size(640, 480));
+    std::pair<cv::Mat, cv::Mat> stereo_pair = createTestStereoPair(cv::Size(640, 480));
+    cv::Mat left = stereo_pair.first;
+    cv::Mat right = stereo_pair.second;
 
     for (double edge_val : edge_values) {
         if (std::isfinite(edge_val) && edge_val > 0 && edge_val < 1000) {
@@ -109,9 +113,9 @@ TEST_F(NeuralMatcherEdgeCaseTest, NumericalOverflowHandling) {
                 config.max_disparity = static_cast<int>(edge_val);
 
                 cv::Mat disparity;
-                disparity = matcher_->computeDisparity(left, right); bool success = !disparity.empty();
+                disparity = matcher_->computeDisparity(left, right);
 
-                if (success && !disparity.empty()) {
+                if (!disparity.empty()) {
                     // Check for overflow in disparity values
                     cv::Mat float_disparity;
                     disparity.convertTo(float_disparity, CV_32F);
@@ -170,9 +174,11 @@ TEST_F(NeuralMatcherEdgeCaseTest, MalformedInputHandling) {
 
     // This should either work or fail gracefully
     try {
-        bool success = matcher_->computeDisparity(corrupted_left, corrupted_right);
-        if (!success) {
+        cv::Mat disparity = matcher_->computeDisparity(corrupted_left, corrupted_right);
+        if (disparity.empty()) {
             EXPECT_TRUE(true) << "Gracefully rejected corrupted input";
+        } else {
+            EXPECT_TRUE(true) << "Successfully processed corrupted input";
         }
     } catch (const std::exception& e) {
         EXPECT_TRUE(true) << "Gracefully failed with corrupted input: " << e.what();
@@ -195,7 +201,9 @@ TEST_F(NeuralMatcherEdgeCaseTest, MalformedInputHandling) {
 
 // Test precision loss in neural network inference
 TEST_F(NeuralMatcherEdgeCaseTest, PrecisionLossDetection) {
-    auto [left, right] = createTestStereoPair(cv::Size(640, 480));
+    std::pair<cv::Mat, cv::Mat> stereo_pair = createTestStereoPair(cv::Size(640, 480));
+    cv::Mat left = stereo_pair.first;
+    cv::Mat right = stereo_pair.second;
 
     // Convert to different precisions and test
     std::vector<int> precisions = {CV_8U, CV_16U, CV_32F, CV_64F};
@@ -212,10 +220,9 @@ TEST_F(NeuralMatcherEdgeCaseTest, PrecisionLossDetection) {
             EnhancedNeuralMatcher::ModelConfig config;
             config.preferred_backend = EnhancedNeuralMatcher::Backend::ONNX_CPU;
 
-            cv::Mat disparity;
-            bool success = matcher_->computeDisparity(left_precision, right_precision);
+            cv::Mat disparity = matcher_->computeDisparity(left_precision, right_precision);
 
-            if (success && !disparity.empty()) {
+            if (!disparity.empty()) {
                 // Convert disparity to float for comparison
                 cv::Mat float_disparity;
                 disparity.convertTo(float_disparity, CV_32F);
@@ -246,7 +253,9 @@ TEST_F(NeuralMatcherEdgeCaseTest, PrecisionLossDetection) {
 
 // Test concurrent neural matcher operations
 TEST_F(NeuralMatcherEdgeCaseTest, ConcurrentMatching) {
-    auto [left, right] = createTestStereoPair(cv::Size(640, 480));
+    std::pair<cv::Mat, cv::Mat> stereo_pair = createTestStereoPair(cv::Size(640, 480));
+    cv::Mat left = stereo_pair.first;
+    cv::Mat right = stereo_pair.second;
 
     std::atomic<int> success_count{0};
     std::atomic<int> failure_count{0};
@@ -258,10 +267,9 @@ TEST_F(NeuralMatcherEdgeCaseTest, ConcurrentMatching) {
             EnhancedNeuralMatcher::ModelConfig config;
             config.preferred_backend = EnhancedNeuralMatcher::Backend::ONNX_CPU;
 
-            cv::Mat disparity;
-            disparity = local_matcher->computeDisparity(left, right); bool success = !disparity.empty();
+            cv::Mat disparity = local_matcher->computeDisparity(left, right);
 
-            if (success && !disparity.empty()) {
+            if (!disparity.empty()) {
                 success_count++;
             } else {
                 failure_count++;
@@ -279,7 +287,9 @@ TEST_F(NeuralMatcherEdgeCaseTest, ConcurrentMatching) {
 
 // Test neural matcher under system load
 TEST_F(NeuralMatcherEdgeCaseTest, MatchingUnderSystemLoad) {
-    auto [left, right] = createTestStereoPair(cv::Size(640, 480));
+    std::pair<cv::Mat, cv::Mat> stereo_pair = createTestStereoPair(cv::Size(640, 480));
+    cv::Mat left = stereo_pair.first;
+    cv::Mat right = stereo_pair.second;
 
     // Start high CPU load in background
     std::thread cpu_load_thread([]() {
@@ -295,12 +305,12 @@ TEST_F(NeuralMatcherEdgeCaseTest, MatchingUnderSystemLoad) {
 
         cv::Mat disparity;
         auto start = std::chrono::steady_clock::now();
-        disparity = matcher_->computeDisparity(left, right); bool success = !disparity.empty();
+        disparity = matcher_->computeDisparity(left, right);
         auto end = std::chrono::steady_clock::now();
 
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
-        if (success) {
+        if (!disparity.empty()) {
             EXPECT_TRUE(true) << "Neural matching succeeded under system load (took " << duration.count() << "ms)";
 
             // Verify result quality wasn't severely degraded
@@ -329,7 +339,9 @@ TEST_F(NeuralMatcherEdgeCaseTest, ModelLoadingFailures) {
     config.type = EnhancedNeuralMatcher::ModelType::CUSTOM;
     config.model_path = "/non/existent/path/model.onnx";
 
-    auto [left, right] = createTestStereoPair(cv::Size(640, 480));
+    std::pair<cv::Mat, cv::Mat> stereo_pair = createTestStereoPair(cv::Size(640, 480));
+    cv::Mat left = stereo_pair.first;
+    cv::Mat right = stereo_pair.second;
     cv::Mat disparity;
 
     EXPECT_GRACEFUL_FAILURE(
@@ -357,7 +369,9 @@ TEST_F(NeuralMatcherEdgeCaseTest, ModelLoadingFailures) {
 // Test hardware failure simulation
 TEST_F(NeuralMatcherEdgeCaseTest, HardwareFailureSimulation) {
     // This test simulates various hardware failure scenarios
-    auto [left, right] = createTestStereoPair(cv::Size(640, 480));
+    std::pair<cv::Mat, cv::Mat> stereo_pair = createTestStereoPair(cv::Size(640, 480));
+    cv::Mat left = stereo_pair.first;
+    cv::Mat right = stereo_pair.second;
 
     // Test GPU failure fallback
     EnhancedNeuralMatcher::ModelConfig gpu_config;
@@ -366,12 +380,12 @@ TEST_F(NeuralMatcherEdgeCaseTest, HardwareFailureSimulation) {
     cv::Mat disparity;
     try {
         // This might fail if no GPU is available or CUDA is not installed
-        disparity = matcher_->computeDisparity(left, right); bool success = !disparity.empty();
-        if (!success) {
+        disparity = matcher_->computeDisparity(left, right);
+        if (disparity.empty()) {
             // Try CPU fallback
             gpu_config.preferred_backend = EnhancedNeuralMatcher::Backend::ONNX_CPU;
-            disparity = matcher_->computeDisparity(left, right); success = !disparity.empty();
-            EXPECT_TRUE(success) << "CPU fallback should work when GPU fails";
+            disparity = matcher_->computeDisparity(left, right);
+            EXPECT_FALSE(disparity.empty()) << "CPU fallback should work when GPU fails";
         }
     } catch (const std::exception& e) {
         EXPECT_TRUE(true) << "Gracefully handled GPU failure: " << e.what();
@@ -381,7 +395,9 @@ TEST_F(NeuralMatcherEdgeCaseTest, HardwareFailureSimulation) {
 // Test memory allocation failures during inference
 TEST_F(NeuralMatcherEdgeCaseTest, MemoryAllocationFailures) {
     // Create very large images that might cause memory allocation issues
-    auto [left, right] = createTestStereoPair(cv::Size(4096, 4096));
+    std::pair<cv::Mat, cv::Mat> stereo_pair = createTestStereoPair(cv::Size(4096, 4096));
+    cv::Mat left = stereo_pair.first;
+    cv::Mat right = stereo_pair.second;
 
     // Apply maximum memory pressure
     stereo_vision::testing::EdgeCaseTestFramework::simulateMemoryPressure(2048); // 2GB
@@ -391,8 +407,8 @@ TEST_F(NeuralMatcherEdgeCaseTest, MemoryAllocationFailures) {
 
     cv::Mat disparity;
     try {
-        disparity = matcher_->computeDisparity(left, right); bool success = !disparity.empty();
-        if (success) {
+        disparity = matcher_->computeDisparity(left, right);
+        if (!disparity.empty()) {
             EXPECT_TRUE(true) << "Neural matching succeeded despite memory pressure";
         } else {
             EXPECT_TRUE(true) << "Neural matching gracefully failed under memory pressure";
