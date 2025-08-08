@@ -138,11 +138,11 @@ if(WITH_NEURAL_NETWORKS)
 endif()
 
 find_package(Threads REQUIRED)
-find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc calib3d stereo)
+find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc calib3d stereo videoio)
 
 # Enhanced OpenCV components for GPU acceleration
 if(WITH_OPENCV_CUDA AND USE_CUDA)
-    find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc calib3d stereo cudaimgproc cudastereo)
+    find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc calib3d stereo videoio cudaimgproc cudastereo)
     if(OpenCV_CUDA_VERSION)
         message(STATUS "Found OpenCV with CUDA support: ${OpenCV_CUDA_VERSION}")
         add_definitions(-DUSE_OPENCV_CUDA)

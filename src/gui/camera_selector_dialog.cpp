@@ -1,5 +1,6 @@
 #include "gui/camera_selector_dialog.hpp"
 #include "camera_manager.hpp"
+#include "multicam/multi_camera_system_simple.hpp"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -151,32 +152,38 @@ void CameraSelectorDialog::refreshCameraList() {
   m_leftCameraCombo->clear();
   m_rightCameraCombo->clear();
 
-  if (!m_cameraManager) {
-    QMessageBox::warning(this, "Error", "Camera manager not available");
-    return;
-  }
-
   // Add detailed logging for debugging
   qDebug() << "=== GUI Camera Detection Debug ===";
-  qDebug() << "About to call detectCameras() from GUI context...";
+  qDebug() << "Using MultiCameraUtils for enhanced camera detection...";
 
   // Force refresh of OpenCV backends - sometimes Qt context interferes
   cv::VideoCapture test_cap;
   test_cap.release(); // Force OpenCV to reinitialize backends
 
-  // Detect available cameras
-  int numCameras = m_cameraManager->detectCameras();
+  // Use MultiCameraUtils for more robust camera detection
+  std::vector<int> availableCameras;
+  try {
+    availableCameras = stereovision::multicam::MultiCameraUtils::detectAvailableCameras();
+    qDebug() << "MultiCameraUtils detected" << availableCameras.size() << "cameras";
 
-  qDebug() << "detectCameras() returned:" << numCameras;
-
-  const auto &cameraList = m_cameraManager->getCameraList();
-  qDebug() << "Camera list size:" << cameraList.size();
-
-  for (size_t i = 0; i < cameraList.size(); ++i) {
-    qDebug() << "Camera" << i << ":" << QString::fromStdString(cameraList[i]);
+    // Log each detected camera with connection test
+    for (int camera_id : availableCameras) {
+      bool connectionOk = stereovision::multicam::MultiCameraUtils::testCameraConnection(camera_id);
+      qDebug() << "Camera" << camera_id << "connection test:" << (connectionOk ? "PASS" : "FAIL");
+    }
+  } catch (const std::exception& e) {
+    qDebug() << "Error in camera detection:" << e.what();
+    // Fallback to legacy detection
+    if (m_cameraManager) {
+      int numCameras = m_cameraManager->detectCameras();
+      qDebug() << "Fallback to CameraManager, detected:" << numCameras;
+      for (int i = 0; i < numCameras; ++i) {
+        availableCameras.push_back(i);
+      }
+    }
   }
 
-  if (numCameras == 0) {
+  if (availableCameras.empty()) {
     m_leftCameraCombo->addItem("No cameras found");
     m_rightCameraCombo->addItem("No cameras found");
     QMessageBox::information(
@@ -195,33 +202,36 @@ void CameraSelectorDialog::refreshCameraList() {
   m_rightCameraCombo->addItem("(None)", -1);
 
   // Add cameras to combo boxes
-  for (int i = 0; i < numCameras; ++i) {
-    QString cameraName;
-    if (i < static_cast<int>(cameraList.size())) {
-      cameraName = QString::fromStdString(cameraList[i]);
+  for (int camera_id : availableCameras) {
+    QString cameraName = QString("Camera %1").arg(camera_id);
+
+    // Test camera connection and add quality info
+    bool connectionOk = stereovision::multicam::MultiCameraUtils::testCameraConnection(camera_id);
+    if (connectionOk) {
+      cameraName += " (✓)";
     } else {
-      cameraName = QString("Camera %1").arg(i);
+      cameraName += " (!)";
     }
 
-    m_leftCameraCombo->addItem(cameraName, i);
-    m_rightCameraCombo->addItem(cameraName, i);
+    m_leftCameraCombo->addItem(cameraName, camera_id);
+    m_rightCameraCombo->addItem(cameraName, camera_id);
   }
 
   // Handle single camera case
-  if (numCameras == 1) {
+  if (availableCameras.size() == 1) {
     QMessageBox::information(
         this, "Single Camera Detected",
         QString(
-            "Only one camera detected: %1\n\n"
+            "Only one camera detected: Camera %1\n\n"
             "For stereo vision you typically need two cameras.\n"
             "You can still use this camera for mono capture by selecting it "
             "for either left or right channel.")
-            .arg(QString::fromStdString(cameraList[0])));
+            .arg(availableCameras[0]));
 
     // Auto-select the camera for left channel
     m_leftCameraCombo->setCurrentIndex(
         1); // Index 1 is the first camera (after "(None)")
-  } else if (numCameras >= 2) {
+  } else if (availableCameras.size() >= 2) {
     // Auto-select first two cameras
     m_leftCameraCombo->setCurrentIndex(1);  // First camera
     m_rightCameraCombo->setCurrentIndex(2); // Second camera
@@ -254,12 +264,41 @@ void CameraSelectorDialog::onTestCameras() {
   bool singleCameraMode = (m_selectedLeftCamera == m_selectedRightCamera &&
                            m_selectedLeftCamera >= 0);
 
-  // Test camera connections
+  // Test camera connections using enhanced MultiCameraUtils first
   bool success = false;
 
+  // Pre-test with MultiCameraUtils for better error reporting
+  bool leftCameraOk = true, rightCameraOk = true;
+
+  if (m_selectedLeftCamera >= 0) {
+    leftCameraOk = stereovision::multicam::MultiCameraUtils::testCameraConnection(m_selectedLeftCamera);
+    qDebug() << "MultiCameraUtils test for left camera" << m_selectedLeftCamera << ":" << (leftCameraOk ? "PASS" : "FAIL");
+  }
+
+  if (m_selectedRightCamera >= 0 && !singleCameraMode) {
+    rightCameraOk = stereovision::multicam::MultiCameraUtils::testCameraConnection(m_selectedRightCamera);
+    qDebug() << "MultiCameraUtils test for right camera" << m_selectedRightCamera << ":" << (rightCameraOk ? "PASS" : "FAIL");
+  }
+
+  if (!leftCameraOk || !rightCameraOk) {
+    QString failedCameras;
+    if (!leftCameraOk) failedCameras += QString("Camera %1 ").arg(m_selectedLeftCamera);
+    if (!rightCameraOk) failedCameras += QString("Camera %1 ").arg(m_selectedRightCamera);
+
+    QMessageBox::warning(this, "Camera Connection Failed",
+        QString("Pre-test failed for: %1\n\n"
+                "This may indicate the camera is already in use by another application "
+                "or there's a hardware issue.").arg(failedCameras.trimmed()));
+    return;
+  }
+
   if (singleCameraMode) {
-    // Single camera mode
-    success = m_cameraManager->openSingleCamera(m_selectedLeftCamera);
+    // Single camera mode - proceed with CameraManager for compatibility
+    if (m_cameraManager) {
+      success = m_cameraManager->openSingleCamera(m_selectedLeftCamera);
+    } else {
+      success = false;
+    }
 
     if (success) {
       m_leftStatusLabel->setText("Connected (Single)");
@@ -294,8 +333,17 @@ void CameraSelectorDialog::onTestCameras() {
       return;
     }
 
-    success = m_cameraManager->openCameras(m_selectedLeftCamera,
-                                           m_selectedRightCamera);
+    // Test synchronization if both cameras are available
+    std::vector<int> camera_ids = {m_selectedLeftCamera, m_selectedRightCamera};
+    bool syncOk = stereovision::multicam::MultiCameraUtils::testSynchronization(camera_ids, 5);
+    qDebug() << "Synchronization test for cameras" << m_selectedLeftCamera << "and" << m_selectedRightCamera << ":" << (syncOk ? "PASS" : "FAIL");
+
+    if (m_cameraManager) {
+      success = m_cameraManager->openCameras(m_selectedLeftCamera,
+                                             m_selectedRightCamera);
+    } else {
+      success = false;
+    }
 
     if (success) {
       m_leftStatusLabel->setText("Connected");
@@ -305,8 +353,13 @@ void CameraSelectorDialog::onTestCameras() {
       m_camerasConfigured = true;
       m_okButton->setEnabled(true);
 
-      QMessageBox::information(this, "Success",
-                               "Both cameras connected successfully!");
+      QString message = "Both cameras connected successfully!";
+      if (!syncOk) {
+        message += "\n\nNote: Synchronization test indicated potential timing issues. "
+                  "This may affect stereo matching quality.";
+      }
+
+      QMessageBox::information(this, "Success", message);
     } else {
       m_leftStatusLabel->setText("Failed");
       m_leftStatusLabel->setStyleSheet("color: red;");

@@ -23,6 +23,11 @@
 #include <QDir>
 #include <QVBoxLayout>
 #include <QMessageBox>
+#include <QPushButton>
+#include <QTextEdit>
+#include <QHBoxLayout>
+#include <QGroupBox>
+#include <QFrame>
 
 // OpenCV includes
 #include <opencv2/opencv.hpp>
@@ -69,8 +74,10 @@ private slots:
   void processStereoImages();
   void exportPointCloud();
   void showAbout();
+  void showKeyboardShortcuts();
   void onParameterChanged();
   void onProcessingFinished();
+  void toggleProfiling(bool checked = false);
 
   // Webcam capture slots
   void showCameraSelector();
@@ -103,12 +110,17 @@ private slots:
 private:
   void setupUI();
   void setupMenuBar();
-  void setupToolBar();
   void setupCentralWidget();
   void setupStatusBar();
   void connectSignals();
   void updateUI();
   void resetView();
+  void initializeCameraSystem();
+  void refreshCameraStatus();
+  void showCameraErrorDialog(const QString &title, const QString &message, const QString &details = "");
+  void logCameraOperation(const QString &operation, bool success, const QString &details = "");
+  void retryCameraConnection(int cameraId, int maxRetries = 3);
+  void updateCameraStatusIndicators();
 
   // UI Components
   QWidget *m_centralWidget;
@@ -145,6 +157,7 @@ private:
   QAction *m_epipolarCheckerAction;
   QAction *m_exportAction;
   QAction *m_aboutAction;
+  QAction *m_shortcutsAction;
 
   // Webcam capture actions
   QAction *m_cameraSelectAction;
@@ -158,15 +171,22 @@ private:
   QAction *m_liveProcessingAction;
   QAction *m_showDisparityAction;
   QAction *m_showPointCloudAction;
+  QAction *m_enableProfilingAction; // toggle performance profiling
 
   // AI Calibration actions
   QAction *m_aiCalibrationAction;
-  QAction *m_captureCalibFrameAction;
 
   // Status bar
   QStatusBar *m_statusBar;
   QProgressBar *m_progressBar;
   QLabel *m_statusLabel;
+
+  // Camera status indicators
+  QGroupBox *m_cameraStatusGroup;
+  QLabel *m_leftCameraStatusLabel;
+  QLabel *m_rightCameraStatusLabel;
+  QPushButton *m_retryConnectionButton;
+  QTextEdit *m_debugLogOutput;
 
   // Processing components
   std::shared_ptr<stereo_vision::CameraCalibration> m_calibration;
