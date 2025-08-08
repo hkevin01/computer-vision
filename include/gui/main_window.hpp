@@ -42,6 +42,7 @@
 #include "gui/image_display_widget.hpp"
 #include "gui/point_cloud_widget.hpp"
 #include "gui/batch_processing_window.hpp"
+#include "multicam/multi_camera_system_simple.hpp" // new multicam system
 
 namespace stereo_vision::gui {
 
@@ -101,6 +102,8 @@ private slots:
   void refreshCameraStatus();
   void toggleProfiling(bool checked = false);
   void updateProfilingStats(); // periodic profiling snapshot
+  void updateSyncStatus(); // new: periodic sync stats update
+  void performRetryAttempt(); // new: non-blocking retry attempt chain
 
 private:
   void setupUI();
@@ -112,7 +115,7 @@ private:
   void initializeCameraSystem();
   void showCameraErrorDialog(const QString &title, const QString &message, const QString &details = QString());
   void logCameraOperation(const QString &operation, bool success, const QString &details = QString());
-  void retryCameraConnection(int cameraId, int maxRetries = 3);
+  void retryCameraConnection(int cameraId, int maxRetries = 3); // refactored to schedule attempts
   void updateCameraStatusIndicators();
 
   // Central widget components
@@ -167,6 +170,7 @@ private:
   QStatusBar *m_statusBar;
   QProgressBar *m_progressBar;
   QLabel *m_statusLabel;
+  QLabel *m_syncStatusLabel; // new: sync stats/quality label
 
   // Camera status indicators
   QGroupBox *m_cameraStatusGroup;
@@ -181,6 +185,7 @@ private:
   std::shared_ptr<stereo_vision::StereoMatcher> m_stereoMatcher;
   std::shared_ptr<stereo_vision::PointCloudProcessor> m_pointCloudProcessor;
   std::shared_ptr<stereo_vision::CameraManager> m_cameraManager;
+  std::shared_ptr<stereovision::multicam::MultiCameraSystem> m_multiCameraSystem; // new multicam system
 
   // Data
   QString m_leftImagePath;
@@ -212,6 +217,15 @@ private:
 
   // Profiling state
   QTimer *m_profilingTimer; // periodic profiler snapshot timer
+
+  // Sync status update timer (reuse profiling if desired but separate for clarity)
+  QTimer *m_syncUpdateTimer; // new timer for sync stats
+
+  // Retry logic state
+  int m_retryTargetCameraId; // camera currently retrying
+  int m_retryMaxAttempts;
+  int m_retryCurrentAttempt;
+  QTimer *m_retryTimer; // schedules retry attempts non-blocking
 
   // Batch processing window
   stereo_vision::batch::BatchProcessingWindow* m_batchProcessingWindow;

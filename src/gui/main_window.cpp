@@ -75,6 +75,7 @@ MainWindow::MainWindow(QWidget *parent)
       m_stereoMatcher(nullptr),
       m_pointCloudProcessor(nullptr),
       m_cameraManager(nullptr),
+      m_multiCameraSystem(std::make_shared<stereovision::multicam::MultiCameraSystem>()), // new
       m_processingTimer(new QTimer(this)),
       m_captureTimer(new QTimer(this)),
       m_isProcessing(false),
@@ -91,13 +92,18 @@ MainWindow::MainWindow(QWidget *parent)
       m_calibrationFrameCount(0),
       m_requiredCalibrationFrames(20),
       m_profilingTimer(new QTimer(this)),
+      m_syncUpdateTimer(new QTimer(this)), // new
+      m_retryTargetCameraId(-1),
+      m_retryMaxAttempts(0),
+      m_retryCurrentAttempt(0),
+      m_retryTimer(new QTimer(this)), // new
       m_batchProcessingWindow(nullptr),
       m_epipolarChecker(nullptr) {
 
     // Register Qt types first
     registerQtTypes();
 
-    // Initialize camera manager early
+    // Initialize legacy camera manager early (still used for single camera paths)
     m_cameraManager = std::make_shared<stereo_vision::CameraManager>();
 
     // Set up UI components in the correct order
@@ -108,20 +114,29 @@ MainWindow::MainWindow(QWidget *parent)
     // Initialize camera systems and detect available cameras
     initializeCameraSystem();
 
-    // Set up timer for periodic camera status checking
+    // Periodic camera status checking
     QTimer *cameraStatusTimer = new QTimer(this);
     connect(cameraStatusTimer, &QTimer::timeout, this, &MainWindow::refreshCameraStatus);
-    cameraStatusTimer->start(5000); // Check every 5 seconds
+    cameraStatusTimer->start(5000);
 
     // Profiling timer (disabled until enabled via action)
-    m_profilingTimer->setInterval(2000); // 2 second aggregation snapshot
+    m_profilingTimer->setInterval(2000);
     connect(m_profilingTimer, &QTimer::timeout, this, &MainWindow::updateProfilingStats);
 
-    // Set window properties
+    // Sync status update timer
+    m_syncUpdateTimer->setInterval(1500); // update every 1.5s
+    connect(m_syncUpdateTimer, &QTimer::timeout, this, &MainWindow::updateSyncStatus);
+    m_syncUpdateTimer->start();
+
+    // Retry timer (single-shot per attempt)
+    m_retryTimer->setSingleShot(true);
+    connect(m_retryTimer, &QTimer::timeout, this, &MainWindow::performRetryAttempt);
+
+    // Window properties
     setWindowTitle("Stereo Vision 3D Point Cloud Generator");
     setFixedSize(1200, 800);
 
-    // Set default output path
+    // Default output path
     m_outputPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/StereoVision";
     QDir().mkpath(m_outputPath);
 }
@@ -386,6 +401,12 @@ void MainWindow::setupStatusBar() {
     cameraLayout->addWidget(m_retryConnectionButton);
 
     m_statusBar->addPermanentWidget(m_cameraStatusGroup);
+
+    // New sync status label (permanent, stretches to right)
+    m_syncStatusLabel = new QLabel("Sync: N/A");
+    m_syncStatusLabel->setMinimumWidth(180);
+    m_syncStatusLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_statusBar->addPermanentWidget(m_syncStatusLabel, 1);
 
     m_progressBar = new QProgressBar;
     m_progressBar->setVisible(false);
@@ -801,162 +822,77 @@ void MainWindow::resetView() {
 
 void MainWindow::initializeCameraSystem() {
     logCameraOperation("=== Initializing Camera System ===", true, "Starting comprehensive camera detection");
-
-    // Clear previous debug log
     m_debugLogOutput->clear();
     logCameraOperation("Camera system initialization started", true, "Clearing previous logs");
 
-    // Initialize multicam system for better camera detection
+    // Clear multicam system for re-init
+    if (m_multiCameraSystem) {
+        // Currently no clear() API; recreate instance
+        m_multiCameraSystem = std::make_shared<stereovision::multicam::MultiCameraSystem>();
+    }
+
     try {
         logCameraOperation("Detecting available cameras", true, "Using MultiCameraUtils detection");
-
-        // Detect available cameras using multicam utilities
         std::vector<int> availableCameras = stereovision::multicam::MultiCameraUtils::detectAvailableCameras();
-
         logCameraOperation("Camera detection completed", true,
                           QString("%1 cameras found: [%2]")
                           .arg(availableCameras.size())
-                          .arg([&availableCameras]() {
-                              QStringList idList;
-                              for (int id : availableCameras) idList << QString::number(id);
-                              return idList.join(", ");
-                          }()));
+                          .arg([&availableCameras]() { QStringList idList; for (int id : availableCameras) idList << QString::number(id); return idList.join(", "); }()));
 
         if (!availableCameras.empty()) {
-            // Test each camera and log results
-            QStringList cameraList;
-            QStringList workingCameras;
-            QStringList failedCameras;
-
+            QStringList cameraList, workingCameras, failedCameras;
             for (int camera_id : availableCameras) {
                 logCameraOperation(QString("Testing Camera %1").arg(camera_id), true, "Connection test starting");
-
                 try {
                     bool connectionOk = stereovision::multicam::MultiCameraUtils::testCameraConnection(camera_id);
-                    QString status = connectionOk ? "✓" : "✗";
-                    cameraList << QString("Camera %1 %2").arg(camera_id).arg(status);
-
+                    cameraList << QString("Camera %1 %2").arg(camera_id).arg(connectionOk ? "✓" : "✗");
                     if (connectionOk) {
                         workingCameras << QString::number(camera_id);
-                        logCameraOperation(QString("Camera %1 test PASSED").arg(camera_id), true,
-                                         "Camera responding normally");
+                        // Add to multicam system immediately with default config
+                        stereovision::multicam::CameraConfig cfg; cfg.camera_id = camera_id; cfg.fps = 30.0; cfg.resolution = cv::Size(640,480);
+                        if (m_multiCameraSystem) {
+                            m_multiCameraSystem->addCamera(camera_id, cfg);
+                        }
+                        logCameraOperation(QString("Camera %1 test PASSED").arg(camera_id), true, "Added to MultiCameraSystem");
                     } else {
                         failedCameras << QString::number(camera_id);
-                        logCameraOperation(QString("Camera %1 test FAILED").arg(camera_id), false,
-                                         "Camera detected but not responding");
-
-                        // Attempt retry for failed cameras
-                        logCameraOperation(QString("Attempting retry for Camera %1").arg(camera_id), true,
-                                         "Starting automatic retry sequence");
+                        logCameraOperation(QString("Camera %1 test FAILED").arg(camera_id), false, "Camera detected but not responding");
+                        logCameraOperation(QString("Attempting retry for Camera %1").arg(camera_id), true, "Starting automatic retry sequence");
                         retryCameraConnection(camera_id, 2);
                     }
                 } catch (const std::exception& e) {
                     failedCameras << QString::number(camera_id);
-                    logCameraOperation(QString("Camera %1 test EXCEPTION").arg(camera_id), false,
-                                     QString("Error: %1").arg(e.what()));
+                    logCameraOperation(QString("Camera %1 test EXCEPTION").arg(camera_id), false, QString("Error: %1").arg(e.what()));
                 }
             }
-
-            // Update status to show available cameras
             QString statusMessage = QString("Camera system initialized - %1 cameras detected: %2")
                                   .arg(availableCameras.size())
                                   .arg(cameraList.join(", "));
             m_statusLabel->setText(statusMessage);
-
-            // Update camera status indicators
             updateCameraStatusIndicators();
-
             if (!workingCameras.isEmpty()) {
-                logCameraOperation("Working cameras found", true,
-                                 QString("Functional cameras: [%1]").arg(workingCameras.join(", ")));
-
-                // Auto-configure if we have exactly 2 working cameras for stereo vision
+                logCameraOperation("Working cameras found", true, QString("Functional cameras: [%1]").arg(workingCameras.join(", ")));
                 if (workingCameras.size() == 2) {
                     logCameraOperation("Stereo camera pair detected", true, "Two working cameras available for stereo vision");
-
-                    QTimer::singleShot(2000, this, [this, workingCameras]() {
-                        int result = QMessageBox::information(this, "Auto-Detection",
-                            QString("Two working cameras detected! (Cameras %1 and %2)\n\n"
-                                   "You can now:\n"
-                                   "• Go to File → Select Cameras to configure stereo vision\n"
-                                   "• Or use File → Start Webcam Capture for immediate capture\n\n"
-                                   "Would you like to open the camera selector now?")
-                                   .arg(workingCameras[0], workingCameras[1]),
-                            QMessageBox::Yes | QMessageBox::No);
-
-                        if (result == QMessageBox::Yes) {
-                            showCameraSelector();
-                        }
-                    });
-                } else if (workingCameras.size() == 1) {
-                    logCameraOperation("Single camera available", true, QString("Camera %1 ready for mono capture").arg(workingCameras[0]));
-
-                    QTimer::singleShot(2000, this, [this, workingCameras]() {
-                        m_statusLabel->setText(QString("Single camera detected (Camera %1) - mono capture available. Use File → Select Cameras to configure.").arg(workingCameras[0]));
-                    });
-                } else {
-                    logCameraOperation("Multiple cameras available", true, QString("%1 working cameras ready").arg(workingCameras.size()));
+                    QTimer::singleShot(1500, this, [this, workingCameras]() { if (QMessageBox::Yes == QMessageBox::information(this, "Auto-Detection", QString("Two working cameras detected! (Cameras %1 and %2)\nOpen camera selector now?").arg(workingCameras[0], workingCameras[1]), QMessageBox::Yes | QMessageBox::No)) { showCameraSelector(); } });
                 }
             }
-
             if (!failedCameras.isEmpty()) {
-                logCameraOperation("Some cameras failed connection tests", false,
-                                 QString("Failed cameras: [%1] - check permissions and connections").arg(failedCameras.join(", ")));
+                logCameraOperation("Some cameras failed connection tests", false, QString("Failed cameras: [%1]").arg(failedCameras.join(", ")));
             }
-
         } else {
             logCameraOperation("No cameras detected", false, "No camera devices found on system");
             m_statusLabel->setText("No cameras detected - connect cameras and restart application");
-
-            // Show helpful message after a delay
-            QTimer::singleShot(3000, this, [this]() {
-                showCameraErrorDialog("No Cameras Detected",
-                    "No cameras were detected on startup.",
-                    "Troubleshooting steps:\n"
-                    "• Connect your camera(s) to USB ports\n"
-                    "• Check camera permissions (may require running as administrator)\n"
-                    "• Close other applications using cameras (Skype, Discord, etc.)\n"
-                    "• Try different USB ports or cables\n"
-                    "• Restart the application after connecting cameras\n"
-                    "• Use File → Select Cameras to manually detect\n\n"
-                    "The application will continue to work with image files.");
-            });
+            QTimer::singleShot(3000, this, [this]() { showCameraErrorDialog("No Cameras Detected", "No cameras were detected on startup."); });
         }
-
     } catch (const std::exception& e) {
         QString errorMsg = QString("Camera system initialization error: %1").arg(e.what());
         logCameraOperation("CRITICAL ERROR during initialization", false, errorMsg);
         m_statusLabel->setText("Camera initialization failed - fallback to manual detection");
-
-        // Fallback to basic camera manager
-        logCameraOperation("Attempting fallback to basic camera manager", true, "Using legacy detection method");
-
         if (m_cameraManager) {
-            try {
-                int numCameras = m_cameraManager->detectCameras();
-                if (numCameras > 0) {
-                    logCameraOperation("Fallback detection successful", true, QString("%1 cameras found with basic method").arg(numCameras));
-                    m_statusLabel->setText(QString("Fallback detection: %1 cameras found").arg(numCameras));
-                } else {
-                    logCameraOperation("Fallback detection failed", false, "No cameras found with basic method either");
-                }
-            } catch (const std::exception& fallbackError) {
-                logCameraOperation("Fallback detection also failed", false, QString("Error: %1").arg(fallbackError.what()));
-
-                // Show comprehensive error dialog
-                showCameraErrorDialog("Camera System Failure",
-                    "Both primary and fallback camera detection methods failed.",
-                    QString("Primary error: %1\n\nFallback error: %2\n\n"
-                           "This may indicate:\n"
-                           "• Hardware compatibility issues\n"
-                           "• Driver problems\n"
-                           "• Permission restrictions\n"
-                           "• System resource conflicts")
-                           .arg(e.what(), fallbackError.what()));
-            }
+            try { int numCameras = m_cameraManager->detectCameras(); if (numCameras > 0) { logCameraOperation("Fallback detection successful", true, QString("%1 cameras found with basic method").arg(numCameras)); } } catch (...) {}
         }
     }
-
     logCameraOperation("Camera system initialization complete", true, "Ready for user interaction");
 }
 
@@ -1360,216 +1296,301 @@ void MainWindow::captureStereoImage() {
 }
 
 void MainWindow::onFrameReady() {
-  if (!m_isCapturing || !m_cameraManager->isAnyCameraOpen()) {
-    return;
-  }
+  if (!m_isCapturing) { return; }
+  // If single-camera mode or only one connected, use legacy camera manager path
+  bool singleCameraMode = (m_selectedLeftCamera == m_selectedRightCamera && m_selectedLeftCamera >= 0 && m_leftCameraConnected && m_rightCameraConnected);
+  int connectedCount = 0; if (m_leftCameraConnected) ++connectedCount; if (m_rightCameraConnected && m_selectedRightCamera != m_selectedLeftCamera) ++connectedCount;
+  bool useMultiCam = (connectedCount >= 2 && m_multiCameraSystem && m_multiCameraSystem->getConnectedCameras().size() >= 2);
 
-  bool singleCameraMode = (m_selectedLeftCamera == m_selectedRightCamera &&
-                           m_selectedLeftCamera >= 0 && m_leftCameraConnected &&
-                           m_rightCameraConnected);
-
-  if (singleCameraMode || !m_cameraManager->areCamerasOpen()) {
-    // Single camera mode or fallback mode - show same frame in both views
-    cv::Mat frame;
-    if (m_cameraManager->grabSingleFrame(frame)) {
-      if (!frame.empty()) {
-        // Store frame for both left and right
-        m_lastLeftFrame = frame.clone();
-        m_lastRightFrame = frame.clone();
-
-        // Convert OpenCV Mat to QImage and display
-        cv::Mat displayFrame;
-        cv::cvtColor(frame, displayFrame, cv::COLOR_BGR2RGB);
-
-        QImage qimg(displayFrame.data, displayFrame.cols, displayFrame.rows,
-                    displayFrame.step, QImage::Format_RGB888);
-
-        // Save as temporary file and show in both views
-        QString tempPath = QDir::tempPath() + "/stereo_single_preview.png";
-        qimg.save(tempPath);
-
-        if (m_leftCameraConnected) {
-          m_leftImageWidget->setImage(tempPath);
-        }
-        if (m_rightCameraConnected) {
-          m_rightImageWidget->setImage(tempPath);
-        }
+  if (!useMultiCam) {
+      if (!m_cameraManager || !m_cameraManager->isAnyCameraOpen()) return;
+      if (singleCameraMode || !m_cameraManager->areCamerasOpen()) {
+          cv::Mat frame; if (m_cameraManager->grabSingleFrame(frame) && !frame.empty()) {
+              m_lastLeftFrame = frame.clone(); m_lastRightFrame = frame.clone();
+              cv::Mat displayFrame; cv::cvtColor(frame, displayFrame, cv::COLOR_BGR2RGB);
+              QImage qimg(displayFrame.data, displayFrame.cols, displayFrame.rows, displayFrame.step, QImage::Format_RGB888);
+              QString tempPath = QDir::tempPath() + "/stereo_single_preview.png"; qimg.save(tempPath);
+              if (m_leftCameraConnected) m_leftImageWidget->setImage(tempPath);
+              if (m_rightCameraConnected) m_rightImageWidget->setImage(tempPath);
+          }
+      } else {
+          cv::Mat leftFrame, rightFrame; if (m_cameraManager->grabFrames(leftFrame, rightFrame)) {
+              if (!leftFrame.empty()) m_lastLeftFrame = leftFrame.clone(); if (!rightFrame.empty()) m_lastRightFrame = rightFrame.clone();
+              if (!leftFrame.empty() && m_leftCameraConnected) { cv::Mat df; cv::cvtColor(leftFrame, df, cv::COLOR_BGR2RGB); QImage qimg(df.data, df.cols, df.rows, df.step, QImage::Format_RGB888); QString tempPath = QDir::tempPath() + "/stereo_left_preview.png"; qimg.save(tempPath); m_leftImageWidget->setImage(tempPath); }
+              if (!rightFrame.empty() && m_rightCameraConnected) { cv::Mat df; cv::cvtColor(rightFrame, df, cv::COLOR_BGR2RGB); QImage qimg(df.data, df.cols, df.rows, df.step, QImage::Format_RGB888); QString tempPath = QDir::tempPath() + "/stereo_right_preview.png"; qimg.save(tempPath); m_rightImageWidget->setImage(tempPath); }
+          }
       }
-    }
   } else {
-    // Dual camera mode - original logic
-    cv::Mat leftFrame, rightFrame;
-
-    // Grab frames from cameras
-    if (m_cameraManager->grabFrames(leftFrame, rightFrame)) {
-      // Store the latest frames
-      if (!leftFrame.empty()) {
-        m_lastLeftFrame = leftFrame.clone();
+      // Multi-camera synchronized capture
+      std::map<int, cv::Mat> frames; std::map<int, std::chrono::high_resolution_clock::time_point> timestamps;
+      if (m_multiCameraSystem->captureSynchronizedFrames(frames, timestamps)) {
+          // For now map selected IDs to left/right if available
+          if (frames.count(m_selectedLeftCamera)) { m_lastLeftFrame = frames[m_selectedLeftCamera].clone(); }
+          if (frames.count(m_selectedRightCamera)) { m_lastRightFrame = frames[m_selectedRightCamera].clone(); }
+          // Display
+          if (!m_lastLeftFrame.empty() && m_leftCameraConnected) { cv::Mat df; cv::cvtColor(m_lastLeftFrame, df, cv::COLOR_BGR2RGB); QImage qimg(df.data, df.cols, df.rows, df.step, QImage::Format_RGB888); QString tempPath = QDir::tempPath() + "/stereo_left_sync.png"; qimg.save(tempPath); m_leftImageWidget->setImage(tempPath); }
+          if (!m_lastRightFrame.empty() && m_rightCameraConnected) { cv::Mat df; cv::cvtColor(m_lastRightFrame, df, cv::COLOR_BGR2RGB); QImage qimg(df.data, df.cols, df.rows, df.step, QImage::Format_RGB888); QString tempPath = QDir::tempPath() + "/stereo_right_sync.png"; qimg.save(tempPath); m_rightImageWidget->setImage(tempPath); }
+          // Handle recent disconnect
+          if (m_multiCameraSystem->hadRecentDisconnect()) {
+              logCameraOperation("Detected recent camera disconnect", false, "Stopping capture");
+              stopWebcamCapture();
+              QMessageBox::warning(this, "Camera Disconnect", "A camera was disconnected during synchronized capture. Capture has been stopped.");
+              m_multiCameraSystem->clearRecentDisconnectFlag();
+          }
       }
-      if (!rightFrame.empty()) {
-        m_lastRightFrame = rightFrame.clone();
-      }
+  }
+  if (m_aiCalibrationActive && !m_lastLeftFrame.empty()) { captureCalibrationFrame(); }
+}
 
-      // Update live preview in the image widgets (optional - shows live feed)
-      if (!leftFrame.empty() && m_leftCameraConnected) {
-        // Convert OpenCV Mat to QImage and display
-        cv::Mat displayFrame;
-        cv::cvtColor(leftFrame, displayFrame, cv::COLOR_BGR2RGB);
-
-        QImage qimg(displayFrame.data, displayFrame.cols, displayFrame.rows,
-                    displayFrame.step, QImage::Format_RGB888);
-
-        // Save as temporary file and load (this could be optimized)
-        QString tempPath = QDir::tempPath() + "/stereo_left_preview.png";
-        qimg.save(tempPath);
-        m_leftImageWidget->setImage(tempPath);
-      }
-
-      if (!rightFrame.empty() && m_rightCameraConnected) {
-        // Convert OpenCV Mat to QImage and display
-        cv::Mat displayFrame;
-        cv::cvtColor(rightFrame, displayFrame, cv::COLOR_BGR2RGB);
-
-        QImage qimg(displayFrame.data, displayFrame.cols, displayFrame.rows,
-                    displayFrame.step, QImage::Format_RGB888);
-
-        // Save as temporary file and load (this could be optimized)
-        QString tempPath = QDir::tempPath() + "/stereo_right_preview.png";
-        qimg.save(tempPath);
-        m_rightImageWidget->setImage(tempPath);
-      }
+void MainWindow::updateSyncStatus() {
+    if (!m_syncStatusLabel) return;
+    if (!m_multiCameraSystem || m_multiCameraSystem->getConnectedCameras().size() < 2) {
+        m_syncStatusLabel->setText("Sync: N/A");
+        return;
     }
-  }
-
-  // Check for AI calibration frame capture
-  if (m_aiCalibrationActive && !m_lastLeftFrame.empty()) {
-    captureCalibrationFrame();
-  }
+    const auto &stats = m_multiCameraSystem->getSyncStats();
+    auto quality = m_multiCameraSystem->classifySyncQuality();
+    QString qStr;
+    switch (quality) { case stereovision::multicam::MultiCameraSystem::SyncQuality::EXCELLENT: qStr = "EXCELLENT"; break; case stereovision::multicam::MultiCameraSystem::SyncQuality::GOOD: qStr = "GOOD"; break; case stereovision::multicam::MultiCameraSystem::SyncQuality::POOR: qStr = "POOR"; break; default: qStr = "UNKNOWN"; }
+    QString txt = QString("Sync: %1 Δavg %2ms Δmax %3ms jitter %4ms drops %5 fail %6")
+                  .arg(qStr)
+                  .arg(QString::number(stats.avg_delta_ms.load(), 'f', 2))
+                  .arg(QString::number(stats.max_delta_ms.load(), 'f', 2))
+                  .arg(QString::number(stats.jitter_ms.load(), 'f', 2))
+                  .arg(stats.dropped_frames.load())
+                  .arg(stats.consecutive_failures.load());
+    m_syncStatusLabel->setText(txt);
+    // Color coding
+    QString color = (qStr == "EXCELLENT") ? "#2e8b57" : (qStr == "GOOD" ? "#1e90ff" : (qStr == "POOR" ? "#b22222" : "#696969"));
+    m_syncStatusLabel->setStyleSheet(QString("QLabel { color: %1; font-weight: bold; }").arg(color));
 }
 
-void MainWindow::onCameraSelectionChanged() {
-  // This slot can be used for future dynamic camera switching
-  updateUI();
-}
-
-// AI Calibration methods
-void MainWindow::startAICalibration() {
-  if (!m_isCapturing) {
-    QMessageBox::warning(
-        this, "AI Calibration",
-        "Please start webcam capture first to begin AI calibration.");
-    return;
-  }
-
-  if (m_aiCalibrationActive) {
-    QMessageBox::information(this, "AI Calibration",
-                             "AI calibration is already in progress.");
-    return;
-  }
-
-  m_aiCalibrationActive = true;
-  m_calibrationFrameCount = 0;
-  m_calibrationFramesLeft.clear();
-  m_calibrationFramesRight.clear();
-
-  m_statusLabel->setText(
-      "AI Calibration started - position chessboard in view");
-
-  QMessageBox::information(
-      this, "AI Calibration",
-      QString("AI Auto-Calibration started!\n\n"
-              "Instructions:\n"
-              "1. Hold a chessboard (9x6 pattern) in front of the camera(s)\n"
-              "2. Move it to different positions and orientations\n"
-              "3. Keep the pattern fully visible and in focus\n"
-              "4. %1 frames will be automatically captured\n"
-              "5. Calibration will run automatically when complete\n\n"
-              "Press OK to begin capturing frames...")
-          .arg(m_requiredCalibrationFrames));
-}
-
-void MainWindow::onCalibrationProgress(int progress) {
-  m_progressBar->setVisible(true);
-  m_progressBar->setRange(0, 100);
-  m_progressBar->setValue(progress);
-
-  QString statusText = QString("AI Calibration progress: %1% (%2/%3 frames)")
-                      .arg(progress)
-                      .arg(m_calibrationFrameCount)
-                      .arg(m_requiredCalibrationFrames);
-  m_statusLabel->setText(statusText);
-
-  // Update window title to show progress
-  QString title = QString("Stereo Vision - AI Calibration %1%").arg(progress);
-  setWindowTitle(title);
-}
-
-void MainWindow::onCalibrationComplete() {
-  m_aiCalibrationActive = false;
-  m_progressBar->setVisible(false);
-  m_statusLabel->setText("AI Calibration completed successfully - cameras ready for stereo processing");
-
-  // Restore normal window title
-  setWindowTitle("Stereo Vision 3D Point Cloud Generator");
-
-  QMessageBox::information(
-      this, "AI Calibration Complete",
-      QString("Camera calibration completed successfully!\n\n"
-              "• Captured %1 calibration frames\n"
-              "• Calibration parameters computed and validated\n"
-              "• System ready for stereo processing\n\n"
-              "You can now:\n"
-              "• Use live processing (Ctrl+Shift+P)\n"
-              "• Process captured stereo pairs\n"
-              "• Export 3D point clouds")
-          .arg(m_calibrationFrameCount));
-}
-
-void MainWindow::captureCalibrationFrame() {
-  if (!m_aiCalibrationActive || !m_isCapturing) {
-    return;
-  }
-
-  // Check if we have frames to analyze
-  if (m_lastLeftFrame.empty()) {
-    return;
-  }
-
-  // Simple chessboard detection (9x6 pattern as mentioned in instructions)
-  cv::Size chessboardSize(9, 6);
-  std::vector<cv::Point2f> corners;
-
-  cv::Mat grayFrame;
-  cv::cvtColor(m_lastLeftFrame, grayFrame, cv::COLOR_BGR2GRAY);
-
-  bool found = cv::findChessboardCorners(grayFrame, chessboardSize, corners,
-                                        cv::CALIB_CB_ADAPTIVE_THRESH |
-                                        cv::CALIB_CB_NORMALIZE_IMAGE |
-                                        cv::CALIB_CB_FAST_CHECK);
-
-  if (found) {
-    // Refine corner positions
-    cv::cornerSubPix(grayFrame, corners, cv::Size(11, 11), cv::Size(-1, -1),
-                     cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.1));
-
-    // Store the frame for calibration
-    m_calibrationFramesLeft.push_back(m_lastLeftFrame.clone());
-
-    // If we have a right frame and it's different from left, store it too
-    if (!m_lastRightFrame.empty() && m_selectedLeftCamera != m_selectedRightCamera) {
-      m_calibrationFramesRight.push_back(m_lastRightFrame.clone());
+void MainWindow::retryCameraConnection(int cameraId, int maxRetries) {
+    // Schedule retry attempts instead of blocking
+    m_retryTargetCameraId = cameraId;
+    m_retryMaxAttempts = maxRetries;
+    m_retryCurrentAttempt = 0;
+    if (!m_retryTimer) return;
+    logCameraOperation(QString("Scheduling retry sequence for Camera %1 (%2 attempts)").arg(cameraId).arg(maxRetries), true);
+    if (!m_retryTimer->isActive()) {
+        m_retryTimer->start(10); // start almost immediately
     }
+}
 
-    m_calibrationFrameCount++;
+void MainWindow::performRetryAttempt() {
+    if (m_retryCurrentAttempt >= m_retryMaxAttempts) {
+        logCameraOperation(QString("Camera %1 connection failed after %2 attempts").arg(m_retryTargetCameraId).arg(m_retryMaxAttempts), false, "Non-blocking retry sequence complete");
+        return;
+    }
+    ++m_retryCurrentAttempt;
+    int attempt = m_retryCurrentAttempt;
+    int cameraId = m_retryTargetCameraId;
+    logCameraOperation(QString("Retry attempt %1/%2 for Camera %3").arg(attempt).arg(m_retryMaxAttempts).arg(cameraId), true, "Testing connection...");
+    bool connected = false;
+    try { connected = stereovision::multicam::MultiCameraUtils::testCameraConnection(cameraId); } catch (...) { connected = false; }
+    if (connected) {
+        logCameraOperation(QString("Camera %1 connection successful on attempt %2").arg(cameraId).arg(attempt), true, "Camera responding");
+        // Add to multicam system if not already
+        if (m_multiCameraSystem && std::find(m_multiCameraSystem->getConnectedCameras().begin(), m_multiCameraSystem->getConnectedCameras().end(), cameraId) == m_multiCameraSystem->getConnectedCameras().end()) {
+            stereovision::multicam::CameraConfig cfg; cfg.camera_id = cameraId; m_multiCameraSystem->addCamera(cameraId, cfg);
+        }
+        updateCameraStatusIndicators();
+        return; // stop further attempts
+    } else {
+        logCameraOperation(QString("Camera %1 attempt %2 failed").arg(cameraId).arg(attempt), false, "Will retry if attempts remain");
+    }
+    // Schedule next attempt if remaining
+    if (m_retryCurrentAttempt < m_retryMaxAttempts) {
+        m_retryTimer->start(1000); // wait 1s before next attempt
+    } else {
+        showCameraErrorDialog(QString("Camera %1 Connection Failed").arg(cameraId), QString("Unable to connect after %1 attempts").arg(m_retryMaxAttempts));
+    }
+}
 
-    // Update progress
-    int progress = (m_calibrationFrameCount * 100) / m_requiredCalibrationFrames;
-    onCalibrationProgress(progress);
+void MainWindow::setupUI() {
+    setupMenuBar();
+    setupCentralWidget();
+    setupStatusBar();
+}
 
-    m_statusLabel->setText(QString("AI Calibration: %1/%2 frames captured")
-                           .arg(m_calibrationFrameCount)
-                           .arg(m_requiredCalibrationFrames));
+void MainWindow::setupMenuBar() {
+    m_menuBar = menuBar();
 
+    // Create File menu actions
+    m_openLeftAction = new QAction("Open &Left Image...", this);
+    m_openRightAction = new QAction("Open &Right Image...", this);
+    m_openFolderAction = new QAction("Open Stereo &Folder...", this);
+    m_cameraSelectAction = new QAction("Select &Cameras...", this);
+    m_startCaptureAction = new QAction("&Start Webcam Capture", this);
+    m_stopCaptureAction = new QAction("S&top Webcam Capture", this);
+    m_captureLeftAction = new QAction("Capture &Left Image", this);
+    m_captureRightAction = new QAction("Capture &Right Image", this);
+    m_captureStereoAction = new QAction("Capture &Stereo Pair", this);
+    m_loadCalibrationAction = new QAction("&Load Calibration...", this);
+    m_saveCalibrationAction = new QAction("&Save Calibration...", this);
+    m_exitAction = new QAction("E&xit", this);
+
+    // Create Process menu actions
+    m_calibrateAction = new QAction("&Calibrate Cameras...", this);
+    m_aiCalibrationAction = new QAction("&AI Auto-Calibration... ⭐", this);
+    m_processAction = new QAction("Process &Stereo Images", this);
+    m_batchProcessAction = new QAction("&Batch Processing...", this);
+    m_epipolarCheckerAction = new QAction("&Epipolar Checker", this);
+    m_liveProcessingAction = new QAction("&Live Processing", this);
+    m_exportAction = new QAction("&Export Point Cloud", this);
+
+    // Set up shortcuts with proper context
+    m_openLeftAction->setShortcut(QKeySequence("Ctrl+L"));
+    m_openLeftAction->setShortcutContext(Qt::WindowShortcut);
+    m_openRightAction->setShortcut(QKeySequence("Ctrl+R"));
+    m_openRightAction->setShortcutContext(Qt::WindowShortcut);
+    m_openFolderAction->setShortcut(QKeySequence("Ctrl+F"));
+    m_openFolderAction->setShortcutContext(Qt::WindowShortcut);
+    m_cameraSelectAction->setShortcut(QKeySequence("Ctrl+Shift+C"));
+    m_cameraSelectAction->setShortcutContext(Qt::WindowShortcut);
+    m_startCaptureAction->setShortcut(QKeySequence("Ctrl+Shift+S"));
+    m_startCaptureAction->setShortcutContext(Qt::WindowShortcut);
+    m_stopCaptureAction->setShortcut(QKeySequence("Ctrl+Shift+T"));
+    m_stopCaptureAction->setShortcutContext(Qt::WindowShortcut);
+    m_captureLeftAction->setShortcut(QKeySequence("L"));
+    m_captureLeftAction->setShortcutContext(Qt::WindowShortcut);
+    m_captureRightAction->setShortcut(QKeySequence("R"));
+    m_captureRightAction->setShortcutContext(Qt::WindowShortcut);
+    m_captureStereoAction->setShortcut(QKeySequence("Space"));
+    m_captureStereoAction->setShortcutContext(Qt::WindowShortcut);
+    m_loadCalibrationAction->setShortcut(QKeySequence("Ctrl+O"));
+    m_loadCalibrationAction->setShortcutContext(Qt::WindowShortcut);
+    m_saveCalibrationAction->setShortcut(QKeySequence("Ctrl+S"));
+    m_saveCalibrationAction->setShortcutContext(Qt::WindowShortcut);
+    m_exitAction->setShortcut(QKeySequence("Ctrl+Q"));
+    m_exitAction->setShortcutContext(Qt::WindowShortcut);
+    m_calibrateAction->setShortcut(QKeySequence("Ctrl+C"));
+    m_calibrateAction->setShortcutContext(Qt::WindowShortcut);
+    m_aiCalibrationAction->setShortcut(QKeySequence("Ctrl+Alt+C"));
+    m_aiCalibrationAction->setShortcutContext(Qt::WindowShortcut);
+    m_processAction->setShortcut(QKeySequence("Ctrl+P"));
+    m_processAction->setShortcutContext(Qt::WindowShortcut);
+    m_batchProcessAction->setShortcut(QKeySequence("Ctrl+B"));
+    m_batchProcessAction->setShortcutContext(Qt::WindowShortcut);
+    m_epipolarCheckerAction->setShortcut(QKeySequence("Ctrl+Shift+E"));
+    m_epipolarCheckerAction->setShortcutContext(Qt::WindowShortcut);
+    m_liveProcessingAction->setShortcut(QKeySequence("Ctrl+Shift+P"));
+    m_liveProcessingAction->setShortcutContext(Qt::WindowShortcut);
+    m_exportAction->setShortcut(QKeySequence("Ctrl+E"));
+    m_exportAction->setShortcutContext(Qt::WindowShortcut);
+
+    // Set initial states
+    m_startCaptureAction->setEnabled(false);
+    m_stopCaptureAction->setEnabled(false);
+    m_captureLeftAction->setEnabled(false);
+    m_captureRightAction->setEnabled(false);
+    m_captureStereoAction->setEnabled(false);
+    m_liveProcessingAction->setCheckable(true);
+
+    // Set status tips
+    m_calibrateAction->setStatusTip("Launch interactive camera calibration wizard with step-by-step guidance");
+    m_aiCalibrationAction->setStatusTip("Fully functional AI-powered automatic camera calibration with quality assessment");
+    m_batchProcessAction->setStatusTip("Open batch processing window for multiple stereo pairs");
+    m_epipolarCheckerAction->setStatusTip("Open epipolar line checker for calibration quality assessment");
+
+    // Create menus
+    m_fileMenu = m_menuBar->addMenu("&File");
+    m_processMenu = m_menuBar->addMenu("&Process");
+
+    // Populate File menu
+    m_fileMenu->addAction(m_openLeftAction);
+    m_fileMenu->addAction(m_openRightAction);
+    m_fileMenu->addAction(m_openFolderAction);
+    m_fileMenu->addSeparator();
+    m_fileMenu->addAction(m_cameraSelectAction);
+    m_fileMenu->addAction(m_startCaptureAction);
+    m_fileMenu->addAction(m_stopCaptureAction);
+    m_fileMenu->addAction(m_captureLeftAction);
+    m_fileMenu->addAction(m_captureRightAction);
+    m_fileMenu->addAction(m_captureStereoAction);
+    m_fileMenu->addSeparator();
+    m_fileMenu->addAction(m_loadCalibrationAction);
+    m_fileMenu->addAction(m_saveCalibrationAction);
+    m_fileMenu->addSeparator();
+    m_fileMenu->addAction(m_exitAction);
+
+    // Populate Process menu
+    m_processMenu->addAction(m_calibrateAction);
+    m_processMenu->addAction(m_aiCalibrationAction);
+    m_processMenu->addSeparator();
+    m_processMenu->addAction(m_processAction);
+    m_processMenu->addAction(m_batchProcessAction);
+    m_processMenu->addAction(m_epipolarCheckerAction);
+    m_processMenu->addAction(m_liveProcessingAction);
+    m_processMenu->addSeparator();
+    m_processMenu->addAction(m_exportAction);
+
+    // Create and populate View menu
+    m_viewMenu = m_menuBar->addMenu("&View");
+
+    m_showDisparityAction = new QAction("Show &Disparity Map", this);
+    m_showPointCloudAction = new QAction("Show &Point Cloud", this);
+    m_enableProfilingAction = new QAction("Enable &Profiling", this);
+    m_enableProfilingAction->setCheckable(true);
+    m_enableProfilingAction->setStatusTip("Toggle runtime performance profiling and periodic stats");
+
+    m_showDisparityAction->setShortcut(QKeySequence("Ctrl+D"));
+    m_showDisparityAction->setShortcutContext(Qt::WindowShortcut);
+    m_showDisparityAction->setCheckable(true);
+    m_showDisparityAction->setChecked(true);
+
+    m_showPointCloudAction->setShortcut(QKeySequence("Ctrl+3"));
+    m_showPointCloudAction->setShortcutContext(Qt::WindowShortcut);
+    m_showPointCloudAction->setCheckable(true);
+    m_showPointCloudAction->setChecked(true);
+
+    m_viewMenu->addAction(m_showDisparityAction);
+    m_viewMenu->addAction(m_showPointCloudAction);
+    m_viewMenu->addSeparator();
+    m_viewMenu->addAction(m_enableProfilingAction);
+
+    // Create and populate Help menu
+    m_helpMenu = m_menuBar->addMenu("&Help");
+    m_shortcutsAction = new QAction("&Keyboard Shortcuts", this);
+    m_shortcutsAction->setShortcut(QKeySequence("F1"));
+    m_shortcutsAction->setShortcutContext(Qt::WindowShortcut);
+    m_aboutAction = new QAction("&About", this);
+    m_helpMenu->addAction(m_shortcutsAction);
+    m_helpMenu->addSeparator();
+    m_helpMenu->addAction(m_aboutAction);
+}
+
+void MainWindow::setupCentralWidget() {
+    m_centralWidget = new QWidget;
+    setCentralWidget(m_centralWidget);
+
+    // Main splitter
+    m_mainSplitter = new QSplitter(Qt::Horizontal);
+
+    // Left side: Image display and 3D view
+    auto *leftWidget = new QWidget;
+    auto *leftLayout = new QVBoxLayout(leftWidget);
+
+    // Image tab widget
+    m_imageTabWidget = new QTabWidget;
+
+    m_leftImageWidget = new ImageDisplayWidget;
+    m_rightImageWidget = new ImageDisplayWidget;
+    m_disparityWidget = new ImageDisplayWidget;
+
+    m_imageTabWidget->addTab(m_leftImageWidget, "Left Image");
+    m_imageTabWidget->addTab(m_rightImageWidget, "Right Image");
+    m_imageTabWidget->addTab(m_disparityWidget, "Disparity Map");
+
+    // Add live view tab for real-time processing
+    auto *liveViewWidget = new QWidget;
+    auto *liveLayout = new QHBoxLayout(liveViewWidget);
+
+    // Create mini views for live processing
+    auto *liveStereoWidget = new ImageDisplayWidget;
+    auto *liveDisparityWidget = new ImageDisplayWidget;
+
+    liveStereoWidget->setMinimumSize(320, 240);
     // Check if we have enough frames
     if (m_calibrationFrameCount >= m_requiredCalibrationFrames) {
       // Simulate calibration completion after a brief delay
