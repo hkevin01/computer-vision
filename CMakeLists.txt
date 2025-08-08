@@ -260,6 +260,11 @@ if(WITH_OPENMP)
     endif()
 endif()
 
+# Fallback: if OpenMP was requested but not found, prevent downstream (e.g. PCL) from including <omp.h>
+if(WITH_OPENMP AND NOT OpenMP_CXX_FOUND)
+    add_definitions(-DPCL_NO_OPENMP)
+endif()
+
 # --- Include Directories ---
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include

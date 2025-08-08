@@ -42,7 +42,9 @@
 #include "gui/image_display_widget.hpp"
 #include "gui/point_cloud_widget.hpp"
 #include "gui/batch_processing_window.hpp"
-#include "multicam/multi_camera_system_simple.hpp" // new multicam system
+
+// Forward declarations for multicam system (to avoid heavy include in header)
+namespace stereovision { namespace multicam { class MultiCameraSystem; } }
 
 namespace stereo_vision::gui {
 
@@ -102,8 +104,8 @@ private slots:
   void refreshCameraStatus();
   void toggleProfiling(bool checked = false);
   void updateProfilingStats(); // periodic profiling snapshot
-  void updateSyncStatus(); // new: periodic sync stats update
-  void performRetryAttempt(); // new: non-blocking retry attempt chain
+  void updateSyncStatus();     // multicam sync stats
+  void performRetryAttempt();  // scheduled retry attempt (non-blocking)
 
 private:
   void setupUI();
@@ -115,7 +117,7 @@ private:
   void initializeCameraSystem();
   void showCameraErrorDialog(const QString &title, const QString &message, const QString &details = QString());
   void logCameraOperation(const QString &operation, bool success, const QString &details = QString());
-  void retryCameraConnection(int cameraId, int maxRetries = 3); // refactored to schedule attempts
+  void retryCameraConnection(int cameraId, int maxRetries = 3); // now schedules non-blocking attempts
   void updateCameraStatusIndicators();
 
   // Central widget components
@@ -170,7 +172,7 @@ private:
   QStatusBar *m_statusBar;
   QProgressBar *m_progressBar;
   QLabel *m_statusLabel;
-  QLabel *m_syncStatusLabel; // new: sync stats/quality label
+  QLabel *m_syncStatusLabel; // new: synchronization quality display
 
   // Camera status indicators
   QGroupBox *m_cameraStatusGroup;
@@ -184,7 +186,7 @@ private:
   stereo_vision::CameraCalibration::StereoParameters m_stereoParams;
   std::shared_ptr<stereo_vision::StereoMatcher> m_stereoMatcher;
   std::shared_ptr<stereo_vision::PointCloudProcessor> m_pointCloudProcessor;
-  std::shared_ptr<stereo_vision::CameraManager> m_cameraManager;
+  std::shared_ptr<stereo_vision::CameraManager> m_cameraManager; // legacy manager
   std::shared_ptr<stereovision::multicam::MultiCameraSystem> m_multiCameraSystem; // new multicam system
 
   // Data
@@ -218,14 +220,14 @@ private:
   // Profiling state
   QTimer *m_profilingTimer; // periodic profiler snapshot timer
 
-  // Sync status update timer (reuse profiling if desired but separate for clarity)
-  QTimer *m_syncUpdateTimer; // new timer for sync stats
+  // Multicam sync update timer
+  QTimer *m_syncUpdateTimer; // periodic sync stats refresh
 
-  // Retry logic state
-  int m_retryTargetCameraId; // camera currently retrying
+  // Non-blocking retry state
+  int m_retryTargetCameraId;
   int m_retryMaxAttempts;
   int m_retryCurrentAttempt;
-  QTimer *m_retryTimer; // schedules retry attempts non-blocking
+  QTimer *m_retryTimer; // schedules retry attempts
 
   // Batch processing window
   stereo_vision::batch::BatchProcessingWindow* m_batchProcessingWindow;
