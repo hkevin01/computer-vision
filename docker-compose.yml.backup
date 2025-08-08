@@ -101,3 +101,85 @@ volumes:
     name: stereo-vision-data
   stereo-vision-logs:
     name: stereo-vision-logs
+      # Mount X11 for GUI support (Linux)
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # Mount data directories
+      - ./data:/app/data:ro
+      # Mount output directory for results
+      - ./output:/app/output:rw
+      # Development volume (commented by default)
+      # - .:/app:rw
+    ports:
+      - "${APP_PORT:-8080}:8080"
+      - "${DEBUG_PORT:-8081}:8081"
+    networks:
+      - stereo-vision-net
+    # GPU support (uncomment for NVIDIA)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    # For development with GUI
+    # privileged: true
+
+  # Development version with more tools
+  stereo-vision-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+      args:
+        - ENABLE_CUDA=${ENABLE_CUDA:-false}
+        - ENABLE_HIP=${ENABLE_HIP:-false}
+    image: ${IMAGE_NAME:-stereo-vision:local}-dev
+    container_name: ${SERVICE_NAME:-stereo-vision-app}-dev
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - QT_QPA_PLATFORM=${QT_QPA_PLATFORM:-xcb}
+      - OPENCV_GENERATE_PKGCONFIG=ON
+    volumes:
+      - .:/app:rw
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - dev-cache:/app/build
+    ports:
+      - "${DEV_APP_PORT:-8082}:8080"
+      - "${DEV_DEBUG_PORT:-8083}:8081"
+      - "${DEV_GDB_PORT:-9999}:9999"
+    networks:
+      - stereo-vision-net
+    profiles:
+      - dev
+    # For GUI development
+    # privileged: true
+
+  # Simple version (lightweight)
+  stereo-vision-simple:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: simple
+    image: ${IMAGE_NAME:-stereo-vision:local}-simple
+    container_name: ${SERVICE_NAME:-stereo-vision-app}-simple
+    environment:
+      - QT_QPA_PLATFORM=offscreen
+      - OPENCV_GENERATE_PKGCONFIG=ON
+    volumes:
+      - ./data:/app/data:ro
+      - ./output:/app/output:rw
+    ports:
+      - "${SIMPLE_PORT:-8084}:8080"
+    networks:
+      - stereo-vision-net
+    profiles:
+      - simple
+
+networks:
+  stereo-vision-net:
+    driver: bridge
+
+volumes:
+  dev-cache:
+    driver: local
