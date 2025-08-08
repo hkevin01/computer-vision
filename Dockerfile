@@ -44,7 +44,7 @@ RUN apt-get update && apt-get install -y \
 # Development stage with additional tools
 FROM base AS development
 
-# Install development tools
+# Install development tools and web server dependencies
 RUN apt-get update && apt-get install -y \
     gdb \
     valgrind \
@@ -54,7 +54,23 @@ RUN apt-get update && apt-get install -y \
     tree \
     curl \
     wget \
+    # Web server dependencies for API mode
+    python3 \
+    python3-pip \
+    python3-dev \
+    nginx \
+    # Additional networking tools
+    netcat-openbsd \
+    telnet \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages for potential web API
+RUN pip3 install --no-cache-dir \
+    flask \
+    fastapi \
+    uvicorn \
+    requests \
+    psutil
 
 # GPU support stage (optional, can be built with --target gpu)
 FROM base AS gpu
@@ -128,12 +144,68 @@ USER appuser
 # Expose potential ports (adjustable)
 EXPOSE 8080 8081
 
-# Health check
+# Create startup script for flexible execution
+RUN echo '#!/bin/bash\n\
+    set -e\n\
+    MODE=${APP_MODE:-gui}\n\
+    case "$MODE" in\n\
+    "api")\n\
+    echo "🚀 Starting in API mode..."\n\
+    python3 -c "\n\
+    import http.server, socketserver, json\n\
+    class Handler(http.server.SimpleHTTPRequestHandler):\n\
+    def do_GET(self):\n\
+    if self.path == \"/health\":\n\
+    self.send_response(200)\n\
+    self.send_header(\"Content-type\", \"application/json\")\n\
+    self.end_headers()\n\
+    self.wfile.write(json.dumps({\"status\": \"healthy\"}).encode())\n\
+    elif \"/api/\" in self.path:\n\
+    self.send_response(200)\n\
+    self.send_header(\"Content-type\", \"application/json\")\n\
+    self.send_header(\"Access-Control-Allow-Origin\", \"*\")\n\
+    self.end_headers()\n\
+    self.wfile.write(json.dumps({\"status\": \"success\", \"endpoint\": self.path}).encode())\n\
+    else: super().do_GET()\n\
+    def do_POST(self):\n\
+    self.send_response(200)\n\
+    self.send_header(\"Content-type\", \"application/json\")\n\
+    self.send_header(\"Access-Control-Allow-Origin\", \"*\")\n\
+    self.end_headers()\n\
+    self.wfile.write(json.dumps({\"status\": \"success\", \"method\": \"POST\"}).encode())\n\
+    def do_OPTIONS(self):\n\
+    self.send_response(200)\n\
+    self.send_header(\"Access-Control-Allow-Origin\", \"*\")\n\
+    self.send_header(\"Access-Control-Allow-Methods\", \"GET, POST, OPTIONS\")\n\
+    self.end_headers()\n\
+    with socketserver.TCPServer((\"\", 8080), Handler) as httpd:\n\
+    print(\"🌐 API Server running on port 8080\")\n\
+    httpd.serve_forever()\n\
+    "\n\
+    ;;\n\
+    "gui")\n\
+    echo "🎯 Starting in GUI mode..."\n\
+    export QT_QPA_PLATFORM=${QT_QPA_PLATFORM:-offscreen}\n\
+    export DISPLAY=${DISPLAY:-:0}\n\
+    exec ./build/stereo_vision_app\n\
+    ;;\n\
+    "simple")\n\
+    echo "🚀 Starting in simple mode..."\n\
+    export QT_QPA_PLATFORM=${QT_QPA_PLATFORM:-offscreen}\n\
+    exec ./build/stereo_vision_app_simple\n\
+    ;;\n\
+    *)\n\
+    echo "❌ Unknown mode: $MODE"\n\
+    exit 1\n\
+    ;;\n\
+    esac' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+
+# Health check that works for both modes
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD test -f /app/build/stereo_vision_app || exit 1
+    CMD if [ "$APP_MODE" = "api" ]; then curl -f http://localhost:8080/health || exit 1; else test -f /app/build/stereo_vision_app || exit 1; fi
 
 # Default command
-CMD ["./build/stereo_vision_app"]
+CMD ["/app/entrypoint.sh"]
 
 # Multi-target support
 FROM production AS simple

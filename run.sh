@@ -1,20 +1,29 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# === Docker-first Stereo Vision Application Runner ===
-# Supports both Docker and native builds with comprehensive functionality
+# === Enhanced Docker-first Stereo Vision Application Runner ===
+# Supports backend orchestration with auto-generated GUI capabilities
+
+# Set error trap
+trap 'echo "❌ Error occurred at line $LINENO. Exit code: $?" >&2' ERR
 
 # === Configuration Defaults ===
-# Docker settings
+# Docker & Compose settings
 IMAGE_NAME="${IMAGE_NAME:-stereo-vision:local}"
-SERVICE_NAME="${SERVICE_NAME:-stereo-vision-app}"
+GUI_IMAGE_NAME="${GUI_IMAGE_NAME:-stereo-vision-gui:local}"
+SERVICE_NAME="${SERVICE_NAME:-api}"
+GUI_SERVICE_NAME="${GUI_SERVICE_NAME:-gui}"
 ENV_FILE="${ENV_FILE:-.env}"
-PORTS="${PORTS:-8080:8080,8081:8081}"
-MOUNTS="${MOUNTS:-}"
+PORTS="${PORTS:-8080:8080}"
+GUI_PORT="${GUI_PORT:-3000}"
+API_URL="${API_URL:-http://localhost:8080}"
+GUI_PATH="${GUI_PATH:-./gui}"
 DOCKER_PLATFORM="${DOCKER_PLATFORM:-}"
+MOUNTS="${MOUNTS:-}"
 BUILD_ARGS="${BUILD_ARGS:-}"
+DEV_MODE="${DEV_MODE:-false}"
 
-# Legacy native build settings (for backward compatibility)
+# Legacy support for backward compatibility
 BUILD_DIR="build"
 TARGET="all"
 EXECUTABLE="stereo_vision_app"
@@ -26,48 +35,31 @@ BUILD_ONLY=false
 FORCE_GUI=true
 EXTRA_CMAKE_ARGS=""
 
-# Runtime mode selection
-USE_DOCKER="${USE_DOCKER:-auto}"  # auto, true, false
+# Runtime configuration
+COMPOSE_CMD=""
+DOCKER_BUILDKIT=1
+USE_DOCKER="${USE_DOCKER:-auto}"
 
-# Function to display help message
-function show_help() {
-    echo "Usage: $0 [options]"
-    echo ""
-    echo "Description:"
-    echo "  Build and run the Stereo Vision 3D Point Cloud GUI application."
-    echo "  By default, launches the GUI with automatic snap conflict resolution."
-    echo "  This script automatically detects GPU backends and configures the build accordingly."
-    echo ""
-    echo "Options:"
-    echo "  -h, --help            Show this help message."
-    echo "  -t, --tests           Run the test suite instead of the main application."
-    echo "  -c, --clean           Perform a clean build."
-    echo "  -r, --force-reconfig  Force CMake reconfiguration even if cache exists."
-    echo "  -b, --build-only      Only build the project, do not run."
-    echo "  --build-dir <dir>     Specify the build directory (default: build)."
-    echo "  --target <target>     Specify the cmake build target (default: all)."
-    echo "  --amd                 Use the AMD/HIP build configuration (build_amd)."
-    echo "  --debug               Use the Debug build configuration."
-    echo "  --cpu-only            Disable GPU backends (CUDA and HIP)."
-    echo "  --no-run              Build the project without running the application or tests."
-    echo "  --simple              Build and run the simple version (fewer dependencies)."
-    echo "  --no-gui              Disable GUI launch and use standard runtime (may have conflicts)."
-    echo "  --status              Show build status and available executables."
-    echo "  --check-env           Check for common runtime environment issues."
-    echo "  --force-gui           Force GUI launch with environment isolation (no sudo required)."
-    echo ""
-    echo "Examples:"
-    echo "  $0                    # Build and launch GUI application (default)"
-    echo "  $0 --simple           # Build and run simple version (fewer dependencies)"
-    echo "  $0 --build-only       # Build the project without running"
-    echo "  $0 --no-gui           # Run with standard runtime (may have library conflicts)"
-    echo "  $0 --tests            # Run test suite"
-    echo "  $0 --amd --clean      # Clean AMD/HIP build"
-    echo "  $0 --force-reconfig   # Fix build issues"
-    echo "  $0 --status           # Show build status"
-    echo "  $0 --check-env        # Check runtime environment"
-    echo ""
-    exit 0
+# === Utility Functions ===
+print_header() {
+    echo "🚀 Enhanced Stereo Vision Docker Runner"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+}
+
+print_status() {
+    echo "📋 $1"
+}
+
+print_success() {
+    echo "✅ $1"
+}
+
+print_error() {
+    echo "❌ $1" >&2
+}
+
+print_warning() {
+    echo "⚠️  $1"
 }
 
 # Parse command-line arguments
