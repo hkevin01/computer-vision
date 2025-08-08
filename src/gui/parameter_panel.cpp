@@ -1,6 +1,7 @@
 #include "gui/parameter_panel.hpp"
 #include <QApplication>
 #include <QVBoxLayout>
+#include <QFormLayout>
 
 namespace stereo_vision::gui {
 
@@ -9,7 +10,8 @@ ParameterPanel::ParameterPanel(QWidget *parent)
   setupUI();
   connectSignals();
   loadSettings();
-  setMinimumWidth(330); // widened to prevent label overlap
+  setMinimumWidth(480); // Increased to accommodate form layouts
+  setMinimumHeight(700); // Increased height for all controls
 }
 
 ParameterPanel::~ParameterPanel() { saveSettings(); }
@@ -140,204 +142,183 @@ void ParameterPanel::setupUI() {
 
 void ParameterPanel::setupSGBMGroup() {
   m_sgbmGroup = new QGroupBox("SGBM Parameters", this);
-  m_sgbmLayout = new QGridLayout(m_sgbmGroup);
-  // Enhanced sizing for better readability
-  m_sgbmGroup->setMinimumWidth(380);
-  m_sgbmGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-  m_sgbmLayout->setHorizontalSpacing(14);
-  m_sgbmLayout->setVerticalSpacing(6);
-  m_sgbmLayout->setContentsMargins(10, 8, 10, 8);
-  m_sgbmLayout->setColumnMinimumWidth(0, 170);
-  m_sgbmLayout->setColumnStretch(0, 4);
-  m_sgbmLayout->setColumnStretch(1, 3);
 
-  auto configureLabel = [](QLabel *lbl) {
-    lbl->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    lbl->setMinimumWidth(160);
+  // Use a form layout for better label/control pairing and prevent overlaps
+  QFormLayout *formLayout = new QFormLayout(m_sgbmGroup);
+  formLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
+  formLayout->setFormAlignment(Qt::AlignLeft | Qt::AlignTop);
+  formLayout->setHorizontalSpacing(20);
+  formLayout->setVerticalSpacing(10);
+  formLayout->setContentsMargins(15, 15, 15, 15);
+  formLayout->setFieldGrowthPolicy(QFormLayout::FieldsStayAtSizeHint);
+
+  // Enhanced sizing for better readability - no overlap guaranteed
+  m_sgbmGroup->setMinimumWidth(450);
+  m_sgbmGroup->setMinimumHeight(400);
+  m_sgbmGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+
+  auto configureSpin = [](QAbstractSpinBox *sb) {
+    sb->setMinimumWidth(140);
+    sb->setMaximumWidth(180);
+    sb->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
   };
-  auto configureSpin = [](QAbstractSpinBox *sb) { sb->setMinimumWidth(110); };
 
-  int row = 0;
+  auto configureCombo = [](QComboBox *cb) {
+    cb->setMinimumWidth(140);
+    cb->setMaximumWidth(180);
+    cb->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+  };
 
   // Min Disparity
-  m_minDisparityLabel = new QLabel("Min Disparity:", this);
-  configureLabel(m_minDisparityLabel);
   m_minDisparitySpin = new QSpinBox(this);
   configureSpin(m_minDisparitySpin);
   m_minDisparitySpin->setRange(-128, 128);
   m_minDisparitySpin->setValue(m_parameters.minDisparity);
-  m_sgbmLayout->addWidget(m_minDisparityLabel, row, 0);
-  m_sgbmLayout->addWidget(m_minDisparitySpin, row++, 1);
+  formLayout->addRow("Min Disparity:", m_minDisparitySpin);
 
   // Num Disparities
-  m_numDisparitiesLabel = new QLabel("Num Disparities:", this);
-  configureLabel(m_numDisparitiesLabel);
   m_numDisparitiesSpin = new QSpinBox(this);
   configureSpin(m_numDisparitiesSpin);
   m_numDisparitiesSpin->setRange(16, 256);
   m_numDisparitiesSpin->setSingleStep(16);
   m_numDisparitiesSpin->setValue(m_parameters.numDisparities);
-  m_sgbmLayout->addWidget(m_numDisparitiesLabel, row, 0);
-  m_sgbmLayout->addWidget(m_numDisparitiesSpin, row++, 1);
+  formLayout->addRow("Num Disparities:", m_numDisparitiesSpin);
 
   // Block Size
-  m_blockSizeLabel = new QLabel("Block Size:", this);
-  configureLabel(m_blockSizeLabel);
   m_blockSizeSpin = new QSpinBox(this);
   configureSpin(m_blockSizeSpin);
   m_blockSizeSpin->setRange(3, 21);
   m_blockSizeSpin->setSingleStep(2);
   m_blockSizeSpin->setValue(m_parameters.blockSize);
-  m_sgbmLayout->addWidget(m_blockSizeLabel, row, 0);
-  m_sgbmLayout->addWidget(m_blockSizeSpin, row++, 1);
+  formLayout->addRow("Block Size:", m_blockSizeSpin);
 
   // P1
-  m_p1Label = new QLabel("P1:", this);
-  configureLabel(m_p1Label);
   m_p1Spin = new QSpinBox(this);
   configureSpin(m_p1Spin);
   m_p1Spin->setRange(0, 2000);
   m_p1Spin->setValue(m_parameters.P1);
-  m_sgbmLayout->addWidget(m_p1Label, row, 0);
-  m_sgbmLayout->addWidget(m_p1Spin, row++, 1);
+  formLayout->addRow("P1:", m_p1Spin);
 
   // P2
-  m_p2Label = new QLabel("P2:", this);
-  configureLabel(m_p2Label);
   m_p2Spin = new QSpinBox(this);
   configureSpin(m_p2Spin);
   m_p2Spin->setRange(0, 4000);
   m_p2Spin->setValue(m_parameters.P2);
-  m_sgbmLayout->addWidget(m_p2Label, row, 0);
-  m_sgbmLayout->addWidget(m_p2Spin, row++, 1);
+  formLayout->addRow("P2:", m_p2Spin);
 
   // Disp12 Max Diff
-  m_disp12MaxDiffLabel = new QLabel("Disp12 Max Diff:", this);
-  configureLabel(m_disp12MaxDiffLabel);
   m_disp12MaxDiffSpin = new QSpinBox(this);
   configureSpin(m_disp12MaxDiffSpin);
   m_disp12MaxDiffSpin->setRange(-1, 100);
   m_disp12MaxDiffSpin->setValue(m_parameters.disp12MaxDiff);
-  m_sgbmLayout->addWidget(m_disp12MaxDiffLabel, row, 0);
-  m_sgbmLayout->addWidget(m_disp12MaxDiffSpin, row++, 1);
+  formLayout->addRow("Disp12 Max Diff:", m_disp12MaxDiffSpin);
 
   // Pre Filter Cap
-  m_preFilterCapLabel = new QLabel("Pre Filter Cap:", this);
-  configureLabel(m_preFilterCapLabel);
   m_preFilterCapSpin = new QSpinBox(this);
   configureSpin(m_preFilterCapSpin);
   m_preFilterCapSpin->setRange(1, 63);
   m_preFilterCapSpin->setValue(m_parameters.preFilterCap);
-  m_sgbmLayout->addWidget(m_preFilterCapLabel, row, 0);
-  m_sgbmLayout->addWidget(m_preFilterCapSpin, row++, 1);
+  formLayout->addRow("Pre Filter Cap:", m_preFilterCapSpin);
 
   // Uniqueness Ratio
-  m_uniquenessRatioLabel = new QLabel("Uniqueness Ratio:", this);
-  configureLabel(m_uniquenessRatioLabel);
   m_uniquenessRatioSpin = new QSpinBox(this);
   configureSpin(m_uniquenessRatioSpin);
   m_uniquenessRatioSpin->setRange(0, 100);
   m_uniquenessRatioSpin->setValue(m_parameters.uniquenessRatio);
-  m_sgbmLayout->addWidget(m_uniquenessRatioLabel, row, 0);
-  m_sgbmLayout->addWidget(m_uniquenessRatioSpin, row++, 1);
+  formLayout->addRow("Uniqueness Ratio:", m_uniquenessRatioSpin);
 
   // Speckle Window Size
-  m_speckleWindowSizeLabel = new QLabel("Speckle Window Size:", this);
-  configureLabel(m_speckleWindowSizeLabel);
   m_speckleWindowSizeSpin = new QSpinBox(this);
   configureSpin(m_speckleWindowSizeSpin);
   m_speckleWindowSizeSpin->setRange(0, 1000);
   m_speckleWindowSizeSpin->setValue(m_parameters.speckleWindowSize);
-  m_sgbmLayout->addWidget(m_speckleWindowSizeLabel, row, 0);
-  m_sgbmLayout->addWidget(m_speckleWindowSizeSpin, row++, 1);
+  formLayout->addRow("Speckle Window Size:", m_speckleWindowSizeSpin);
 
   // Speckle Range
-  m_speckleRangeLabel = new QLabel("Speckle Range:", this);
-  configureLabel(m_speckleRangeLabel);
   m_speckleRangeSpin = new QSpinBox(this);
   configureSpin(m_speckleRangeSpin);
   m_speckleRangeSpin->setRange(0, 100);
   m_speckleRangeSpin->setValue(m_parameters.speckleRange);
-  m_sgbmLayout->addWidget(m_speckleRangeLabel, row, 0);
-  m_sgbmLayout->addWidget(m_speckleRangeSpin, row++, 1);
+  formLayout->addRow("Speckle Range:", m_speckleRangeSpin);
 
   // Mode
-  m_modeLabel = new QLabel("Mode:", this);
-  configureLabel(m_modeLabel);
   m_modeCombo = new QComboBox(this);
+  configureCombo(m_modeCombo);
   m_modeCombo->addItems({"SGBM", "HH", "SGBM_3WAY", "HH4"});
   m_modeCombo->setCurrentIndex(m_parameters.mode);
-  m_modeCombo->setMinimumWidth(110);
-  m_sgbmLayout->addWidget(m_modeLabel, row, 0);
-  m_sgbmLayout->addWidget(m_modeCombo, row++, 1);
+  formLayout->addRow("Mode:", m_modeCombo);
 }
 
 void ParameterPanel::setupPostProcessingGroup() {
   m_postProcessGroup = new QGroupBox("Post Processing", this);
-  m_postProcessLayout = new QVBoxLayout(m_postProcessGroup);
+  m_postProcessGroup->setMinimumWidth(350);
+
+  QFormLayout *formLayout = new QFormLayout(m_postProcessGroup);
+  formLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
+  formLayout->setHorizontalSpacing(20);
+  formLayout->setVerticalSpacing(8);
+  formLayout->setContentsMargins(15, 10, 15, 10);
 
   m_enableSpeckleFilterCheck = new QCheckBox("Enable Speckle Filter", this);
   m_enableSpeckleFilterCheck->setChecked(m_parameters.enableSpeckleFilter);
-  m_postProcessLayout->addWidget(m_enableSpeckleFilterCheck);
+  formLayout->addRow("", m_enableSpeckleFilterCheck);
 
   m_enableMedianFilterCheck = new QCheckBox("Enable Median Filter", this);
   m_enableMedianFilterCheck->setChecked(m_parameters.enableMedianFilter);
-  m_postProcessLayout->addWidget(m_enableMedianFilterCheck);
+  formLayout->addRow("", m_enableMedianFilterCheck);
 
-  QHBoxLayout *medianLayout = new QHBoxLayout();
-  m_medianKernelSizeLabel = new QLabel("Median Kernel Size:", this);
   m_medianKernelSizeSpin = new QSpinBox(this);
   m_medianKernelSizeSpin->setRange(3, 15);
   m_medianKernelSizeSpin->setSingleStep(2);
   m_medianKernelSizeSpin->setValue(m_parameters.medianKernelSize);
-  medianLayout->addWidget(m_medianKernelSizeLabel);
-  medianLayout->addWidget(m_medianKernelSizeSpin);
-  m_postProcessLayout->addLayout(medianLayout);
+  m_medianKernelSizeSpin->setMinimumWidth(120);
+  formLayout->addRow("Median Kernel Size:", m_medianKernelSizeSpin);
 }
 
 void ParameterPanel::setupPointCloudGroup() {
   m_pointCloudGroup = new QGroupBox("Point Cloud", this);
-  m_pointCloudLayout = new QGridLayout(m_pointCloudGroup);
+  m_pointCloudGroup->setMinimumWidth(350);
 
-  int row = 0;
+  QFormLayout *formLayout = new QFormLayout(m_pointCloudGroup);
+  formLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
+  formLayout->setHorizontalSpacing(20);
+  formLayout->setVerticalSpacing(8);
+  formLayout->setContentsMargins(15, 10, 15, 10);
 
   // Scale Factor
-  m_scaleFactorLabel = new QLabel("Scale Factor:", this);
   m_scaleFactorSpin = new QDoubleSpinBox(this);
   m_scaleFactorSpin->setRange(0.1, 10.0);
   m_scaleFactorSpin->setSingleStep(0.1);
   m_scaleFactorSpin->setDecimals(2);
   m_scaleFactorSpin->setValue(m_parameters.scaleFactor);
-  m_pointCloudLayout->addWidget(m_scaleFactorLabel, row, 0);
-  m_pointCloudLayout->addWidget(m_scaleFactorSpin, row++, 1);
+  m_scaleFactorSpin->setMinimumWidth(120);
+  formLayout->addRow("Scale Factor:", m_scaleFactorSpin);
 
   // Max Depth
-  m_maxDepthLabel = new QLabel("Max Depth (m):", this);
   m_maxDepthSpin = new QDoubleSpinBox(this);
   m_maxDepthSpin->setRange(0.1, 100.0);
   m_maxDepthSpin->setSingleStep(0.5);
   m_maxDepthSpin->setDecimals(1);
   m_maxDepthSpin->setValue(m_parameters.maxDepth);
-  m_pointCloudLayout->addWidget(m_maxDepthLabel, row, 0);
-  m_pointCloudLayout->addWidget(m_maxDepthSpin, row++, 1);
+  m_maxDepthSpin->setMinimumWidth(120);
+  formLayout->addRow("Max Depth (m):", m_maxDepthSpin);
 
   // Min Depth
-  m_minDepthLabel = new QLabel("Min Depth (m):", this);
   m_minDepthSpin = new QDoubleSpinBox(this);
   m_minDepthSpin->setRange(0.01, 10.0);
   m_minDepthSpin->setSingleStep(0.1);
   m_minDepthSpin->setDecimals(2);
   m_minDepthSpin->setValue(m_parameters.minDepth);
-  m_pointCloudLayout->addWidget(m_minDepthLabel, row, 0);
-  m_pointCloudLayout->addWidget(m_minDepthSpin, row++, 1);
+  m_minDepthSpin->setMinimumWidth(120);
+  formLayout->addRow("Min Depth (m):", m_minDepthSpin);
 
   m_enableColorMappingCheck = new QCheckBox("Enable Color Mapping", this);
   m_enableColorMappingCheck->setChecked(m_parameters.enableColorMapping);
-  m_pointCloudLayout->addWidget(m_enableColorMappingCheck, row++, 0, 1, 2);
+  formLayout->addRow("", m_enableColorMappingCheck);
 
   m_enableFilteringCheck = new QCheckBox("Enable Filtering", this);
   m_enableFilteringCheck->setChecked(m_parameters.enableFiltering);
-  m_pointCloudLayout->addWidget(m_enableFilteringCheck, row++, 0, 1, 2);
+  formLayout->addRow("", m_enableFilteringCheck);
 }
 
 void ParameterPanel::setupPresets() {

@@ -1,6 +1,20 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-# Default values
+# === Docker-first Stereo Vision Application Runner ===
+# Supports both Docker and native builds with comprehensive functionality
+
+# === Configuration Defaults ===
+# Docker settings
+IMAGE_NAME="${IMAGE_NAME:-stereo-vision:local}"
+SERVICE_NAME="${SERVICE_NAME:-stereo-vision-app}"
+ENV_FILE="${ENV_FILE:-.env}"
+PORTS="${PORTS:-8080:8080,8081:8081}"
+MOUNTS="${MOUNTS:-}"
+DOCKER_PLATFORM="${DOCKER_PLATFORM:-}"
+BUILD_ARGS="${BUILD_ARGS:-}"
+
+# Legacy native build settings (for backward compatibility)
 BUILD_DIR="build"
 TARGET="all"
 EXECUTABLE="stereo_vision_app"
@@ -11,6 +25,9 @@ FORCE_RECONFIG=false
 BUILD_ONLY=false
 FORCE_GUI=true
 EXTRA_CMAKE_ARGS=""
+
+# Runtime mode selection
+USE_DOCKER="${USE_DOCKER:-auto}"  # auto, true, false
 
 # Function to display help message
 function show_help() {
@@ -151,13 +168,13 @@ while [[ $# -gt 0 ]]; do
         else
             echo "✅ No snap packages detected"
         fi
-        
+
         if [ -n "$LD_LIBRARY_PATH" ]; then
             echo "⚠️  LD_LIBRARY_PATH is set: $LD_LIBRARY_PATH"
         else
             echo "✅ LD_LIBRARY_PATH is clean"
         fi
-        
+
         echo ""
         echo "Recommendations:"
         echo "- Use './run.sh --build-only' to verify build success"
@@ -212,7 +229,7 @@ if [ ! -d "$BUILD_DIR" ] || [ ! -f "$BUILD_DIR/CMakeCache.txt" ] || [ ! -f "$BUI
         rm -rf "$BUILD_DIR"
     fi
     cmake -B "$BUILD_DIR" -S . ${EXTRA_CMAKE_ARGS}
-    
+
     # Verify that configuration completed successfully
     if [ ! -f "$BUILD_DIR/Makefile" ] && [ ! -f "$BUILD_DIR/build.ninja" ]; then
         echo "ERROR: CMake configuration failed - no build system generated"
@@ -247,7 +264,7 @@ elif [ "$TARGET" = "all" ]; then
         echo "Building target: $target"
         if ! timeout 300 cmake --build "$BUILD_DIR" --config Debug --target "$target" --parallel $(nproc); then
             echo "ERROR: Failed to build target: $target"
-            
+
             # If main app failed, try simple version as fallback
             if [ "$target" = "stereo_vision_app" ]; then
                 echo "--- Main app build failed, trying simple version as fallback ---"
@@ -305,15 +322,15 @@ elif [ "$FORCE_GUI" = true ]; then
         echo "The application should appear in a new window."
         echo "Press Ctrl+C in the terminal if you need to force close."
         echo ""
-        
+
         # Create a completely clean environment, excluding all snap paths and variables
         CLEAN_PATH="/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/opt/rocm/bin"
         CLEAN_LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu:/usr/lib:/lib:/opt/rocm/lib:/opt/rocm/lib64"
         CLEAN_XDG_DATA_DIRS="/usr/local/share:/usr/share"
         CLEAN_XDG_CONFIG_DIRS="/etc/xdg"
-        
+
         echo "Using isolated environment to avoid snap library conflicts..."
-        
+
         # Launch with completely clean environment, preserving only essential variables
         env -i \
             PATH="$CLEAN_PATH" \
@@ -329,7 +346,7 @@ elif [ "$FORCE_GUI" = true ]; then
             TERM="$TERM" \
             PWD="$(pwd)" \
             ./"$BUILD_DIR"/"$EXECUTABLE"
-        
+
         echo ""
         echo "GUI session ended."
     else
@@ -342,7 +359,7 @@ elif [ "$RUN_APP" = true ]; then
     if [ -f "$BUILD_DIR/$EXECUTABLE" ]; then
         # Try to run with clean environment to avoid snap library conflicts
         echo "Attempting to run: $BUILD_DIR/$EXECUTABLE"
-        
+
         # First try with clean PATH to avoid snap conflicts
         if ! env -i PATH="/usr/local/bin:/usr/bin:/bin" LD_LIBRARY_PATH="" ./"$BUILD_DIR"/"$EXECUTABLE" 2>/dev/null; then
             echo "INFO: Application encountered runtime library conflicts (common with snap packages)."

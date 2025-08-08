@@ -210,7 +210,8 @@ class MultiCameraUtils {
 public:
     // Auto-detection
     static std::vector<int> detectAvailableCameras();
-    static bool testCameraConnection(int camera_id);
+    static bool testCameraConnection(int camera_id); // deep test (opens capture & grabs frame)
+    static bool quickCheckCamera(int camera_id);     // lightweight presence check (no frame grab)
 
     // Synchronization testing
     static bool testSynchronization(const std::vector<int>& camera_ids, int num_frames = 10);

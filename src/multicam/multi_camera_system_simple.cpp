@@ -2,6 +2,7 @@
 #include <iostream>
 #include <algorithm>
 #include <thread>
+#include <chrono>
 #include "utils/perf_profiler.hpp"
 #ifdef __linux__
 #include <dirent.h>
@@ -639,9 +640,35 @@ size_t RealtimeMultiCameraProcessor::getProcessingQueueSize() const {
 }
 
 // MultiCameraUtils implementation
+bool MultiCameraUtils::quickCheckCamera(int camera_id) {
+#ifdef __linux__
+    std::string devPath = "/dev/video" + std::to_string(camera_id);
+    struct stat st{};
+    if (stat(devPath.c_str(), &st) != 0) return false;
+    if (!S_ISCHR(st.st_mode)) return false;
+    if (access(devPath.c_str(), R_OK) != 0) return false;
+    int fd = ::open(devPath.c_str(), O_RDONLY | O_NONBLOCK);
+    if (fd < 0) return false;
+    ::close(fd);
+    return true;
+#else
+    // On non-Linux fallback to attempting open (very fast if missing)
+    cv::VideoCapture cap(camera_id);
+    bool ok = cap.isOpened();
+    if (ok) cap.release();
+    return ok;
+#endif
+}
+
 std::vector<int> MultiCameraUtils::detectAvailableCameras() {
     static std::vector<int> lastSuccessful; // cache of previously working cameras
+    static std::chrono::steady_clock::time_point lastFullScan;
+    static constexpr auto FULL_SCAN_INTERVAL = std::chrono::seconds(10);
+
     std::vector<int> available;
+    auto now = std::chrono::steady_clock::now();
+    bool doFullScan = (now - lastFullScan) > FULL_SCAN_INTERVAL;
+
 #ifdef __linux__
     std::vector<int> deviceIndices;
     DIR *dir = opendir("/dev");
@@ -658,45 +685,46 @@ std::vector<int> MultiCameraUtils::detectAvailableCameras() {
     std::sort(deviceIndices.begin(), deviceIndices.end());
     deviceIndices.erase(std::unique(deviceIndices.begin(), deviceIndices.end()), deviceIndices.end());
 
-    // Fast path: quickly re-check lastSuccessful first so UI stays responsive
+    // Quick validation of cached cameras first
     for (int id : lastSuccessful) {
-        std::string devPath = "/dev/video" + std::to_string(id);
-        struct stat st{};
-        if (stat(devPath.c_str(), &st) == 0 && S_ISCHR(st.st_mode) && access(devPath.c_str(), R_OK) == 0) {
-            // Lightweight reopen test (short timeout)
-            if (testCameraConnection(id)) {
+        if (quickCheckCamera(id)) {
+            // For refresh scans, just verify device exists without full test
+            if (!doFullScan || testCameraConnection(id)) {
                 available.push_back(id);
             }
         }
     }
 
-    // Probe new devices not in cache (up to limit) only if we have <2 cams cached
-    const size_t maxProbe = std::min<size_t>(deviceIndices.size(), 12);
-    int consecutiveFailures = 0;
-    for (size_t i = 0; i < maxProbe; ++i) {
-        int id = deviceIndices[i];
-        if (std::find(available.begin(), available.end(), id) != available.end()) continue; // already validated from cache
-        if (std::find(lastSuccessful.begin(), lastSuccessful.end(), id) != lastSuccessful.end()) continue; // already attempted this cycle via cache
-        std::string devPath = "/dev/video" + std::to_string(id);
-        struct stat st{};
-        if (stat(devPath.c_str(), &st) != 0 || !S_ISCHR(st.st_mode) || access(devPath.c_str(), R_OK) != 0) continue;
-        if (testCameraConnection(id)) {
-            available.push_back(id);
-            consecutiveFailures = 0;
-        } else {
-            ++consecutiveFailures;
-            if (consecutiveFailures >= 5 && available.empty()) break;
+    // Full scan only periodically or if cache is empty
+    if (doFullScan || available.empty()) {
+        lastFullScan = now;
+        const size_t maxProbe = std::min<size_t>(deviceIndices.size(), 8);
+        int consecutiveFailures = 0;
+
+        for (size_t i = 0; i < maxProbe; ++i) {
+            int id = deviceIndices[i];
+            if (std::find(available.begin(), available.end(), id) != available.end()) continue;
+
+            if (quickCheckCamera(id) && testCameraConnection(id)) {
+                available.push_back(id);
+                consecutiveFailures = 0;
+            } else {
+                ++consecutiveFailures;
+                if (consecutiveFailures >= 3 && available.empty()) break;
+            }
+            if (available.size() >= 4) break;
         }
-        if (available.size() >= 4) break; // early exit if enough cameras
     }
 #else
     for (int i = 0; i < 6; ++i) {
         if (testCameraConnection(i)) available.push_back(i);
     }
 #endif
-    if (!available.empty()) {
-        lastSuccessful = available; // update cache only when we have results
+
+    if (!available.empty() && doFullScan) {
+        lastSuccessful = available; // update cache only during full scans
     }
+
     std::cout << "Found " << available.size() << " available cameras (";
     if (!available.empty()) {
         for (size_t i = 0; i < available.size(); ++i) std::cout << available[i] << (i+1<available.size()?",":"");
@@ -733,11 +761,28 @@ bool MultiCameraUtils::testCameraConnection(int camera_id) {
 #else
     if (!cap.open(camera_id)) return false;
 #endif
-    if (!cap.isOpened()) return false;
-    cv::Mat frame; cap.read(frame);
-    bool ok = !frame.empty();
-    cap.release();
-    return ok;
+    if (!cap.isOpened()) {
+        cap.release();
+        return false;
+    }
+
+    // Set a reasonable timeout and try to grab a frame
+    cap.set(cv::CAP_PROP_BUFFERSIZE, 1); // Minimize buffer to avoid stale frames
+    cv::Mat frame;
+    bool frameOk = false;
+
+    // Try multiple frame reads with small delay to handle camera warmup
+    for (int attempt = 0; attempt < 3; ++attempt) {
+        if (cap.read(frame) && !frame.empty()) {
+            frameOk = true;
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
+    cap.release(); // Ensure proper release
+    std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Brief pause for cleanup
+    return frameOk;
 }
 
 bool MultiCameraUtils::testSynchronization(const std::vector<int>& camera_ids, int num_frames) {
