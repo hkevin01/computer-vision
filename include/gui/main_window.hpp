@@ -2,6 +2,8 @@
 
 // System includes
 #include <memory>
+#include <vector>
+#include <map>
 
 // Qt includes
 #include <QMainWindow>
@@ -77,9 +79,7 @@ private slots:
   void showKeyboardShortcuts();
   void onParameterChanged();
   void onProcessingFinished();
-  void toggleProfiling(bool checked = false);
-
-  // Webcam capture slots
+  void resetView();
   void showCameraSelector();
   void startWebcamCapture();
   void stopWebcamCapture();
@@ -88,24 +88,19 @@ private slots:
   void captureStereoImage();
   void onFrameReady();
   void onCameraSelectionChanged();
-
-  // Live processing slots
-  void toggleLiveProcessing();
-  void onLiveFrameProcessed();
-  void updateDisparityMap();
-  void updatePointCloud();
-
-  // AI Calibration slots
   void startAICalibration();
   void onCalibrationProgress(int progress);
   void onCalibrationComplete();
   void captureCalibrationFrame();
-
-  // Batch processing slots
+  void toggleLiveProcessing();
+  void onLiveFrameProcessed();
+  void updateDisparityMap();
+  void updatePointCloud();
   void openBatchProcessing();
-
-  // Epipolar checker slots
   void openEpipolarChecker();
+  void refreshCameraStatus();
+  void toggleProfiling(bool checked = false);
+  void updateProfilingStats(); // periodic profiling snapshot
 
 private:
   void setupUI();
@@ -114,28 +109,20 @@ private:
   void setupStatusBar();
   void connectSignals();
   void updateUI();
-  void resetView();
   void initializeCameraSystem();
-  void refreshCameraStatus();
-  void showCameraErrorDialog(const QString &title, const QString &message, const QString &details = "");
-  void logCameraOperation(const QString &operation, bool success, const QString &details = "");
+  void showCameraErrorDialog(const QString &title, const QString &message, const QString &details = QString());
+  void logCameraOperation(const QString &operation, bool success, const QString &details = QString());
   void retryCameraConnection(int cameraId, int maxRetries = 3);
   void updateCameraStatusIndicators();
 
-  // UI Components
+  // Central widget components
   QWidget *m_centralWidget;
   QSplitter *m_mainSplitter;
   QTabWidget *m_imageTabWidget;
-
-  // Image display
   ImageDisplayWidget *m_leftImageWidget;
   ImageDisplayWidget *m_rightImageWidget;
   ImageDisplayWidget *m_disparityWidget;
-
-  // 3D visualization
   PointCloudWidget *m_pointCloudWidget;
-
-  // Parameter controls
   ParameterPanel *m_parameterPanel;
 
   // Menu and toolbar
@@ -222,6 +209,9 @@ private:
   bool m_liveProcessingEnabled;
   cv::Mat m_lastDisparityMap;
   cv::Mat m_lastPointCloud;
+
+  // Profiling state
+  QTimer *m_profilingTimer; // periodic profiler snapshot timer
 
   // Batch processing window
   stereo_vision::batch::BatchProcessingWindow* m_batchProcessingWindow;

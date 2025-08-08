@@ -50,6 +50,7 @@ static void registerQtTypes() {
 #include "gui/epipolar_checker.hpp"
 #include "camera_manager.hpp"
 #include "multicam/multi_camera_system_simple.hpp"
+#include "utils/perf_profiler.hpp" // profiling
 
 namespace stereo_vision::gui {
 
@@ -89,6 +90,7 @@ MainWindow::MainWindow(QWidget *parent)
       m_aiCalibrationActive(false),
       m_calibrationFrameCount(0),
       m_requiredCalibrationFrames(20),
+      m_profilingTimer(new QTimer(this)),
       m_batchProcessingWindow(nullptr),
       m_epipolarChecker(nullptr) {
 
@@ -110,6 +112,10 @@ MainWindow::MainWindow(QWidget *parent)
     QTimer *cameraStatusTimer = new QTimer(this);
     connect(cameraStatusTimer, &QTimer::timeout, this, &MainWindow::refreshCameraStatus);
     cameraStatusTimer->start(5000); // Check every 5 seconds
+
+    // Profiling timer (disabled until enabled via action)
+    m_profilingTimer->setInterval(2000); // 2 second aggregation snapshot
+    connect(m_profilingTimer, &QTimer::timeout, this, &MainWindow::updateProfilingStats);
 
     // Set window properties
     setWindowTitle("Stereo Vision 3D Point Cloud Generator");
@@ -239,7 +245,6 @@ void MainWindow::setupMenuBar() {
     m_processMenu->addSeparator();
     m_processMenu->addAction(m_processAction);
     m_processMenu->addAction(m_batchProcessAction);
-
     m_processMenu->addAction(m_epipolarCheckerAction);
     m_processMenu->addAction(m_liveProcessingAction);
     m_processMenu->addSeparator();
@@ -250,6 +255,9 @@ void MainWindow::setupMenuBar() {
 
     m_showDisparityAction = new QAction("Show &Disparity Map", this);
     m_showPointCloudAction = new QAction("Show &Point Cloud", this);
+    m_enableProfilingAction = new QAction("Enable &Profiling", this);
+    m_enableProfilingAction->setCheckable(true);
+    m_enableProfilingAction->setStatusTip("Toggle runtime performance profiling and periodic stats");
 
     m_showDisparityAction->setShortcut(QKeySequence("Ctrl+D"));
     m_showDisparityAction->setShortcutContext(Qt::WindowShortcut);
@@ -264,6 +272,7 @@ void MainWindow::setupMenuBar() {
     m_viewMenu->addAction(m_showDisparityAction);
     m_viewMenu->addAction(m_showPointCloudAction);
     m_viewMenu->addSeparator();
+    m_viewMenu->addAction(m_enableProfilingAction);
 
     // Create and populate Help menu
     m_helpMenu = m_menuBar->addMenu("&Help");
@@ -421,6 +430,8 @@ void MainWindow::connectSignals() {
           &MainWindow::updateDisparityMap);
     connect(m_showPointCloudAction, &QAction::toggled, this,
           &MainWindow::updatePointCloud);
+    connect(m_enableProfilingAction, &QAction::toggled, this,
+          &MainWindow::toggleProfiling);
 
     // Help actions
     connect(m_shortcutsAction, &QAction::triggered, this, &MainWindow::showKeyboardShortcuts);
@@ -456,6 +467,39 @@ void MainWindow::connectSignals() {
           &MainWindow::onLiveFrameProcessed);
 
     qDebug() << "✓ All Qt signal connections established";
+}
+
+void MainWindow::toggleProfiling(bool checked) {
+    using namespace stereo_vision::perf;
+    ProfilerRegistry::instance().enable(checked);
+    if (checked) {
+        ProfilerRegistry::instance().reset();
+        m_profilingTimer->start();
+        logCameraOperation("Profiling enabled", true, "Collecting performance metrics");
+    } else {
+        m_profilingTimer->stop();
+        logCameraOperation("Profiling disabled", true);
+    }
+}
+
+void MainWindow::updateProfilingStats() {
+    using namespace stereo_vision::perf;
+    if (!ProfilerRegistry::instance().enabled()) return;
+    auto capture = ProfilerRegistry::instance().get(Stage::Capture);
+    auto disparity = ProfilerRegistry::instance().get(Stage::Disparity);
+    auto pointcloud = ProfilerRegistry::instance().get(Stage::PointCloud);
+    auto onnx = ProfilerRegistry::instance().get(Stage::ONNXInference);
+
+    QStringList parts;
+    if (capture.count) parts << QString("Cap avg %.2f ms (EMA %.2f)" ).arg(capture.sum_ms / capture.count, capture.ema_ms);
+    if (disparity.count) parts << QString("Disp avg %.2f ms" ).arg(disparity.sum_ms / disparity.count);
+    if (pointcloud.count) parts << QString("PC avg %.2f ms" ).arg(pointcloud.sum_ms / pointcloud.count);
+    if (onnx.count) parts << QString("AI avg %.2f ms" ).arg(onnx.sum_ms / onnx.count);
+
+    if (!parts.isEmpty()) {
+        QString summary = QString("[Profiling] %1").arg(parts.join(" | "));
+        logCameraOperation(summary, true);
+    }
 }
 
 void MainWindow::openLeftImage() {
@@ -1613,16 +1657,24 @@ void MainWindow::onLiveFrameProcessed() {
 void MainWindow::updateDisparityMap() {
   if (m_showDisparityAction->isChecked() && !m_lastLeftFrame.empty() &&
       !m_lastRightFrame.empty()) {
-    // Compute and display disparity map
-    // This would use the stereo matcher to compute disparity
+    // Profiling scope for disparity computation
+    {
+        stereo_vision::perf::ScopedTimer timer(stereo_vision::perf::Stage::Disparity);
+        // Compute and display disparity map (placeholder logic)
+        // This would use the stereo matcher to compute disparity
+    }
     m_statusLabel->setText("Disparity map updated");
   }
 }
 
 void MainWindow::updatePointCloud() {
   if (m_showPointCloudAction->isChecked() && !m_lastDisparityMap.empty()) {
-    // Generate and display point cloud
-    // This would use the point cloud processor
+    // Profiling scope for point cloud generation
+    {
+        stereo_vision::perf::ScopedTimer timer(stereo_vision::perf::Stage::PointCloud);
+        // Generate and display point cloud (placeholder logic)
+        // This would use the point cloud processor
+    }
     m_statusLabel->setText("Point cloud updated");
   }
 }
@@ -1763,7 +1815,7 @@ void MainWindow::updateCameraStatusIndicators() {
     if (m_selectedRightCamera >= 0) {
         if (m_rightCameraConnected) {
             m_rightCameraStatusLabel->setText(QString("Right: ✅ Camera %1").arg(m_selectedRightCamera));
-            m_rightCameraStatusLabel->setStyleSheet("QLabel { color: green; font-weight: bold; }");
+                       m_rightCameraStatusLabel->setStyleSheet("QLabel { color: green; font-weight: bold; }");
         } else {
             m_rightCameraStatusLabel->setText(QString("Right: ❌ Camera %1 (Disconnected)").arg(m_selectedRightCamera));
             m_rightCameraStatusLabel->setStyleSheet("QLabel { color: red; font-weight: bold; }");
