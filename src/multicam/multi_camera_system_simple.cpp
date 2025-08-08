@@ -640,9 +640,9 @@ size_t RealtimeMultiCameraProcessor::getProcessingQueueSize() const {
 
 // MultiCameraUtils implementation
 std::vector<int> MultiCameraUtils::detectAvailableCameras() {
+    static std::vector<int> lastSuccessful; // cache of previously working cameras
     std::vector<int> available;
 #ifdef __linux__
-    // Enumerate existing /dev/video* nodes using POSIX directory scan
     std::vector<int> deviceIndices;
     DIR *dir = opendir("/dev");
     if (dir) {
@@ -650,10 +650,7 @@ std::vector<int> MultiCameraUtils::detectAvailableCameras() {
         while ((ent = readdir(dir)) != nullptr) {
             std::string name(ent->d_name);
             if (name.rfind("video", 0) == 0 && name.size() > 5) {
-                try {
-                    int idx = std::stoi(name.substr(5));
-                    if (idx >= 0) deviceIndices.push_back(idx);
-                } catch (...) {}
+                try { int idx = std::stoi(name.substr(5)); if (idx >= 0) deviceIndices.push_back(idx); } catch (...) {}
             }
         }
         closedir(dir);
@@ -661,10 +658,28 @@ std::vector<int> MultiCameraUtils::detectAvailableCameras() {
     std::sort(deviceIndices.begin(), deviceIndices.end());
     deviceIndices.erase(std::unique(deviceIndices.begin(), deviceIndices.end()), deviceIndices.end());
 
+    // Fast path: quickly re-check lastSuccessful first so UI stays responsive
+    for (int id : lastSuccessful) {
+        std::string devPath = "/dev/video" + std::to_string(id);
+        struct stat st{};
+        if (stat(devPath.c_str(), &st) == 0 && S_ISCHR(st.st_mode) && access(devPath.c_str(), R_OK) == 0) {
+            // Lightweight reopen test (short timeout)
+            if (testCameraConnection(id)) {
+                available.push_back(id);
+            }
+        }
+    }
+
+    // Probe new devices not in cache (up to limit) only if we have <2 cams cached
     const size_t maxProbe = std::min<size_t>(deviceIndices.size(), 12);
     int consecutiveFailures = 0;
     for (size_t i = 0; i < maxProbe; ++i) {
         int id = deviceIndices[i];
+        if (std::find(available.begin(), available.end(), id) != available.end()) continue; // already validated from cache
+        if (std::find(lastSuccessful.begin(), lastSuccessful.end(), id) != lastSuccessful.end()) continue; // already attempted this cycle via cache
+        std::string devPath = "/dev/video" + std::to_string(id);
+        struct stat st{};
+        if (stat(devPath.c_str(), &st) != 0 || !S_ISCHR(st.st_mode) || access(devPath.c_str(), R_OK) != 0) continue;
         if (testCameraConnection(id)) {
             available.push_back(id);
             consecutiveFailures = 0;
@@ -672,12 +687,16 @@ std::vector<int> MultiCameraUtils::detectAvailableCameras() {
             ++consecutiveFailures;
             if (consecutiveFailures >= 5 && available.empty()) break;
         }
+        if (available.size() >= 4) break; // early exit if enough cameras
     }
 #else
     for (int i = 0; i < 6; ++i) {
         if (testCameraConnection(i)) available.push_back(i);
     }
 #endif
+    if (!available.empty()) {
+        lastSuccessful = available; // update cache only when we have results
+    }
     std::cout << "Found " << available.size() << " available cameras (";
     if (!available.empty()) {
         for (size_t i = 0; i < available.size(); ++i) std::cout << available[i] << (i+1<available.size()?",":"");

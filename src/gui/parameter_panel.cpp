@@ -141,19 +141,21 @@ void ParameterPanel::setupUI() {
 void ParameterPanel::setupSGBMGroup() {
   m_sgbmGroup = new QGroupBox("SGBM Parameters", this);
   m_sgbmLayout = new QGridLayout(m_sgbmGroup);
-  // Layout tuning to avoid scrunched / overlapping text
-  m_sgbmLayout->setHorizontalSpacing(10);
-  m_sgbmLayout->setVerticalSpacing(4);
-  m_sgbmLayout->setContentsMargins(8, 6, 8, 6);
-  m_sgbmLayout->setColumnMinimumWidth(0, 150);
-  m_sgbmLayout->setColumnStretch(0, 3);
-  m_sgbmLayout->setColumnStretch(1, 2);
+  // Enhanced sizing for better readability
+  m_sgbmGroup->setMinimumWidth(380);
+  m_sgbmGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+  m_sgbmLayout->setHorizontalSpacing(14);
+  m_sgbmLayout->setVerticalSpacing(6);
+  m_sgbmLayout->setContentsMargins(10, 8, 10, 8);
+  m_sgbmLayout->setColumnMinimumWidth(0, 170);
+  m_sgbmLayout->setColumnStretch(0, 4);
+  m_sgbmLayout->setColumnStretch(1, 3);
 
   auto configureLabel = [](QLabel *lbl) {
     lbl->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    lbl->setMinimumWidth(140);
+    lbl->setMinimumWidth(160);
   };
-  auto configureSpin = [](QAbstractSpinBox *sb) { sb->setMinimumWidth(90); };
+  auto configureSpin = [](QAbstractSpinBox *sb) { sb->setMinimumWidth(110); };
 
   int row = 0;
 
