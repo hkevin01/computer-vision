@@ -36,63 +36,65 @@ void ModernTheme::applyTheme(QApplication *app) {
             font-family: 'Segoe UI', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
             font-size: 9pt;
         }
-        
+
         QMenuBar {
             background-color: #f9f9f9;
             border: none;
             border-bottom: 1px solid #c8c6c4;
             padding: 4px 8px;
         }
-        
+
         QMenuBar::item {
             background-color: transparent;
             padding: 8px 12px;
             border-radius: 4px;
             margin: 2px;
         }
-        
+
         QMenuBar::item:selected {
             background-color: #f0f0f0;
         }
-        
+
         QMenu {
-            background-color: #ffffff;
-            border: 1px solid #c8c6c4;
-            border-radius: 8px;
+            /* Replaced unsupported box-shadow with border + gradient background */
+            border: 1px solid #444;
+            border-radius: 6px;
             padding: 4px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                        stop:0 #ffffff,
+                                        stop:1 #e9e9e9);
         }
-        
+
         QMenu::item {
             padding: 8px 16px;
             border-radius: 4px;
             margin: 1px;
         }
-        
+
         QMenu::item:selected {
             background-color: #f0f0f0;
         }
-        
+
         QStatusBar {
             background-color: #f9f9f9;
             border-top: 1px solid #c8c6c4;
             padding: 4px;
         }
-        
+
         QToolBar {
             background-color: #f9f9f9;
             border: none;
             spacing: 4px;
             padding: 4px;
         }
-        
+
         QTabWidget::pane {
             border: 1px solid #c8c6c4;
             background-color: #ffffff;
             border-radius: 8px;
             margin-top: -1px;
         }
-        
+
         QTabBar::tab {
             background-color: #f3f3f3;
             color: #605e5c;
@@ -102,23 +104,23 @@ void ModernTheme::applyTheme(QApplication *app) {
             border-top-right-radius: 8px;
             min-width: 80px;
         }
-        
+
         QTabBar::tab:selected {
             background-color: #ffffff;
             color: #201f1e;
             border-bottom: 2px solid #0078d4;
         }
-        
+
         QTabBar::tab:hover:!selected {
             background-color: #f0f0f0;
         }
-        
+
         QSplitter::handle {
             background-color: #c8c6c4;
             width: 1px;
             height: 1px;
         }
-        
+
         QSplitter::handle:hover {
             background-color: #0078d4;
         }

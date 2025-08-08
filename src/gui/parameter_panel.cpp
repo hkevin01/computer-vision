@@ -9,7 +9,7 @@ ParameterPanel::ParameterPanel(QWidget *parent)
   setupUI();
   connectSignals();
   loadSettings();
-  setMinimumWidth(250);
+  setMinimumWidth(330); // widened to prevent label overlap
 }
 
 ParameterPanel::~ParameterPanel() { saveSettings(); }
@@ -141,12 +141,27 @@ void ParameterPanel::setupUI() {
 void ParameterPanel::setupSGBMGroup() {
   m_sgbmGroup = new QGroupBox("SGBM Parameters", this);
   m_sgbmLayout = new QGridLayout(m_sgbmGroup);
+  // Layout tuning to avoid scrunched / overlapping text
+  m_sgbmLayout->setHorizontalSpacing(10);
+  m_sgbmLayout->setVerticalSpacing(4);
+  m_sgbmLayout->setContentsMargins(8, 6, 8, 6);
+  m_sgbmLayout->setColumnMinimumWidth(0, 150);
+  m_sgbmLayout->setColumnStretch(0, 3);
+  m_sgbmLayout->setColumnStretch(1, 2);
+
+  auto configureLabel = [](QLabel *lbl) {
+    lbl->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    lbl->setMinimumWidth(140);
+  };
+  auto configureSpin = [](QAbstractSpinBox *sb) { sb->setMinimumWidth(90); };
 
   int row = 0;
 
   // Min Disparity
   m_minDisparityLabel = new QLabel("Min Disparity:", this);
+  configureLabel(m_minDisparityLabel);
   m_minDisparitySpin = new QSpinBox(this);
+  configureSpin(m_minDisparitySpin);
   m_minDisparitySpin->setRange(-128, 128);
   m_minDisparitySpin->setValue(m_parameters.minDisparity);
   m_sgbmLayout->addWidget(m_minDisparityLabel, row, 0);
@@ -154,7 +169,9 @@ void ParameterPanel::setupSGBMGroup() {
 
   // Num Disparities
   m_numDisparitiesLabel = new QLabel("Num Disparities:", this);
+  configureLabel(m_numDisparitiesLabel);
   m_numDisparitiesSpin = new QSpinBox(this);
+  configureSpin(m_numDisparitiesSpin);
   m_numDisparitiesSpin->setRange(16, 256);
   m_numDisparitiesSpin->setSingleStep(16);
   m_numDisparitiesSpin->setValue(m_parameters.numDisparities);
@@ -163,7 +180,9 @@ void ParameterPanel::setupSGBMGroup() {
 
   // Block Size
   m_blockSizeLabel = new QLabel("Block Size:", this);
+  configureLabel(m_blockSizeLabel);
   m_blockSizeSpin = new QSpinBox(this);
+  configureSpin(m_blockSizeSpin);
   m_blockSizeSpin->setRange(3, 21);
   m_blockSizeSpin->setSingleStep(2);
   m_blockSizeSpin->setValue(m_parameters.blockSize);
@@ -172,31 +191,39 @@ void ParameterPanel::setupSGBMGroup() {
 
   // P1
   m_p1Label = new QLabel("P1:", this);
+  configureLabel(m_p1Label);
   m_p1Spin = new QSpinBox(this);
-  m_p1Spin->setRange(0, 1000);
+  configureSpin(m_p1Spin);
+  m_p1Spin->setRange(0, 2000);
   m_p1Spin->setValue(m_parameters.P1);
   m_sgbmLayout->addWidget(m_p1Label, row, 0);
   m_sgbmLayout->addWidget(m_p1Spin, row++, 1);
 
   // P2
   m_p2Label = new QLabel("P2:", this);
+  configureLabel(m_p2Label);
   m_p2Spin = new QSpinBox(this);
-  m_p2Spin->setRange(0, 2000);
+  configureSpin(m_p2Spin);
+  m_p2Spin->setRange(0, 4000);
   m_p2Spin->setValue(m_parameters.P2);
   m_sgbmLayout->addWidget(m_p2Label, row, 0);
   m_sgbmLayout->addWidget(m_p2Spin, row++, 1);
 
-  // Disp12MaxDiff
+  // Disp12 Max Diff
   m_disp12MaxDiffLabel = new QLabel("Disp12 Max Diff:", this);
+  configureLabel(m_disp12MaxDiffLabel);
   m_disp12MaxDiffSpin = new QSpinBox(this);
+  configureSpin(m_disp12MaxDiffSpin);
   m_disp12MaxDiffSpin->setRange(-1, 100);
   m_disp12MaxDiffSpin->setValue(m_parameters.disp12MaxDiff);
   m_sgbmLayout->addWidget(m_disp12MaxDiffLabel, row, 0);
   m_sgbmLayout->addWidget(m_disp12MaxDiffSpin, row++, 1);
 
-  // PreFilterCap
+  // Pre Filter Cap
   m_preFilterCapLabel = new QLabel("Pre Filter Cap:", this);
+  configureLabel(m_preFilterCapLabel);
   m_preFilterCapSpin = new QSpinBox(this);
+  configureSpin(m_preFilterCapSpin);
   m_preFilterCapSpin->setRange(1, 63);
   m_preFilterCapSpin->setValue(m_parameters.preFilterCap);
   m_sgbmLayout->addWidget(m_preFilterCapLabel, row, 0);
@@ -204,7 +231,9 @@ void ParameterPanel::setupSGBMGroup() {
 
   // Uniqueness Ratio
   m_uniquenessRatioLabel = new QLabel("Uniqueness Ratio:", this);
+  configureLabel(m_uniquenessRatioLabel);
   m_uniquenessRatioSpin = new QSpinBox(this);
+  configureSpin(m_uniquenessRatioSpin);
   m_uniquenessRatioSpin->setRange(0, 100);
   m_uniquenessRatioSpin->setValue(m_parameters.uniquenessRatio);
   m_sgbmLayout->addWidget(m_uniquenessRatioLabel, row, 0);
@@ -212,7 +241,9 @@ void ParameterPanel::setupSGBMGroup() {
 
   // Speckle Window Size
   m_speckleWindowSizeLabel = new QLabel("Speckle Window Size:", this);
+  configureLabel(m_speckleWindowSizeLabel);
   m_speckleWindowSizeSpin = new QSpinBox(this);
+  configureSpin(m_speckleWindowSizeSpin);
   m_speckleWindowSizeSpin->setRange(0, 1000);
   m_speckleWindowSizeSpin->setValue(m_parameters.speckleWindowSize);
   m_sgbmLayout->addWidget(m_speckleWindowSizeLabel, row, 0);
@@ -220,7 +251,9 @@ void ParameterPanel::setupSGBMGroup() {
 
   // Speckle Range
   m_speckleRangeLabel = new QLabel("Speckle Range:", this);
+  configureLabel(m_speckleRangeLabel);
   m_speckleRangeSpin = new QSpinBox(this);
+  configureSpin(m_speckleRangeSpin);
   m_speckleRangeSpin->setRange(0, 100);
   m_speckleRangeSpin->setValue(m_parameters.speckleRange);
   m_sgbmLayout->addWidget(m_speckleRangeLabel, row, 0);
@@ -228,9 +261,11 @@ void ParameterPanel::setupSGBMGroup() {
 
   // Mode
   m_modeLabel = new QLabel("Mode:", this);
+  configureLabel(m_modeLabel);
   m_modeCombo = new QComboBox(this);
   m_modeCombo->addItems({"SGBM", "HH", "SGBM_3WAY", "HH4"});
   m_modeCombo->setCurrentIndex(m_parameters.mode);
+  m_modeCombo->setMinimumWidth(110);
   m_sgbmLayout->addWidget(m_modeLabel, row, 0);
   m_sgbmLayout->addWidget(m_modeCombo, row++, 1);
 }

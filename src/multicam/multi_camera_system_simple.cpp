@@ -3,6 +3,12 @@
 #include <algorithm>
 #include <thread>
 #include "utils/perf_profiler.hpp"
+#ifdef __linux__
+#include <dirent.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 
 namespace stereovision {
 namespace multicam {
@@ -635,22 +641,84 @@ size_t RealtimeMultiCameraProcessor::getProcessingQueueSize() const {
 // MultiCameraUtils implementation
 std::vector<int> MultiCameraUtils::detectAvailableCameras() {
     std::vector<int> available;
+#ifdef __linux__
+    // Enumerate existing /dev/video* nodes using POSIX directory scan
+    std::vector<int> deviceIndices;
+    DIR *dir = opendir("/dev");
+    if (dir) {
+        struct dirent *ent;
+        while ((ent = readdir(dir)) != nullptr) {
+            std::string name(ent->d_name);
+            if (name.rfind("video", 0) == 0 && name.size() > 5) {
+                try {
+                    int idx = std::stoi(name.substr(5));
+                    if (idx >= 0) deviceIndices.push_back(idx);
+                } catch (...) {}
+            }
+        }
+        closedir(dir);
+    }
+    std::sort(deviceIndices.begin(), deviceIndices.end());
+    deviceIndices.erase(std::unique(deviceIndices.begin(), deviceIndices.end()), deviceIndices.end());
 
-    for (int i = 0; i < 10; ++i) { // Check first 10 camera indices
-        if (testCameraConnection(i)) {
-            available.push_back(i);
+    const size_t maxProbe = std::min<size_t>(deviceIndices.size(), 12);
+    int consecutiveFailures = 0;
+    for (size_t i = 0; i < maxProbe; ++i) {
+        int id = deviceIndices[i];
+        if (testCameraConnection(id)) {
+            available.push_back(id);
+            consecutiveFailures = 0;
+        } else {
+            ++consecutiveFailures;
+            if (consecutiveFailures >= 5 && available.empty()) break;
         }
     }
-
-    std::cout << "Found " << available.size() << " available cameras" << std::endl;
+#else
+    for (int i = 0; i < 6; ++i) {
+        if (testCameraConnection(i)) available.push_back(i);
+    }
+#endif
+    std::cout << "Found " << available.size() << " available cameras (";
+    if (!available.empty()) {
+        for (size_t i = 0; i < available.size(); ++i) std::cout << available[i] << (i+1<available.size()?",":"");
+    } else {
+        std::cout << "none";
+    }
+    std::cout << ")" << std::endl;
     return available;
 }
 
 bool MultiCameraUtils::testCameraConnection(int camera_id) {
-    cv::VideoCapture cap(camera_id);
-    bool connected = cap.isOpened();
+#ifdef __linux__
+    // Lightweight device node validation to avoid noisy OpenCV warnings
+    std::string devPath = "/dev/video" + std::to_string(camera_id);
+    struct stat st {};
+    if (stat(devPath.c_str(), &st) != 0) {
+        return false; // Node missing
+    }
+    if (!S_ISCHR(st.st_mode)) {
+        return false; // Not a character device
+    }
+    if (access(devPath.c_str(), R_OK) != 0) {
+        return false; // Not readable
+    }
+    int fd = ::open(devPath.c_str(), O_RDONLY | O_NONBLOCK);
+    if (fd < 0) {
+        return false; // Cannot open low-level
+    }
+    ::close(fd);
+#endif
+    cv::VideoCapture cap;
+#if defined(__linux__)
+    if (!cap.open(camera_id, cv::CAP_V4L2)) return false;
+#else
+    if (!cap.open(camera_id)) return false;
+#endif
+    if (!cap.isOpened()) return false;
+    cv::Mat frame; cap.read(frame);
+    bool ok = !frame.empty();
     cap.release();
-    return connected;
+    return ok;
 }
 
 bool MultiCameraUtils::testSynchronization(const std::vector<int>& camera_ids, int num_frames) {

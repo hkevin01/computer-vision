@@ -1405,4 +1405,164 @@ void MainWindow::performRetryAttempt() {
     }
 }
 
+void MainWindow::logCameraOperation(const QString &operation, bool success, const QString &details) {
+    QString line = QDateTime::currentDateTime().toString("HH:mm:ss") + " | " + (success ? "[OK] " : "[ERR] ") + operation;
+    if (!details.isEmpty()) line += " - " + details;
+    if (m_debugLogOutput) {
+        m_debugLogOutput->append(line);
+        // Keep log reasonably short
+        if (m_debugLogOutput->document()->blockCount() > 500) {
+            QTextCursor c(m_debugLogOutput->document());
+            c.movePosition(QTextCursor::Start);
+            c.select(QTextCursor::BlockUnderCursor);
+            c.removeSelectedText();
+            c.deleteChar();
+        }
+    }
+    qInfo().noquote() << line;
+}
+
+void MainWindow::showCameraErrorDialog(const QString &title, const QString &message, const QString &details) {
+    QString full = message;
+    if (!details.isEmpty()) full += "\n\nDetails: " + details;
+    QMessageBox::warning(this, title, full);
+    logCameraOperation(title, false, message);
+}
+
+void MainWindow::updateCameraStatusIndicators() {
+    if (!m_leftCameraStatusLabel || !m_rightCameraStatusLabel) return;
+    // Left
+    if (m_leftCameraConnected && m_selectedLeftCamera >= 0) {
+        m_leftCameraStatusLabel->setText(QString("Left: ✅ Cam %1").arg(m_selectedLeftCamera));
+        m_leftCameraStatusLabel->setStyleSheet("QLabel { color: #2e8b57; font-weight: bold; }");
+    } else {
+        m_leftCameraStatusLabel->setText("Left: ❌ Disconnected");
+        m_leftCameraStatusLabel->setStyleSheet("QLabel { color: red; font-weight: bold; }");
+    }
+    // Right
+    if (m_rightCameraConnected && m_selectedRightCamera >= 0) {
+        m_rightCameraStatusLabel->setText(QString("Right: ✅ Cam %1").arg(m_selectedRightCamera));
+        m_rightCameraStatusLabel->setStyleSheet("QLabel { color: #2e8b57; font-weight: bold; }");
+    } else {
+        m_rightCameraStatusLabel->setText("Right: ❌ Disconnected");
+        m_rightCameraStatusLabel->setStyleSheet("QLabel { color: red; font-weight: bold; }");
+    }
+}
+
+void MainWindow::toggleLiveProcessing() {
+    if (!m_hasCalibration || !m_isCapturing) {
+        QMessageBox::information(this, "Live Processing", "Need active capture and calibration to enable live processing.");
+        if (m_liveProcessingAction) m_liveProcessingAction->setChecked(false);
+        return;
+    }
+    m_liveProcessingEnabled = !m_liveProcessingEnabled;
+    if (m_liveProcessingAction) m_liveProcessingAction->setChecked(m_liveProcessingEnabled);
+    if (m_liveProcessingEnabled) {
+        if (m_liveProcessingTimer) m_liveProcessingTimer->start(100); // ~10 FPS processing loop
+        logCameraOperation("Live processing enabled", true);
+    } else {
+        if (m_liveProcessingTimer) m_liveProcessingTimer->stop();
+        logCameraOperation("Live processing disabled", true);
+    }
+    updateUI();
+}
+
+void MainWindow::onLiveFrameProcessed() {
+    // Placeholder: in future run disparity / point cloud pipeline
+    if (!m_lastLeftFrame.empty() && !m_lastRightFrame.empty()) {
+        if (m_showDisparityAction && m_showDisparityAction->isChecked()) {
+            // Simple grayscale diff as placeholder
+            cv::Mat grayL, grayR, disp;
+            cv::cvtColor(m_lastLeftFrame, grayL, cv::COLOR_BGR2GRAY);
+            cv::cvtColor(m_lastRightFrame, grayR, cv::COLOR_BGR2GRAY);
+            cv::absdiff(grayL, grayR, disp);
+            cv::Mat dispColor; cv::applyColorMap(disp, dispColor, cv::COLORMAP_JET);
+            cv::Mat rgb; cv::cvtColor(dispColor, rgb, cv::COLOR_BGR2RGB);
+            QImage qimg(rgb.data, rgb.cols, rgb.rows, rgb.step, QImage::Format_RGB888);
+            QString tmp = QDir::tempPath()+"/live_disparity.png"; qimg.save(tmp);
+            if (m_disparityWidget) m_disparityWidget->setImage(tmp);
+        }
+    }
+}
+
+void MainWindow::updateDisparityMap() {
+    // Called when disparity action toggled; just refresh display or clear
+    if (!m_showDisparityAction) return;
+    if (!m_showDisparityAction->isChecked()) {
+        if (m_disparityWidget) m_disparityWidget->clearImage();
+    } else {
+        // Force immediate update via processing placeholder
+        onLiveFrameProcessed();
+    }
+}
+
+void MainWindow::updatePointCloud() {
+    // Placeholder: toggle point cloud widget visibility
+    if (m_pointCloudWidget) m_pointCloudWidget->setVisible(m_showPointCloudAction && m_showPointCloudAction->isChecked());
+}
+
+void MainWindow::openBatchProcessing() {
+    if (!m_batchProcessingWindow) {
+        m_batchProcessingWindow = new stereo_vision::batch::BatchProcessingWindow(this);
+    }
+    m_batchProcessingWindow->show();
+    m_batchProcessingWindow->raise();
+    logCameraOperation("Opened Batch Processing window", true);
+}
+
+void MainWindow::openEpipolarChecker() {
+    if (!m_epipolarChecker) {
+        m_epipolarChecker = new EpipolarChecker(this);
+    }
+    m_epipolarChecker->show();
+    m_epipolarChecker->raise();
+    logCameraOperation("Opened Epipolar Checker", true);
+}
+
+void MainWindow::startAICalibration() {
+    if (!m_isCapturing) {
+        QMessageBox::information(this, "AI Calibration", "Start camera capture before AI calibration.");
+        return;
+    }
+    if (m_aiCalibrationActive) return;
+    m_aiCalibrationActive = true;
+    m_calibrationFramesLeft.clear();
+    m_calibrationFramesRight.clear();
+    m_calibrationFrameCount = 0;
+    logCameraOperation("AI Calibration started", true, QString("Collecting %1 frame pairs").arg(m_requiredCalibrationFrames));
+    m_statusLabel->setText("AI Calibration: capturing frames...");
+}
+
+void MainWindow::captureCalibrationFrame() {
+    if (!m_aiCalibrationActive) return;
+    if (m_lastLeftFrame.empty() || m_lastRightFrame.empty()) return;
+    m_calibrationFramesLeft.push_back(m_lastLeftFrame.clone());
+    m_calibrationFramesRight.push_back(m_lastRightFrame.clone());
+    ++m_calibrationFrameCount;
+    onCalibrationProgress((m_calibrationFrameCount * 100) / m_requiredCalibrationFrames);
+    if (m_calibrationFrameCount >= m_requiredCalibrationFrames) {
+        onCalibrationComplete();
+    }
+}
+
+void MainWindow::onCalibrationProgress(int progress) {
+    m_statusLabel->setText(QString("AI Calibration Progress: %1% (%2/%3)").arg(progress).arg(m_calibrationFrameCount).arg(m_requiredCalibrationFrames));
+}
+
+void MainWindow::onCalibrationComplete() {
+    m_aiCalibrationActive = false;
+    // Placeholder: mark calibration available
+    m_hasCalibration = true;
+    updateUI();
+    m_statusLabel->setText("AI Calibration complete (placeholder params)");
+    logCameraOperation("AI Calibration completed", true, "Parameters ready (placeholder)");
+}
+
+void MainWindow::onCameraSelectionChanged() {
+    // Placeholder; actual dialog will set selected cameras externally
+    updateCameraStatusIndicators();
+}
+
+// === End restored methods ===
+
 } // namespace stereo_vision::gui
