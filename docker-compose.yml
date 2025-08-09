@@ -1,0 +1,175 @@
+version: "3.8"
+
+services:
+  # Main stereo vision application (Backend API)
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: production
+      args:
+        - ENABLE_CUDA=${ENABLE_CUDA:-false}
+        - ENABLE_HIP=${ENABLE_HIP:-false}
+        - BUILDKIT_INLINE_CACHE=1
+    image: ${IMAGE_NAME:-stereo-vision:local}
+    container_name: ${SERVICE_NAME:-stereo-vision-api}
+    restart: unless-stopped
+    environment:
+      - APP_MODE=api
+      - DISPLAY=${DISPLAY:-:0}
+      - QT_QPA_PLATFORM=${QT_QPA_PLATFORM:-offscreen}
+      - OPENCV_GENERATE_PKGCONFIG=ON
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+    ports:
+      - "${API_PORT:-8080}:8080"
+      - "${METRICS_PORT:-8081}:8081"
+    devices:
+      - /dev/dri:/dev/dri
+    networks:
+      - stereo-vision-network
+    env_file:
+      - ${ENV_FILE:-.env}
+    profiles:
+      - all
+      - api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Native Qt GUI via host X11 (Linux)
+  app-x11:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: production
+    image: ${IMAGE_NAME:-stereo-vision:local}
+    container_name: stereo-vision-x11
+    restart: unless-stopped
+    environment:
+      - APP_MODE=gui
+      - DISPLAY=${DISPLAY:-:0}
+      - QT_X11_NO_MITSHM=1
+      - QT_QPA_PLATFORM=xcb
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./data:/app/data
+      - ./logs:/app/logs
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+    networks:
+      - stereo-vision-network
+    profiles:
+      - x11
+    # To enable NVIDIA GPUs, install nvidia-container-toolkit on host and optionally uncomment below
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # Browser-accessible Qt GUI (Xvfb + x11vnc + noVNC)
+  app-novnc:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.novnc
+    image: stereo-vision:novnc
+    container_name: stereo-vision-novnc
+    restart: unless-stopped
+    ports:
+      - "8080:8080" # noVNC web
+      - "5900:5900" # VNC (optional)
+    group_add:
+      - video
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - stereo-vision-network
+    profiles:
+      - novnc
+
+  # Web GUI for controlling the application
+  gui:
+    build:
+      context: ${GUI_PATH:-./gui}
+      dockerfile: Dockerfile
+      target: production
+    image: ${GUI_IMAGE_NAME:-stereo-vision-gui:local}
+    container_name: ${GUI_SERVICE_NAME:-stereo-vision-gui}
+    restart: unless-stopped
+    environment:
+      - API_URL=http://api:8080
+    ports:
+      - "${GUI_PORT:-3000}:80"
+    networks:
+      - stereo-vision-network
+    depends_on:
+      - api
+    profiles:
+      - all
+      - gui
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost/health",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Development service (if DEV_MODE=true)
+  gui-dev:
+    build:
+      context: ${GUI_PATH:-./gui}
+      dockerfile: Dockerfile
+      target: development
+    image: ${GUI_IMAGE_NAME:-stereo-vision-gui:local}-dev
+    container_name: ${GUI_SERVICE_NAME:-stereo-vision-gui}-dev
+    restart: unless-stopped
+    environment:
+      - API_URL=http://api:8080
+      - NODE_ENV=development
+    volumes:
+      - ${GUI_PATH:-./gui}:/app
+      - /app/node_modules
+    ports:
+      - "${GUI_PORT:-3000}:3000"
+    networks:
+      - stereo-vision-network
+    depends_on:
+      - api
+    profiles:
+      - dev
+    command: ["sh", "-c", "cd /app && python3 -m http.server 3000"]
+
+networks:
+  stereo-vision-network:
+    driver: bridge
+    name: stereo-vision-network
+
+volumes:
+  stereo-vision-data:
+    name: stereo-vision-data
+  stereo-vision-logs:
+    name: stereo-vision-logs

@@ -1,0 +1,35 @@
+# Browser-accessible Qt GUI (Xvfb + x11vnc + noVNC)
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential cmake git pkg-config \
+    libopencv-dev \
+    libpcl-dev libvtk9-dev \
+    qt6-base-dev qt6-base-dev-tools qt6-tools-dev \
+    libgl1-mesa-dev libglu1-mesa-dev \
+    libboost-all-dev libeigen3-dev libglew-dev \
+    # X virtual display + VNC + noVNC
+    xvfb x11vnc novnc websockify openbox \
+    # X11 deps
+    libx11-xcb1 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 \
+    libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xfixes0 \
+    libxcb-xinerama0 libsm6 libxrender1 libfontconfig1 \
+    udev v4l-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy project into image (assumes building from repo root)
+WORKDIR /opt/computer-vision
+COPY . .
+
+# Build the app (CPU-only for simplicity here)
+RUN mkdir -p build && cd build && cmake .. \
+    -DUSE_CUDA=OFF -DUSE_HIP=OFF \
+    -DWITH_ONNX=OFF -DWITH_TENSORRT=OFF \
+    && cmake --build . -j"$(nproc)"
+
+# Startup script: Xvfb + openbox + x11vnc + websockify + app
+RUN printf '#!/usr/bin/env bash\nset -e\nexport DISPLAY=:0\nXvfb :0 -screen 0 1920x1080x24 &\nsleep 1\nopenbox &\nx11vnc -display :0 -forever -shared -nopw -rfbport 5900 -quiet &\nwebsockify --web=/usr/share/novnc/ 8080 localhost:5900 &\ncd /opt/computer-vision/build\nexec ./stereo_vision_app\n' > /usr/local/bin/start.sh && chmod +x /usr/local/bin/start.sh
+
+EXPOSE 8080 5900
+ENTRYPOINT ["/usr/local/bin/start.sh"]

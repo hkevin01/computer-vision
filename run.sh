@@ -22,6 +22,10 @@ DOCKER_PLATFORM="${DOCKER_PLATFORM:-}"
 MOUNTS="${MOUNTS:-}"
 BUILD_ARGS="${BUILD_ARGS:-}"
 DEV_MODE="${DEV_MODE:-false}"
+# GUI mode selection: novnc (default), x11, spa, none
+GUI_MODE="${GUI_MODE:-novnc}"
+NOVNC_PORT="${NOVNC_PORT:-8080}"
+VNC_PORT="${VNC_PORT:-5900}"
 
 # Runtime configuration
 COMPOSE_CMD=""
@@ -47,6 +51,40 @@ print_error() {
 
 print_warning() {
     echo "⚠️  $1"
+}
+
+# Convenient URL opener with multiple fallbacks
+open_in_browser() {
+    local url="$1"
+    # Prefer xdg-open on Linux
+    if command -v xdg-open &>/dev/null; then
+        nohup xdg-open "$url" >/dev/null 2>&1 &
+        return 0
+    fi
+    # GNOME/GTK fallback
+    if command -v gio &>/dev/null; then
+        nohup gio open "$url" >/dev/null 2>&1 &
+        return 0
+    fi
+    # Debian/Ubuntu sensible-browser
+    if command -v sensible-browser &>/dev/null; then
+        nohup sensible-browser "$url" >/dev/null 2>&1 &
+        return 0
+    fi
+    # macOS
+    if command -v open &>/dev/null; then
+        nohup open "$url" >/dev/null 2>&1 &
+        return 0
+    fi
+    # Python fallback
+    if command -v python3 &>/dev/null; then
+        python3 - <<PY
+import webbrowser, sys
+webbrowser.open(sys.argv[1])
+PY
+        return 0
+    fi
+    return 1
 }
 
 # Preflight checks
@@ -1226,6 +1264,49 @@ services:
       - dev
     command: ["sh", "-c", "cd /app && python3 -m http.server 3000"]
 
+  # Application with noVNC for browser-based access
+  app-novnc:
+    image: dorowu/ubuntu-desktop-lxde-vnc:latest
+    container_name: stereo-vision-novnc
+    restart: unless-stopped
+    ports:
+      - "\${NOVNC_PORT:-8080}:8080"
+      - "\${VNC_PORT:-5900}:5900"
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+    environment:
+      - USER=root
+      - PASSWORD=secret
+    networks:
+      - stereo-vision-network
+    depends_on:
+      - api
+    profiles:
+      - all
+      - novnc
+
+  # Application with X11 forwarding (for native GUI access)
+  app-x11:
+    image: dorowu/ubuntu-desktop-lxde:latest
+    container_name: stereo-vision-x11
+    restart: unless-stopped
+    ports:
+      - "\${VNC_PORT:-5900}:5900"
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+    environment:
+      - USER=root
+      - PASSWORD=secret
+    networks:
+      - stereo-vision-network
+    depends_on:
+      - api
+    profiles:
+      - all
+      - x11
+
 networks:
   stereo-vision-network:
     driver: bridge
@@ -1261,9 +1342,14 @@ GUI_SERVICE_NAME=stereo-vision-gui
 API_PORT=8080
 GUI_PORT=3000
 METRICS_PORT=8081
+NOVNC_PORT=${NOVNC_PORT}
+VNC_PORT=${VNC_PORT}
 
 # API Configuration
 API_URL=http://localhost:8080
+
+# GUI Mode: novnc | x11 | spa | none
+GUI_MODE=${GUI_MODE}
 
 # GPU Support
 ENABLE_CUDA=false
@@ -1370,7 +1456,7 @@ cmd_build() {
     print_status "Building backend image..."
     docker build ${DOCKER_PLATFORM:+--platform $DOCKER_PLATFORM} \
         ${BUILD_ARGS:+$(echo $BUILD_ARGS | sed 's/,/ --build-arg /g' | sed 's/^/--build-arg /')} \
-        -t "$IMAGE_NAME" .
+        -f docker/Dockerfile -t "$IMAGE_NAME" .
 
     # Create GUI if it doesn't exist
     if ! detect_gui; then
@@ -1393,28 +1479,72 @@ cmd_up() {
     check_docker
     detect_compose
 
+    # Parse GUI mode flags
+    local requested_mode=""
+    for arg in "$@"; do
+        case "$arg" in
+            --x11) requested_mode="x11" ; shift ;;
+            --novnc) requested_mode="novnc" ; shift ;;
+            --spa) requested_mode="spa" ; shift ;;
+            --no-gui|--none) requested_mode="none" ; shift ;;
+        esac
+    done
+
     # Ensure configuration files exist
     create_env_file
     update_compose_file
 
-    # Create GUI if it doesn't exist
-    if ! detect_gui; then
-        print_status "No GUI found, creating responsive web interface..."
-        create_gui_scaffold
-    fi
+    # Determine GUI mode
+    local mode="${requested_mode:-${GUI_MODE}}"
 
-    print_status "Starting all services..."
+    # Select services to start
+    local services=(api)
+    case "$mode" in
+        x11)
+            services+=(app-x11)
+            ;;
+        novnc)
+            services+=(app-novnc)
+            ;;
+        spa)
+            # Create GUI if it doesn't exist
+            if ! detect_gui; then
+                print_status "No GUI found, creating responsive web interface..."
+                create_gui_scaffold
+            fi
+            services+=(gui)
+            ;;
+        none|no|off)
+            ;;
+        *)
+            print_warning "Unknown GUI_MODE '$mode', defaulting to novnc"
+            services+=(app-novnc)
+            mode="novnc"
+            ;;
+    esac
 
-    # Start services
-    $COMPOSE_CMD up -d --build
+    print_status "Starting services: ${services[*]}"
+    $COMPOSE_CMD up -d --build "${services[@]}"
 
     print_success "Services started successfully!"
     print_status "Access points:"
-    echo "  🌐 Web GUI: http://localhost:${GUI_PORT}"
+    case "$mode" in
+        x11)
+            echo "  🖥️  Native Qt GUI via X11 (no URL). Ensure: xhost +local:docker"
+            ;;
+        novnc)
+            echo "  🌐 Qt GUI (noVNC): http://localhost:${NOVNC_PORT}"
+            ;;
+        spa)
+            echo "  🌐 Web GUI (SPA): http://localhost:${GUI_PORT}"
+            ;;
+        none)
+            echo "  🔗 API: http://localhost:${PORTS%%:*}"
+            ;;
+    esac
     echo "  🔗 API: http://localhost:${PORTS%%:*}"
     echo ""
-    print_status "Use './run.sh logs' to view logs"
-    print_status "Use './run.sh gui:open' to open web interface"
+    print_status "Use './run.sh logs [service]' to view logs"
 }
 
 cmd_down() {
@@ -1517,18 +1647,66 @@ cmd_gui_create() {
 
 cmd_gui_open() {
     print_header
-    local gui_url="http://localhost:${GUI_PORT}"
+    # Determine which GUI is active/preferred
+    local mode="${GUI_MODE}"
+    local novnc_url="http://localhost:${NOVNC_PORT}"
+    local spa_url="http://localhost:${GUI_PORT}"
 
-    print_status "Opening GUI in browser: $gui_url"
+    detect_compose
 
-    if command -v xdg-open &> /dev/null; then
-        xdg-open "$gui_url" &
-    elif command -v open &> /dev/null; then
-        open "$gui_url" &
-    else
-        print_warning "Could not detect browser opener"
-        print_status "Please manually open: $gui_url"
-    fi
+    case "$mode" in
+        novnc)
+            print_status "Opening noVNC GUI: $novnc_url"
+            # Ensure app-novnc is up
+            if ! curl -fsS "${novnc_url}" >/dev/null 2>&1; then
+                print_warning "noVNC not responding yet. Starting service..."
+                $COMPOSE_CMD up -d app-novnc || true
+                # Wait up to ~60s
+                local attempts=30; local delay=2
+                for ((i=1;i<=attempts;i++)); do
+                    if curl -fsS "${novnc_url}" >/dev/null 2>&1; then
+                        print_success "noVNC is ready (attempt $i/${attempts})"
+                        break
+                    fi
+                    sleep "$delay"
+                done
+            fi
+            if open_in_browser "$novnc_url"; then
+                print_success "Opened noVNC in browser"
+            else
+                print_warning "Could not auto-open a browser. Open: $novnc_url"
+            fi
+            ;;
+        spa)
+            print_status "Opening SPA GUI: $spa_url"
+            # Ensure gui is up and healthy
+            if ! curl -fsS "${spa_url}/health" >/dev/null 2>&1; then
+                print_warning "SPA GUI not responding yet. Starting service..."
+                $COMPOSE_CMD up -d gui || true
+                local attempts=24; local delay=2
+                for ((i=1;i<=attempts;i++)); do
+                    if curl -fsS "${spa_url}/health" >/dev/null 2>&1; then
+                        print_success "SPA GUI is healthy (attempt $i/${attempts})"
+                        break
+                    fi
+                    sleep "$delay"
+                done
+            fi
+            if open_in_browser "$spa_url"; then
+                print_success "Opened SPA in browser"
+            else
+                print_warning "Could not auto-open a browser. Open: $spa_url"
+            fi
+            ;;
+        x11)
+            print_status "X11 GUI mode selected; no browser URL."
+            echo "  - Ensure: xhost +local:docker"
+            echo "  - If the window isn't visible, check container logs: ./run.sh logs app-x11"
+            ;;
+        *)
+            print_warning "Unknown GUI_MODE '$mode'. Try: --novnc, --x11, or --spa"
+            ;;
+    esac
 }
 
 cmd_status() {
@@ -1546,9 +1724,15 @@ cmd_status() {
     # Network status
     echo "🌐 Services:"
     if curl -s "http://localhost:${GUI_PORT}/health" > /dev/null; then
-        echo "  ✅ GUI: http://localhost:${GUI_PORT}"
+        echo "  ✅ SPA GUI: http://localhost:${GUI_PORT}"
     else
-        echo "  ❌ GUI: http://localhost:${GUI_PORT} (not responding)"
+        echo "  ❌ SPA GUI: http://localhost:${GUI_PORT} (not responding)"
+    fi
+
+    if curl -s "http://localhost:${NOVNC_PORT}" > /dev/null; then
+        echo "  ✅ noVNC GUI: http://localhost:${NOVNC_PORT}"
+    else
+        echo "  ❌ noVNC GUI: http://localhost:${NOVNC_PORT} (not responding)"
     fi
 
     if curl -s "http://localhost:${PORTS%%:*}/health" > /dev/null; then
@@ -1559,8 +1743,9 @@ cmd_status() {
 
     echo ""
     echo "📁 Configuration:"
-    echo "  GUI Path: $GUI_PATH"
-    echo "  Env File: $ENV_FILE"
+    echo "  GUI Mode: ${GUI_MODE}"
+    echo "  GUI Path: ${GUI_PATH}"
+    echo "  Env File: ${ENV_FILE}"
     echo "  Platform: ${DOCKER_PLATFORM:-auto}"
 }
 

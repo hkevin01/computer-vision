@@ -5,7 +5,7 @@ FROM ubuntu:22.04 AS base
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 
-# Install system dependencies
+# Install system dependencies (Qt6)
 RUN apt-get update && apt-get install -y \
     # Build essentials
     build-essential \
@@ -17,11 +17,11 @@ RUN apt-get update && apt-get install -y \
     libopencv-dev \
     libpcl-dev \
     libeigen3-dev \
-    # Qt dependencies
-    qtbase5-dev \
-    qttools5-dev \
-    qttools5-dev-tools \
-    # X11 and GUI dependencies for headless operation
+    # Qt6 dependencies
+    qt6-base-dev \
+    qt6-base-dev-tools \
+    qt6-tools-dev \
+    # X11 and GUI dependencies for headless/desktop operation
     libx11-dev \
     libxext-dev \
     libxrender-dev \
@@ -30,6 +30,8 @@ RUN apt-get update && apt-get install -y \
     libxcursor-dev \
     libxi-dev \
     libxss-dev \
+    libx11-xcb1 \
+    libxkbcommon-x11-0 \
     # Audio (for potential multimedia support)
     libasound2-dev \
     # Additional OpenCV dependencies
@@ -38,7 +40,6 @@ RUN apt-get update && apt-get install -y \
     libgstreamer-plugins-base1.0-dev \
     # Threading and parallel processing
     libomp-dev \
-    # Cleanup
     && rm -rf /var/lib/apt/lists/*
 
 # Development stage with additional tools
@@ -96,6 +97,11 @@ RUN if [ "$ENABLE_HIP" = "true" ]; then \
 # Production stage
 FROM base AS production
 
+# Ensure python3 available for API mode and healthchecks
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create app user
 RUN groupadd -r appgroup && useradd -r -g appgroup -m -d /home/appuser -s /bin/bash appuser
 
@@ -105,9 +111,6 @@ WORKDIR /app
 # Copy dependency files first for better caching
 COPY CMakeLists.txt ./
 COPY cmake/ ./cmake/
-
-# Install any additional dependencies via CMake if needed
-# (This step can be expanded based on specific requirements)
 
 # Copy source code
 COPY include/ ./include/
@@ -202,7 +205,7 @@ RUN echo '#!/bin/bash\n\
 
 # Health check that works for both modes
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD if [ "$APP_MODE" = "api" ]; then curl -f http://localhost:8080/health || exit 1; else test -f /app/build/stereo_vision_app || exit 1; fi
+    CMD bash -lc "if [ \"$APP_MODE\" = \"api\" ]; then python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8080/health\")' >/dev/null 2>&1 || exit 1; else test -f /app/build/stereo_vision_app || exit 1; fi"
 
 # Default command
 CMD ["/app/entrypoint.sh"]
