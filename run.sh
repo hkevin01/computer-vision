@@ -16,7 +16,7 @@ GUI_SERVICE_NAME="${GUI_SERVICE_NAME:-gui}"
 ENV_FILE="${ENV_FILE:-.env}"
 PORTS="${PORTS:-8080:8080}"
 GUI_PORT="${GUI_PORT:-3000}"
-API_URL="${API_URL:-http://localhost:8080}"
+API_URL="${API_URL:-http://localhost:8081}"
 GUI_PATH="${GUI_PATH:-./gui}"
 DOCKER_PLATFORM="${DOCKER_PLATFORM:-}"
 MOUNTS="${MOUNTS:-}"
@@ -572,7 +572,7 @@ class StereoVisionGUI {
         }
 
         // Fallback to environment variable pattern
-        const apiUrl = window.ENV?.API_URL || 'http://localhost:8080';
+        const apiUrl = window.ENV?.API_URL || 'http://localhost:8081';
         return apiUrl;
     }
 
@@ -1346,7 +1346,7 @@ NOVNC_PORT=${NOVNC_PORT}
 VNC_PORT=${VNC_PORT}
 
 # API Configuration
-API_URL=http://localhost:8080
+API_URL=http://localhost:8081
 
 # GUI Mode: novnc | x11 | spa | none
 GUI_MODE=${GUI_MODE}
@@ -1425,7 +1425,7 @@ ENVIRONMENT VARIABLES:
     ENV_FILE              Environment file (.env)
     PORTS                 Backend port mapping (8080:8080)
     GUI_PORT              GUI port (3000)
-    API_URL               API URL for GUI (http://localhost:8080)
+    API_URL               API URL for GUI (http://localhost:8081)
     GUI_PATH              GUI source path (./gui)
     DEV_MODE              Development mode (false)
     DOCKER_PLATFORM       Docker platform for builds
@@ -1531,18 +1531,20 @@ cmd_up() {
     case "$mode" in
         x11)
             echo "  🖥️  Native Qt GUI via X11 (no URL). Ensure: xhost +local:docker"
+            echo "  🔗 API: http://localhost:8081"
             ;;
         novnc)
             echo "  🌐 Qt GUI (noVNC): http://localhost:${NOVNC_PORT}"
+            echo "  🔗 API: http://localhost:8081"
             ;;
         spa)
             echo "  🌐 Web GUI (SPA): http://localhost:${GUI_PORT}"
+            echo "  🔗 API: http://localhost:8081"
             ;;
         none)
-            echo "  🔗 API: http://localhost:${PORTS%%:*}"
+            echo "  🔗 API: http://localhost:8081"
             ;;
     esac
-    echo "  🔗 API: http://localhost:${PORTS%%:*}"
     echo ""
     print_status "Use './run.sh logs [service]' to view logs"
 }

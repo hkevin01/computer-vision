@@ -39,6 +39,15 @@ cd stereo-vision-app
 ./run.sh
 ```
 
+## ✨ Benefits
+
+- One-command startup: ./run.sh up launches the stack with sensible defaults.
+- Browser-based GUI (noVNC) option works cross-platform; native X11 GUI also available on Linux.
+- Consistent dev/prod environment via Docker and Compose profiles.
+- GPU-ready: toggle NVIDIA/AMD with ENABLE_CUDA/ENABLE_HIP at build time.
+- Persistent data and logs: host directories ./data and ./logs are bind-mounted to /app/data and /app/logs and survive rebuilds/restarts.
+- Reproducible builds with BuildKit caching and clean isolation from host toolchains.
+
 ## 📊 Project Stats
 
 [![Lines of Code](https://img.shields.io/badge/lines%20of%20code-10K%2B-blue.svg)](https://github.com/username/stereo-vision-app)

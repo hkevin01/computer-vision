@@ -18,12 +18,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     udev v4l-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy project into image (assumes building from repo root)
+# Copy project into image (from repo root) – only required sources
 WORKDIR /opt/computer-vision
-COPY . .
+COPY CMakeLists.txt ./
+COPY cmake/ ./cmake/
+COPY include/ ./include/
+COPY src/ ./src/
+COPY data/ ./data/
+COPY tests/ ./tests/
+COPY test_programs/ ./test_programs/
 
-# Build the app (CPU-only for simplicity here)
-RUN mkdir -p build && cd build && cmake .. \
+# Build the app (CPU-only for simplicity here) - ensure clean build directory
+RUN rm -rf build && mkdir -p build && cd build && cmake .. \
     -DUSE_CUDA=OFF -DUSE_HIP=OFF \
     -DWITH_ONNX=OFF -DWITH_TENSORRT=OFF \
     && cmake --build . -j"$(nproc)"
