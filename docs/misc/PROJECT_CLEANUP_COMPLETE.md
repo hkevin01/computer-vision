@@ -3,16 +3,10 @@
 ## ✅ Files Successfully Organized
 
 ### 📁 docs/setup/ (Docker & Setup)
--- `docs/setup/docker-setup.md` - Docker setup guide (moved from DOCKER_SETUP.md)
--- `docs/setup/docker-readme.md` - Comprehensive Docker usage (moved from DOCKER_README.md)
 
 ### 📁 docs/planning/ (Strategic Planning)
-- Content available in `/documentation/planning/` directory
-- Empty root files removed to avoid confusion
 
 ### 📁 docs/process/ (Development Process)
-- Content available in `/documentation/process/` directory
-- Links to workflow and cleanup documentation
 
 ## 🔗 Convenient Access Links
 
@@ -26,35 +20,14 @@ QUICK_START.md → docs/setup/docker-readme.md
 ## 📂 Clean Root Directory Structure
 
 **Essential Build Files:**
-- ✅ `CMakeLists.txt` - Main build configuration
-- ✅ `run.sh` - Primary build/run script
-- ✅ `launch_gui.sh` - GUI launcher
 
 **Docker Files:**
-- ✅ `Dockerfile` - Multi-stage container build
-- ✅ `docker-compose.yml` - Service orchestration
-- ✅ `.env.example` - Environment template
-- ✅ `docker-demo.sh` - Docker demonstration
 
 **Project Essentials:**
-- ✅ `README.md` - Main project documentation
-- ✅ `LICENSE` - Project license
-- ✅ `CHANGELOG.md` - Version history
-- ✅ `CONTRIBUTING.md` - Contribution guidelines
-- ✅ `SECURITY.md` - Security policy
 
 **Development:**
-- ✅ `src/` - Source code
-- ✅ `include/` - Header files
-- ✅ `tests/` - Test suites
-- ✅ `build/` - Build artifacts
-- ✅ `data/` - Sample data
 
 **Organization:**
-- ✅ `docs/` - All documentation organized by category
-- ✅ `scripts/` - Utility scripts
-- ✅ `tools/` - Development tools
-- ✅ `documentation/` - Legacy documentation (maintained)
 
 ## 🚀 Quick Navigation
 
@@ -62,7 +35,9 @@ QUICK_START.md → docs/setup/docker-readme.md
 ```bash
 ./run.sh                    # Build and run application
 ./run.sh --help             # See all build options
-./DOCKER_SETUP.md          # Docker setup guide
+./scripts/docker/docker-demo.sh           # Docker demonstration
+./DOCKER_SETUP.md          # Docker setup guide (→ docs/setup/docker-setup.md)
+./QUICK_START.md           # Quick start with Docker (→ docs/setup/docker-readme.md)
 ./QUICK_START.md           # Quick start with Docker
 ```
 
@@ -76,7 +51,7 @@ QUICK_START.md → docs/setup/docker-readme.md
 
 ### For Docker Users:
 ```bash
-docker compose build       # Build application
+./scripts/docker/docker-demo.sh           # Interactive demo
 docker compose up -d       # Start services
 docker compose logs -f     # View logs
 ./docker-demo.sh           # Interactive demo

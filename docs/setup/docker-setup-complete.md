@@ -27,7 +27,7 @@ I've created a comprehensive Docker-first solution for your C++ Stereo Vision ap
 
 4. **Professional Documentation**
    - `DOCKER_RUNNER_README.md`: Comprehensive usage guide
-   - `test-docker-setup.sh`: Setup validation script
+   - `scripts/docker/test-docker-setup.sh`: Setup validation script
    - Configuration examples and troubleshooting
 
 ### 🎛️ Web GUI Features
@@ -75,13 +75,13 @@ graph TB
 
 ```bash
 # Make the enhanced script executable
-chmod +x run.sh.new test-docker-setup.sh update-docker-setup.sh
+chmod +x run.sh.new scripts/docker/test-docker-setup.sh scripts/docker/update-docker-setup.sh
 
 # Test the setup
-./test-docker-setup.sh
+scripts/docker/test-docker-setup.sh
 
 # Update to enhanced version (backs up originals)
-./update-docker-setup.sh
+scripts/docker/update-docker-setup.sh
 ```
 
 ### 2. Start Your Containerized Application
@@ -227,8 +227,8 @@ Unlike simple containerization, this provides:
 
 ## 🚀 Next Steps
 
-1. **Test the Setup**: Run `./test-docker-setup.sh`
-2. **Activate Enhanced Mode**: Run `./update-docker-setup.sh`
+1. **Test the Setup**: Run `scripts/docker/test-docker-setup.sh`
+2. **Activate Enhanced Mode**: Run `scripts/docker/update-docker-setup.sh`
 3. **Start Services**: Run `./run.sh up`
 4. **Access Web GUI**: Visit <http://localhost:3000>
 5. **Monitor Backend**: Check <http://localhost:8080/health>

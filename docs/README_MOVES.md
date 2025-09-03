@@ -15,4 +15,10 @@ Scripts reorganized:
 
 - scripts/legacy/* -> subdivided into scripts/docker/, scripts/reorg/, scripts/debug/, with symlinks left in scripts/legacy/ for compatibility.
 
+Docker scripts moved:
+
+- docker-demo.sh -> scripts/docker/docker-demo.sh
+- update-docker-setup.sh -> scripts/docker/update-docker-setup.sh
+- test-docker-setup.sh -> scripts/docker/test-docker-setup.sh
+
 If you cannot find a file, try searching the `docs/` and `scripts/` directories.

@@ -34,7 +34,7 @@ QUICK_START.md → docs/setup/docker-readme.md
 - ✅ `Dockerfile` - Multi-stage container build
 - ✅ `docker-compose.yml` - Service orchestration
 - ✅ `.env.example` - Environment template
-- ✅ `docker-demo.sh` - Docker demonstration
+ - ✅ `scripts/docker/docker-demo.sh` - Docker demonstration
 
 **Project Essentials:**
 - ✅ `README.md` - Main project documentation
@@ -62,8 +62,8 @@ QUICK_START.md → docs/setup/docker-readme.md
 ```bash
 ./run.sh                    # Build and run application
 ./run.sh --help             # See all build options
-./DOCKER_SETUP.md          # Docker setup guide
-./QUICK_START.md           # Quick start with Docker
+ ./DOCKER_SETUP.md          # Docker setup guide (→ docs/setup/docker-setup.md)
+ ./QUICK_START.md           # Quick start with Docker (→ docs/setup/docker-readme.md)
 ```
 
 ### For Documentation:
@@ -79,7 +79,7 @@ QUICK_START.md → docs/setup/docker-readme.md
 docker compose build       # Build application
 docker compose up -d       # Start services
 docker compose logs -f     # View logs
-./docker-demo.sh           # Interactive demo
+ ./scripts/docker/docker-demo.sh           # Interactive demo
 ```
 
 ## ✨ Benefits Achieved

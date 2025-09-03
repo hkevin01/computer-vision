@@ -45,19 +45,11 @@ rm -f OPENCV_OPTIMIZATION.md PROJECT_MODERNIZATION_STRATEGY.md DIRECTORY_CLEANUP
 After running the commands above, your root will contain:
 
 **Build & Run:**
-- `run.sh` - Main script with Docker and native support
-- `CMakeLists.txt` - Build configuration
-- `launch_gui.sh` - GUI launcher
 
 **Docker:**
-- `Dockerfile` - Container build
-- `docker-compose.yml` - Service definition
-- `.env.example` - Environment template
-- `docker-demo.sh` - Interactive demo
+ `scripts/docker/docker-demo.sh` - Interactive demo
 
 **Quick Access Links:**
-- `DOCKER_SETUP.md` → `docs/setup/docker-setup.md`
-- `QUICK_START.md` → `docs/setup/docker-readme.md`
 
 **Project Files:**
 - `README.md`, `LICENSE`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`
@@ -72,7 +64,7 @@ After running the commands above, your root will contain:
 ## ✨ Benefits Achieved
 
 1. **🧹 Clean Root**: Only essential files visible
-2. **🔗 Easy Access**: Symlinks provide convenient shortcuts
+ Use `scripts/docker/docker-demo.sh` to explore Docker capabilities
 3. **🐳 Docker Ready**: Standard Docker file placement
 4. **🔧 Build Ready**: All build tools accessible
 5. **📚 Organized**: Documentation properly categorized
@@ -82,7 +74,7 @@ After running the commands above, your root will contain:
 
 1. Run the symlink commands above to complete the cleanup
 2. Test with: `./run.sh --help` and `docs/setup/docker-setup.md`
-3. Use `./docker-demo.sh` to explore Docker capabilities
+3. Use `scripts/docker/docker-demo.sh` to explore Docker capabilities
 4. Build with: `docker compose build`
 
 Your project root will be clean, professional, and fully functional! 🚀
