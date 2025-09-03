@@ -19,9 +19,9 @@ if [[ -f "run.sh.new" ]]; then
     echo "✅ Updated run.sh with enhanced Docker-first version"
 fi
 
-if [[ -f "docker-compose.yml.new" ]]; then
-    cp docker-compose.yml.new docker-compose.yml
-    echo "✅ Updated docker-compose.yml with new service configuration"
+if [[ -f "docker/docker-compose.yml.new" ]]; then
+    cp docker/docker-compose.yml.new docker-compose.yml
+    echo "✅ Updated docker-compose.yml with new service configuration (from docker/docker-compose.yml.new)"
 fi
 
 # Make test script executable

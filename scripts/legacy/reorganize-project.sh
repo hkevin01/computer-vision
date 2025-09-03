@@ -45,7 +45,7 @@ docker_files=(
     "Dockerfile"
     "docker-compose.yml"
     "docker-compose.yml.backup"
-    "docker-compose.yml.new"
+    "docker/docker-compose.yml.new"
     "docs/setup/docker-readme.md"
     "DOCKER_RUNNER_README.md"
     "docs/setup/docker-setup.md"
@@ -154,7 +154,7 @@ fi
 
 # Move web files
 web_files=(
-    "test-connection.html"
+    "docs/moved_files/test-connection.html"
 )
 
 for file in "${web_files[@]}"; do
@@ -184,9 +184,9 @@ echo ""
 echo "🧪 PHASE 8: Organizing Test Files"
 echo "---------------------------------"
 
-if [ -f "test_args.cpp" ]; then
-    mv "test_args.cpp" tests/
-    echo "✅ Moved: test_args.cpp → tests/"
+if [ -f "test_programs/test_args.cpp" ]; then
+    mv "test_programs/test_args.cpp" tests/
+    echo "✅ Moved: test_programs/test_args.cpp → tests/"
 fi
 
 # === PHASE 9: Create Symlinks for Essential Scripts ===

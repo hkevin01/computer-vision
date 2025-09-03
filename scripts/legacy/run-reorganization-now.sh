@@ -55,7 +55,7 @@ else
     [ -f "Dockerfile" ] && mv Dockerfile docker/ && echo "  ✅ Moved Dockerfile"
     [ -f "docker-compose.yml" ] && mv docker-compose.yml docker/ && echo "  ✅ Moved docker-compose.yml"
     [ -f "docker-compose.yml.backup" ] && mv docker-compose.yml.backup docker/ && echo "  ✅ Moved docker-compose.yml.backup"
-    [ -f "docker-compose.yml.new" ] && mv docker-compose.yml.new docker/ && echo "  ✅ Moved docker-compose.yml.new"
+    [ -f "docker/docker-compose.yml.new" ] && mv docker/docker-compose.yml.new docker/ && echo "  ✅ Moved docker/docker-compose.yml.new"
 
     # Move docs
     echo "📚 Moving documentation..."
@@ -87,7 +87,7 @@ else
 
     # Move web files
     echo "🌐 Moving web files..."
-    [ -f "test-connection.html" ] && mv test-connection.html web/ && echo "  ✅ Moved test-connection.html"
+    [ -f "docs/moved_files/test-connection.html" ] && mv docs/moved_files/test-connection.html web/ && echo "  ✅ Moved docs/moved_files/test-connection.html"
 
     # Move tools
     echo "🛠️  Moving tools..."
@@ -95,7 +95,7 @@ else
 
     # Move test files
     echo "🧪 Moving test files..."
-    [ -f "test_args.cpp" ] && mv test_args.cpp tests/ && echo "  ✅ Moved test_args.cpp"
+    [ -f "test_programs/test_args.cpp" ] && mv test_programs/test_args.cpp tests/ && echo "  ✅ Moved test_programs/test_args.cpp"
 fi
 
 echo ""

@@ -28,8 +28,8 @@ fi
 if [ -f "docker-compose.yml.backup" ]; then
     mv docker-compose.yml.backup docker/ && echo "  ✅ docker-compose.yml.backup → docker/"
 fi
-if [ -f "docker-compose.yml.new" ]; then
-    mv docker-compose.yml.new docker/ && echo "  ✅ docker-compose.yml.new → docker/"
+if [ -f "docker/docker-compose.yml.new" ]; then
+    mv docker/docker-compose.yml.new docker/ && echo "  ✅ docker/docker-compose.yml.new → docker/"
 fi
 
 # Move Docker documentation
@@ -78,8 +78,8 @@ fi
 
 # Move web files
 echo "🌐 Moving web files to web/..."
-if [ -f "test-connection.html" ]; then
-    mv test-connection.html web/ && echo "  ✅ test-connection.html → web/"
+if [ -f "docs/moved_files/test-connection.html" ]; then
+    mv docs/moved_files/test-connection.html web/ && echo "  ✅ docs/moved_files/test-connection.html → web/"
 fi
 
 # Move tools
@@ -90,8 +90,8 @@ fi
 
 # Move test files
 echo "🧪 Moving test files..."
-if [ -f "test_args.cpp" ]; then
-    mv test_args.cpp tests/ && echo "  ✅ test_args.cpp → tests/"
+if [ -f "test_programs/test_args.cpp" ]; then
+    mv test_programs/test_args.cpp tests/ && echo "  ✅ test_programs/test_args.cpp → tests/"
 fi
 
 # Create symlinks for important scripts in root if moved
