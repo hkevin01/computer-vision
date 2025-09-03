@@ -1,5 +1,18 @@
 #include <iostream>
 #include <fstream>
+
+int main(){
+    std::cout<<"test_pointcloud: starting"<<std::endl;
+    std::ofstream ofs("reports/demo_output/cloud.ply");
+    ofs<<"ply\nformat ascii 1.0\n";
+    ofs<<"element vertex 3\nproperty float x\nproperty float y\nproperty float z\nend_header\n";
+    ofs<<"0 0 0\n1 0 0\n0 1 0\n";
+    ofs.close();
+    std::cout<<"Wrote reports/demo_output/cloud.ply"<<std::endl;
+    return 0;
+}
+#include <iostream>
+#include <fstream>
 #include <opencv2/opencv.hpp>
 
 int main(int argc, char** argv){

@@ -1,3 +1,40 @@
+name: CI - CPU Build & Smoke
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-smoke:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install apt deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libopencv-dev libpcl-dev libvtk7-dev qt6-default
+      - name: Install pip deps
+        run: |
+          python3 -m pip install -U pip
+          python3 -m pip install onnxruntime
+      - name: Configure
+        run: |
+          cmake -B build -DUSE_CUDA=OFF -DUSE_HIP=OFF -DWITH_ONNX=ON -DWITH_TENSORRT=OFF -DCMAKE_BUILD_TYPE=Debug
+      - name: Build
+        run: cmake --build build --parallel $(nproc)
+      - name: Run smoke
+        run: ./scripts/smoke.sh
+      - name: Upload smoke reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-reports
+          path: reports/smoke
 name: CI - CPU only
 
 on:

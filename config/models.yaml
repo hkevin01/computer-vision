@@ -3,14 +3,20 @@ models:
     path: "models/hitnet.onnx"
     input_shape: [1,3,256,512]
     color_order: "BGR"
-    normalization: {mean: [0.485,0.456,0.406], std: [0.229,0.224,0.225]}
+    normalization:
+      mean: [0.485,0.456,0.406]
+      std: [0.229,0.224,0.225]
   raft_stereo:
     path: "models/raft_stereo.onnx"
     input_shape: [1,6,256,512]
     color_order: "BGR"
-    normalization: {mean: [0.485,0.456,0.406], std: [0.229,0.224,0.225]}
+    normalization:
+      mean: [0.485,0.456,0.406]
+      std: [0.229,0.224,0.225]
   crestereo:
     path: "models/crestereo.onnx"
     input_shape: [1,3,384,1248]
     color_order: "BGR"
-    normalization: {mean: [0.485,0.456,0.406], std: [0.229,0.224,0.225]}
+    normalization:
+      mean: [0.485,0.456,0.406]
+      std: [0.229,0.224,0.225]

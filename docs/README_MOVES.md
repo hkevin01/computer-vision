@@ -22,3 +22,10 @@ Docker scripts moved:
 - test-docker-setup.sh -> scripts/docker/test-docker-setup.sh
 
 If you cannot find a file, try searching the `docs/` and `scripts/` directories.
+
+Recent small moves:
+
+- run.sh.new (backup) kept in root as run.sh.new -> (no move; kept as backup)
+- docker-compose.yml.new -> docker/docker-compose.yml.new
+- test-connection.html -> docs/moved_files/test-connection.html
+- test_args.cpp -> test_programs/test_args.cpp

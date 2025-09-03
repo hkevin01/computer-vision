@@ -79,3 +79,16 @@
 5. **Build Ready**: All build files (CMakeLists.txt, run.sh) in root
 
 The project root is now clean and organized while maintaining full functionality!
+
+### Remaining Tasks
+
+- [ ] Complete repo-wide filename-only replacements for all moved docs and scripts (finish linking in `docs/` and `scripts/legacy/`).
+- [x] Move docker-related scripts into `scripts/docker/` and leave shims in `scripts/legacy/`.
+- [x] Add `add_subdirectory(test_programs)` to top-level `CMakeLists.txt` so tests build with the main project.
+- [x] Add smoke/diagnostic scripts and initial test program scaffolding (`scripts/smoke.sh`, `scripts/diagnose_env.sh`, `test_programs/`).
+- [ ] Populate `config/models_urls.sh` with real model URLs and SHA256 checksums (HITNet, RAFT-Stereo, CREStereo).
+- [ ] Make new scripts executable locally: `chmod +x scripts/*.sh scripts/docker/*.sh build.sh`.
+- [ ] Finish subdividing remaining `scripts/legacy/` into `scripts/reorg/` and `scripts/debug/` and update shims.
+- [ ] Add deterministic sample data to `data/stereo_images/` and `data/calibration/` for smoke tests.
+- [ ] Update CI to avoid compiling ONNX C++ tests or install ONNX Runtime C++ dev packages, and re-run CI.
+- [ ] Run a focused markdown lint/format pass on edited docs to clean remaining warnings.

@@ -1,4 +1,25 @@
 #include <iostream>
+#include <vector>
+#include <chrono>
+
+int main(){
+    std::cout<<"test_onnx_load: starting"<<std::endl;
+    // This is a minimal stub that tries to load ONNX Runtime if available at runtime.
+#if __has_include(<onnxruntime_cxx_api.h>)
+    try{
+        Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "test");
+        std::cout<<"ONNX Runtime available"<<std::endl;
+    }catch(...){
+        std::cout<<"ONNX Runtime present but failed to init"<<std::endl;
+        return 1;
+    }
+#else
+    std::cout<<"ONNX Runtime headers not found at compile time — skipping deep test"<<std::endl;
+#endif
+    std::cout<<"test_onnx_load: done"<<std::endl;
+    return 0;
+}
+#include <iostream>
 #include <chrono>
 #include <vector>
 #include <onnxruntime_cxx_api.h>

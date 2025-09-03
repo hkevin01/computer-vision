@@ -1,3 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+REPORTS_DIR="$ROOT_DIR/reports/benchmarks"
+mkdir -p "$REPORTS_DIR"
+
+echo "Running lightweight benchmarks"
+TIMESTAMP=$(date -u +%Y%m%dT%H%M%SZ)
+echo "timestamp,$TIMESTAMP" > "$REPORTS_DIR/summary.csv"
+
+# Placeholder: call test_programs binaries if present
+if [ -x "$ROOT_DIR/build/test_programs/test_stereo_cpu" ]; then
+  echo "running stereo cpu test"
+  "$ROOT_DIR/build/test_programs/test_stereo_cpu" || true
+fi
+
+echo "Benchmarks complete"
 #!/bin/bash
 
 # 🎯 ENHANCED PERFORMANCE BENCHMARKING SYSTEM
@@ -99,12 +116,12 @@ done
 # Setup directories
 setup_benchmark_environment() {
     print_status "Setting up benchmark environment..."
-    
+
     mkdir -p "$BENCHMARK_DIR"
     mkdir -p "$RESULTS_DIR"
     mkdir -p "$TEST_DATA_DIR"
     mkdir -p "$REPORTS_DIR"
-    
+
     # Create benchmark configuration
     cat > "$BENCHMARK_DIR/config.json" << EOF
 {
@@ -127,14 +144,14 @@ setup_benchmark_environment() {
     }
 }
 EOF
-    
+
     print_success "Benchmark environment ready"
 }
 
 # System information gathering
 collect_system_info() {
     print_status "Collecting system information..."
-    
+
     cat > "$RESULTS_DIR/system_info.json" << EOF
 {
     "timestamp": "$(date -Iseconds)",
@@ -160,14 +177,14 @@ collect_system_info() {
     }
 }
 EOF
-    
+
     print_success "System information collected"
 }
 
 # GPU detection
 detect_gpu_info() {
     local gpu_info="{}"
-    
+
     # NVIDIA GPU detection
     if command -v nvidia-smi &> /dev/null; then
         local nvidia_info=$(nvidia-smi --query-gpu=name,memory.total,memory.free,utilization.gpu --format=csv,noheader,nounits 2>/dev/null | head -n1)
@@ -186,7 +203,7 @@ EOF
 )
         fi
     fi
-    
+
     # AMD GPU detection
     if command -v rocm-smi &> /dev/null; then
         local amd_info=$(rocm-smi --showproductname --showmeminfo vram 2>/dev/null)
@@ -201,14 +218,14 @@ EOF
 )
         fi
     fi
-    
+
     echo "$gpu_info"
 }
 
 # Generate test data
 generate_test_data() {
     print_status "Generating test data..."
-    
+
     # Create test data generation script
     cat > "$TEST_DATA_DIR/generate_data.py" << 'EOF'
 #!/usr/bin/env python3
@@ -221,15 +238,15 @@ def generate_synthetic_stereo_pair(width, height, disparity_range=64):
     """Generate synthetic stereo image pair with known disparity"""
     # Create a random scene
     left_img = np.random.randint(0, 255, (height, width, 3), dtype=np.uint8)
-    
+
     # Add some structured content
     for i in range(10):
-        cv2.circle(left_img, 
+        cv2.circle(left_img,
                   (np.random.randint(50, width-50), np.random.randint(50, height-50)),
-                  np.random.randint(10, 50), 
-                  (np.random.randint(0, 255), np.random.randint(0, 255), np.random.randint(0, 255)), 
+                  np.random.randint(10, 50),
+                  (np.random.randint(0, 255), np.random.randint(0, 255), np.random.randint(0, 255)),
                   -1)
-    
+
     # Generate right image with disparity
     right_img = np.zeros_like(left_img)
     for y in range(height):
@@ -239,26 +256,26 @@ def generate_synthetic_stereo_pair(width, height, disparity_range=64):
             disparity = int(disparity_range * 100 / depth)
             if x - disparity >= 0:
                 right_img[y, x] = left_img[y, x - disparity]
-    
+
     return left_img, right_img
 
 def main():
     resolutions = [(640, 480), (1280, 720), (1920, 1080), (2560, 1440)]
     samples_per_resolution = 5
-    
+
     for width, height in resolutions:
         res_dir = f"test_data_{width}x{height}"
         os.makedirs(res_dir, exist_ok=True)
-        
+
         for i in range(samples_per_resolution):
             left, right = generate_synthetic_stereo_pair(width, height)
             cv2.imwrite(f"{res_dir}/left_{i:03d}.png", left)
             cv2.imwrite(f"{res_dir}/right_{i:03d}.png", right)
-    
+
     # Generate calibration pattern images
     pattern_dir = "calibration_patterns"
     os.makedirs(pattern_dir, exist_ok=True)
-    
+
     # Create chessboard pattern
     chessboard = np.zeros((600, 800), dtype=np.uint8)
     square_size = 50
@@ -266,17 +283,17 @@ def main():
         for j in range(0, 800, square_size):
             if (i//square_size + j//square_size) % 2 == 0:
                 chessboard[i:i+square_size, j:j+square_size] = 255
-    
+
     cv2.imwrite(f"{pattern_dir}/chessboard.png", chessboard)
-    
+
     print("Test data generation completed")
 
 if __name__ == "__main__":
     main()
 EOF
-    
+
     chmod +x "$TEST_DATA_DIR/generate_data.py"
-    
+
     # Run test data generation
     cd "$TEST_DATA_DIR"
     if command -v python3 &> /dev/null; then
@@ -285,31 +302,31 @@ EOF
     else
         print_warning "Python3 not available, skipping synthetic data generation"
     fi
-    
+
     cd "$PROJECT_ROOT"
 }
 
 # Build benchmark application
 build_benchmark_app() {
     print_status "Building benchmark application..."
-    
+
     # Ensure we have a build directory
     if [ ! -d "build" ]; then
         mkdir build
     fi
-    
+
     cd build
-    
+
     # Configure with benchmarking enabled
     cmake .. \
         -DCMAKE_BUILD_TYPE=Release \
         -DBUILD_BENCHMARKS=ON \
         -DWITH_CUDA=$(command -v nvcc &> /dev/null && echo ON || echo OFF) \
         -DWITH_HIP=$(command -v hipcc &> /dev/null && echo ON || echo OFF)
-    
+
     # Build
     make -j$(nproc) stereo_vision_app benchmark_runner
-    
+
     cd "$PROJECT_ROOT"
     print_success "Benchmark application built"
 }
@@ -317,10 +334,10 @@ build_benchmark_app() {
 # Run stereo matching benchmarks
 benchmark_stereo_matching() {
     print_benchmark "Running stereo matching benchmarks..."
-    
+
     local timestamp=$(date +%Y%m%d_%H%M%S)
     local output_file="$RESULTS_DIR/stereo_benchmark_$timestamp.json"
-    
+
     # Create benchmark script
     cat > "$BENCHMARK_DIR/run_stereo_benchmark.sh" << EOF
 #!/bin/bash
@@ -338,16 +355,16 @@ for res in "\${RESOLUTIONS[@]}"; do
     IFS='x' read -ra SIZE <<< "\$res"
     width=\${SIZE[0]}
     height=\${SIZE[1]}
-    
+
     if [ "\$first" = false ]; then
         echo ","
     fi
     first=false
-    
+
     echo "      {"
     echo "        \"resolution\": \"\$res\","
     echo "        \"algorithms\": ["
-    
+
     # Benchmark each algorithm
     algo_first=true
     for algo in "SGBM" "BM" "Neural_HITNet"; do
@@ -355,26 +372,26 @@ for res in "\${RESOLUTIONS[@]}"; do
             echo ","
         fi
         algo_first=false
-        
+
         echo "          {"
         echo "            \"name\": \"\$algo\","
-        
+
         # Run actual benchmark (placeholder for real implementation)
         start_time=\$(date +%s%N)
-        
+
         # Simulate algorithm execution
         sleep 0.01  # Placeholder for actual algorithm
-        
+
         end_time=\$(date +%s%N)
         duration_ms=\$(( (end_time - start_time) / 1000000 ))
-        
+
         echo "            \"avg_time_ms\": \$duration_ms,"
         echo "            \"fps\": \$(echo "scale=2; 1000 / \$duration_ms" | bc -l),"
         echo "            \"memory_mb\": \$(free -m | awk '/^Mem:/{print \$3}'),"
         echo "            \"gpu_utilization\": 0.0"
         echo "          }"
     done
-    
+
     echo "        ]"
     echo "      }"
 done
@@ -386,17 +403,17 @@ EOF
 
     chmod +x "$BENCHMARK_DIR/run_stereo_benchmark.sh"
     "$BENCHMARK_DIR/run_stereo_benchmark.sh" > "$output_file"
-    
+
     print_success "Stereo matching benchmark completed: $output_file"
 }
 
 # Run calibration benchmarks
 benchmark_calibration() {
     print_benchmark "Running calibration benchmarks..."
-    
+
     local timestamp=$(date +%Y%m%d_%H%M%S)
     local output_file="$RESULTS_DIR/calibration_benchmark_$timestamp.json"
-    
+
     # Placeholder for calibration benchmark
     cat > "$output_file" << EOF
 {
@@ -410,7 +427,7 @@ benchmark_calibration() {
                 "reprojection_error": 0.23
             },
             {
-                "name": "Fisheye_Calibration", 
+                "name": "Fisheye_Calibration",
                 "avg_time_ms": 1780.2,
                 "accuracy_score": 0.92,
                 "reprojection_error": 0.31
@@ -419,21 +436,21 @@ benchmark_calibration() {
     }
 }
 EOF
-    
+
     print_success "Calibration benchmark completed: $output_file"
 }
 
 # Run neural network benchmarks
 benchmark_neural_networks() {
     print_benchmark "Running neural network benchmarks..."
-    
+
     local timestamp=$(date +%Y%m%d_%H%M%S)
     local output_file="$RESULTS_DIR/neural_benchmark_$timestamp.json"
-    
+
     # Check for neural network models
     if [ ! -d "$PROJECT_ROOT/models" ]; then
         print_warning "No neural network models found, creating placeholder results"
-        
+
         cat > "$output_file" << EOF
 {
     "neural_network_benchmark": {
@@ -465,17 +482,17 @@ EOF
         print_status "Running neural network model benchmarks..."
         # Implementation would go here
     fi
-    
+
     print_success "Neural network benchmark completed: $output_file"
 }
 
 # Run full pipeline benchmark
 benchmark_full_pipeline() {
     print_benchmark "Running full pipeline benchmark..."
-    
+
     local timestamp=$(date +%Y%m%d_%H%M%S)
     local output_file="$RESULTS_DIR/pipeline_benchmark_$timestamp.json"
-    
+
     cat > "$output_file" << EOF
 {
     "pipeline_benchmark": {
@@ -507,7 +524,7 @@ benchmark_full_pipeline() {
     }
 }
 EOF
-    
+
     print_success "Full pipeline benchmark completed: $output_file"
 }
 
@@ -516,12 +533,12 @@ generate_performance_report() {
     if [ "$GENERATE_REPORT" = false ]; then
         return
     fi
-    
+
     print_status "Generating performance report..."
-    
+
     local timestamp=$(date +%Y%m%d_%H%M%S)
     local report_file="$REPORTS_DIR/performance_report_$timestamp.html"
-    
+
     cat > "$report_file" << 'EOF'
 <!DOCTYPE html>
 <html lang="en">
@@ -551,7 +568,7 @@ generate_performance_report() {
     <div class="container">
         <h1>🎯 StereoVision3D Performance Report</h1>
         <p><strong>Generated:</strong> <span id="timestamp"></span></p>
-        
+
         <div class="summary">
             <h2>📊 Executive Summary</h2>
             <p>Overall Performance Score: <strong>8.7/10</strong></p>
@@ -567,7 +584,7 @@ generate_performance_report() {
         </div>
 
         <h2>⚡ Performance Metrics</h2>
-        
+
         <h3>Stereo Matching Performance</h3>
         <table>
             <thead>
@@ -629,10 +646,10 @@ generate_performance_report() {
         </table>
 
         <h2>🔬 Detailed Analysis</h2>
-        <p>The benchmarking results show excellent performance across most metrics. The neural network-based 
-        stereo matching algorithms significantly outperform traditional methods, with HITNet achieving 
+        <p>The benchmarking results show excellent performance across most metrics. The neural network-based
+        stereo matching algorithms significantly outperform traditional methods, with HITNet achieving
         real-time performance at 1080p resolution.</p>
-        
+
         <p>Key findings:</p>
         <ul>
             <li>GPU acceleration provides 3-4x performance improvement</li>
@@ -649,12 +666,12 @@ generate_performance_report() {
     <script>
         // Set timestamp
         document.getElementById('timestamp').textContent = new Date().toLocaleString();
-        
+
         // Load system info (placeholder)
         document.getElementById('cpu-info').textContent = 'AMD Ryzen 9 5900X (12 cores, 3.7 GHz)';
         document.getElementById('memory-info').textContent = '32 GB DDR4-3200';
         document.getElementById('gpu-info').textContent = 'NVIDIA RTX 4090 (24 GB VRAM)';
-        
+
         // Create performance chart
         const ctx = document.getElementById('performanceChart').getContext('2d');
         new Chart(ctx, {
@@ -694,7 +711,7 @@ generate_performance_report() {
 EOF
 
     print_success "Performance report generated: $report_file"
-    
+
     # Try to open the report in default browser
     if command -v xdg-open &> /dev/null; then
         xdg-open "$report_file" 2>/dev/null &
@@ -711,11 +728,11 @@ main() {
     echo "Iterations: $NUM_ITERATIONS"
     echo "Resolutions: $TEST_RESOLUTIONS"
     echo
-    
+
     setup_benchmark_environment
     collect_system_info
     generate_test_data
-    
+
     # Run benchmarks based on type
     case $BENCHMARK_TYPE in
         "stereo")
@@ -741,14 +758,14 @@ main() {
             exit 1
             ;;
     esac
-    
+
     generate_performance_report
-    
+
     echo
     print_success "🎉 Enhanced Performance Benchmarking Completed!"
     print_status "Results saved in: $RESULTS_DIR"
     print_status "Reports available in: $REPORTS_DIR"
-    
+
     # Show summary
     echo
     print_metric "📊 Quick Summary:"

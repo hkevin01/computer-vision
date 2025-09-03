@@ -400,6 +400,10 @@ if(WITH_NEURAL_NETWORKS AND ONNXRUNTIME_FOUND)
     target_include_directories(stereo_vision_core PRIVATE ${ONNXRUNTIME_INCLUDE_DIRS})
 endif()
 
+if(BUILD_TESTS)
+    add_subdirectory(test_programs)
+endif()
+
 if(WITH_TENSORRT AND TENSORRT_INCLUDE_DIR AND TENSORRT_LIBRARY)
     target_link_libraries(stereo_vision_core PRIVATE ${TENSORRT_LIBRARY})
     target_include_directories(stereo_vision_core PRIVATE ${TENSORRT_INCLUDE_DIR})

@@ -1,5 +1,44 @@
 #!/usr/bin/env bash
 set -euo pipefail
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+BUILD_DIR="$ROOT_DIR/build"
+REPORTS_DIR="$ROOT_DIR/reports/smoke"
+mkdir -p "$REPORTS_DIR"
+
+echo "Running smoke tests..."
+
+run_test() {
+  bin="$1"
+  out="$REPORTS_DIR/$(basename "$bin").log"
+  if [ -x "$bin" ]; then
+    echo "Running $bin"
+    "$bin" > "$out" 2>&1 || { echo "$bin failed, see $out"; return 2; }
+  else
+    echo "Missing binary: $bin"; return 1
+  fi
+}
+
+# Expected test binaries
+tests=(
+  "$BUILD_DIR/test_programs/test_onnx_load"
+  "$BUILD_DIR/test_programs/test_stereo_cpu"
+  "$BUILD_DIR/test_programs/test_pointcloud"
+  "$BUILD_DIR/test_programs/test_camera_list"
+)
+
+failed=0
+for t in "${tests[@]}"; do
+  run_test "$t" || failed=$((failed+1))
+done
+
+if [ "$failed" -ne 0 ]; then
+  echo "Smoke tests failed: $failed failures"
+  exit 1
+fi
+
+echo "Smoke tests passed. Logs in $REPORTS_DIR"
+#!/usr/bin/env bash
+set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="$ROOT_DIR/build"

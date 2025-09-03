@@ -1,5 +1,65 @@
 #!/usr/bin/env bash
 set -euo pipefail
+echo "== Environment Diagnostics =="
+echo "Hostname: $(hostname)"
+echo "OS: $(uname -a)"
+
+echo "\n-- GPU vendors/backends --"
+if command -v nvidia-smi >/dev/null 2>&1; then
+  echo "NVIDIA detected"
+  nvidia-smi --query-gpu=name,driver_version --format=csv,noheader || true
+fi
+if command -v rocminfo >/dev/null 2>&1; then
+  echo "ROCm/HIP detected"
+  rocminfo | head -n 5 || true
+fi
+
+echo "\n-- OpenCV --"
+python3 - <<'PY'
+import cv2,sys
+try:
+    print('OpenCV version:', cv2.__version__)
+    build = cv2.getBuildInformation()
+    for line in build.splitlines():
+        if 'CUDA' in line or 'OpenCL' in line:
+            print(line)
+except Exception as e:
+    print('OpenCV python import failed:', e)
+    sys.exit(0)
+PY
+
+echo "\n-- ONNX Runtime providers --"
+python3 - <<'PY'
+import onnxruntime as ort,sys
+try:
+    print('ONNXRuntime version:', ort.__version__)
+    print('Available providers:', ort.get_all_providers())
+except Exception as e:
+    print('ONNXRuntime not available:', e)
+    sys.exit(0)
+PY
+
+echo "\n-- TensorRT --"
+if python3 - <<'PY'
+try:
+    import tensorrt as trt
+    print(True)
+except Exception:
+    print(False)
+PY
+then
+    python3 - <<'PY'
+import tensorrt as trt
+print('TensorRT version available')
+PY
+else
+    echo "TensorRT not found or not importable"
+fi
+
+echo "\n-- Summary --"
+echo "Diagnostic complete"
+#!/usr/bin/env bash
+set -euo pipefail
 
 echo "== Environment Diagnosis =="
 

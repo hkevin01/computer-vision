@@ -1,3 +1,22 @@
+#include <iostream>
+#include <opencv2/opencv.hpp>
+
+int main(){
+    std::cout<<"test_stereo_cpu: starting"<<std::endl;
+    cv::Mat left = cv::imread("data/stereo_images/left.png", cv::IMREAD_GRAYSCALE);
+    cv::Mat right = cv::imread("data/stereo_images/right.png", cv::IMREAD_GRAYSCALE);
+    if(left.empty() || right.empty()){
+        std::cout<<"Sample stereo images not found in data/stereo_images/ — skipping"<<std::endl;
+        return 2;
+    }
+    cv::Ptr<cv::StereoSGBM> sgbm = cv::StereoSGBM::create(0,16,3);
+    cv::Mat disp;
+    sgbm->compute(left,right,disp);
+    cv::normalize(disp, disp, 0, 255, cv::NORM_MINMAX, CV_8U);
+    cv::imwrite("reports/smoke/disparity.png", disp);
+    std::cout<<"Wrote reports/smoke/disparity.png"<<std::endl;
+    return 0;
+}
 #include <opencv2/opencv.hpp>
 #include <iostream>
 

@@ -1,6 +1,29 @@
+# Setup Requirements (Ubuntu 22.04 / 24.04)
+
+Minimum known-good versions
+
+- OpenCV: >= 4.5 (4.8+ recommended for ONNX/TensorRT)
+- PCL: >= 1.12
+- VTK: >= 9.0
+- Qt: >= 6.2
+- ONNX Runtime: >= 1.15
+- TensorRT: >= 8.5 (optional)
+- CUDA: >= 11.0 (if using NVIDIA)
+- ROCm: >= 5.0 (if using AMD)
+
+Install notes
+
+- Use Ubuntu packages where possible for PCL/VTK. For OpenCV, prefer building from source when using CUDA/ONNX integration.
+- ONNX Runtime should be installed with CPU-only pip wheel for CI:
+
+```bash
+python3 -m pip install onnxruntime
+```
+
+For CUDA-enabled ONNX Runtime on Ubuntu, install the matching wheel from the ONNX Runtime releases.
 Ubuntu supported versions: 22.04, 24.04
 
-Recommended minimum dependency versions (known-good):
+Recommended minimum dependency versions (known-good)
 
 - OpenCV: >= 4.5 (4.8+ recommended for ONNX/TensorRT)
 - PCL: >= 1.12
@@ -11,18 +34,18 @@ Recommended minimum dependency versions (known-good):
 - CUDA: >= 11.0 (if using NVIDIA)
 - ROCm: >= 5.0 (if using AMD)
 
-Install notes:
+Install notes
 
 - Prefer system packages for Qt6 and OpenCV when available; for ONNX Runtime and TensorRT, use provider-specific installs.
 - On Ubuntu, install build-time deps: git, build-essential, cmake, pkg-config, libopencv-dev, libpcl-dev, libvtk-dev, qt6-base-dev, python3, python3-pip
 
-Common pitfalls:
+Common pitfalls
 
 - PCL and VTK mismatched versions can break point cloud IO.
 - ONNX Runtime without GPU providers will fall back to CPU; ensure `onnxruntime-gpu` or `onnxruntime-directml` are installed if needed.
 - TensorRT requires compatible CUDA and driver versions.
 
-# Setup Requirements for Stereo Vision 3D Point Cloud Project
+## Setup Requirements for Stereo Vision 3D Point Cloud Project
 
 This document outlines all required dependencies and installations for Ubuntu, Windows, and macOS systems.
 
