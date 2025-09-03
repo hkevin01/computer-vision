@@ -11,8 +11,8 @@ ln -sf docs/setup/docker-setup.md DOCKER_SETUP.md
 ln -sf docs/setup/docker-readme.md QUICK_START.md
 
 # Remove empty planning files in root (they exist in documentation/)
-rm -f AI_ML_IMPROVEMENTS_SUMMARY.md
-rm -f IMPLEMENTATION_PLAN.md
+rm -f docs/planning/AI_ML_IMPROVEMENTS_SUMMARY.md
+rm -f docs/architectural/IMPLEMENTATION_PLAN.md
 rm -f IMPROVEMENTS_ROADMAP.md
 rm -f OPENCV_OPTIMIZATION.md
 rm -f PROJECT_MODERNIZATION_STRATEGY.md

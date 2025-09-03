@@ -3,13 +3,13 @@
 ## 🎯 Cleanup Completed
 
 ### Files Moved to `docs/setup/`:
-- `DOCKER_SETUP.md` → `docs/setup/docker-setup.md`
-- `DOCKER_README.md` → `docs/setup/docker-readme.md`
+-- `DOCKER_SETUP.md` → `docs/setup/docker-setup.md`
+-- `DOCKER_README.md` → `docs/setup/docker-readme.md`
 
 ### Files Moved to `docs/planning/`:
-- `AI_ML_IMPROVEMENTS_SUMMARY.md` → `docs/planning/ai-ml-improvements.md`
-- `IMPLEMENTATION_PLAN.md` → `docs/planning/implementation-plan.md`
-- `IMPROVEMENTS_ROADMAP.md` → `docs/planning/improvements-roadmap.md`
+-- `AI_ML_IMPROVEMENTS_SUMMARY.md` → `docs/planning/AI_ML_IMPROVEMENTS_SUMMARY.md`
+-- `IMPLEMENTATION_PLAN.md` → `docs/architectural/IMPLEMENTATION_PLAN.md`
+-- `IMPROVEMENTS_ROADMAP.md` → `docs/planning/IMPROVEMENTS_ROADMAP.md`
 - `OPENCV_OPTIMIZATION.md` → `docs/planning/opencv-optimization.md`
 - `PROJECT_MODERNIZATION_STRATEGY.md` → `docs/planning/modernization-strategy.md`
 

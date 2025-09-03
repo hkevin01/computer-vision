@@ -74,53 +74,14 @@ echo "⚙️ Environment Setup:"
 echo "   1. Copy environment template:"
 echo "      cp .env.example .env"
 echo ""
-echo "   2. Edit .env file to configure:"
-echo "      - IMAGE_NAME=stereo-vision:local"
-echo "      - ENABLE_CUDA=true (for NVIDIA GPU)"
-echo "      - ENABLE_HIP=true (for AMD GPU)"
-echo "      - PORTS=8080:8080,8081:8081"
-echo ""
-
-# Show services
-echo "🐳 Available Services:"
-echo "   • stereo-vision-app    - Production application"
-echo "   • stereo-vision-dev    - Development environment"
-echo "   • stereo-vision-simple - Lightweight version"
-echo ""
-
-# Show quick start
-echo "🏃 Quick Start Guide:"
-echo "   1. cp .env.example .env"
-echo "   2. docker compose build"
-echo "   3. docker compose up -d"
-echo "   4. docker compose logs -f"
-echo ""
-
-# Show enhanced run.sh
-echo "🔧 Enhanced run.sh (when fully implemented):"
-echo "   ./run.sh build      # Build Docker images"
-echo "   ./run.sh up         # Start application"
-echo "   ./run.sh dev        # Development mode"
-echo "   ./run.sh shell      # Interactive shell"
-echo "   ./run.sh status     # Show status"
-echo ""
-
-# Show legacy support
-echo "🔄 Legacy Native Build Support:"
-echo "   The original run.sh commands still work:"
-echo "   ./run.sh --build-only    # Native CMake build"
-echo "   ./run.sh --status        # Native build status"
-echo "   ./run.sh --simple        # Simple application"
-echo ""
-
-echo "✨ Benefits of Docker Approach:"
-echo "   ✅ Consistent environment across all systems"
-echo "   ✅ No dependency conflicts with host system"
-echo "   ✅ Easy setup for new developers"
-echo "   ✅ Optional GPU acceleration (CUDA/HIP)"
-echo "   ✅ Multiple build variants (production/dev/simple)"
-echo "   ✅ Isolated GUI support with X11"
-echo ""
-
-echo "🚀 Ready to use Docker with your Stereo Vision Application!"
-echo "   Next steps: Copy .env.example to .env and run 'docker compose build'"
+#!/bin/bash
+# Legacy shim to new docker demo
+NEW="$(dirname "$0")/../docker/docker-demo.sh"
+if [ -x "$NEW" ]; then
+    exec "$NEW" "$@"
+else
+    echo "docker-demo.sh not found in new location: $NEW"
+    echo "Falling back to legacy behavior."
+    # legacy behavior placeholder
+    exit 2
+fi

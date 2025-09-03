@@ -81,8 +81,8 @@ After running the commands above, your root will contain:
 ## 🎉 Next Steps
 
 1. Run the symlink commands above to complete the cleanup
-2. Test with: `./run.sh --help` and `./DOCKER_SETUP.md`
-3. Use `./docker-demo.sh` to explore Docker capabilities
+2. Test with: `./run.sh --help` and `docs/setup/docker-setup.md`
+ 3. Use `scripts/docker/docker-demo.sh` to explore Docker capabilities
 4. Build with: `docker compose build`
 
 Your project root will be clean, professional, and fully functional! 🚀

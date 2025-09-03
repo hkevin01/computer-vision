@@ -30,11 +30,11 @@ cv::Ptr<cv::StereoBM> stereo = cv::StereoBM::create(config_.max_disparity, 21);
 # Action Items:
 1. Install ONNX Runtime: sudo apt install libonnxruntime-dev
 2. Download pre-trained models: python tools/model_manager.py download-all
-3. Replace placeholder with real inference: See IMPLEMENTATION_PLAN.md
+3. Replace placeholder with real inference: See docs/architectural/IMPLEMENTATION_PLAN.md
 4. Add GPU acceleration: Use CUDA/TensorRT backends
 ```
 
-**Expected Impact**: 
+**Expected Impact**:
 - ✅ 300-500% accuracy improvement over current StereoBM
 - ✅ 60-120 FPS performance (vs current 30-50 FPS)
 - ✅ Actual AI/ML capabilities
@@ -78,7 +78,7 @@ if (cv::cuda::getCudaEnabledDeviceCount() > 0) {
 
 ### Week 1: Foundation
 - [ ] **Install ONNX Runtime** and TensorRT
-- [ ] **Download pre-trained models** (HITNet, RAFT-Stereo, CREStereo)  
+- [ ] **Download pre-trained models** (HITNet, RAFT-Stereo, CREStereo)
 - [ ] **Replace StereoBM placeholder** with real neural inference
 - [ ] **Add StereoSGBM fallback** for CPU-only systems
 
@@ -144,8 +144,8 @@ find_package(ONNXRuntime REQUIRED)
 find_package(OpenCV REQUIRED COMPONENTS core imgproc calib3d ximgproc dnn)
 
 # Link libraries:
-target_link_libraries(stereo_vision_core 
-    ${OpenCV_LIBS} 
+target_link_libraries(stereo_vision_core
+    ${OpenCV_LIBS}
     onnxruntime
 )
 ```
@@ -154,12 +154,12 @@ target_link_libraries(stereo_vision_core
 ```cpp
 // File: src/ai/neural_stereo_matcher.cpp
 // Replace entire implementation with real ONNX inference
-// See IMPLEMENTATION_PLAN.md for complete code
+// See docs/architectural/IMPLEMENTATION_PLAN.md for complete code
 ```
 
 ### 3. Add GPU Acceleration
 ```cpp
-// File: src/gpu/gpu_stereo_matcher.cpp  
+// File: src/gpu/gpu_stereo_matcher.cpp
 // Add CUDA-accelerated pipeline
 // See OPENCV_OPTIMIZATION.md for complete implementation
 ```
@@ -203,7 +203,7 @@ target_link_libraries(stereo_vision_core
 
 ### Technical Metrics
 - [ ] Support 5+ state-of-the-art neural stereo models
-- [ ] Achieve <2% bad pixel rate on KITTI benchmark  
+- [ ] Achieve <2% bad pixel rate on KITTI benchmark
 - [ ] Maintain 60+ FPS on mid-range GPUs (RTX 3060)
 - [ ] Use <1GB GPU memory for real-time processing
 - [ ] Automatic scene adaptation with <5% quality loss
@@ -218,20 +218,20 @@ target_link_libraries(stereo_vision_core
 ## 📚 Resources Created
 
 1. **IMPROVEMENTS_ROADMAP.md** - Comprehensive enhancement strategy
-2. **IMPLEMENTATION_PLAN.md** - Week-by-week development plan  
+2. **docs/architectural/IMPLEMENTATION_PLAN.md** - Week-by-week development plan
 3. **OPENCV_OPTIMIZATION.md** - Specific OpenCV improvements
 4. **tools/model_manager.py** - AI model management script
 
 ## 🚀 Next Actions
 
 ### Immediate (Today)
-1. **Review** the IMPLEMENTATION_PLAN.md document
+1. **Review** the docs/architectural/IMPLEMENTATION_PLAN.md document
 2. **Run** `python tools/model_manager.py list` to see available models
 3. **Plan** the first week's development sprint
 
 ### This Week
 1. **Install** ONNX Runtime and dependencies
-2. **Download** pre-trained models 
+2. **Download** pre-trained models
 3. **Start** implementing real neural inference
 4. **Test** basic functionality
 

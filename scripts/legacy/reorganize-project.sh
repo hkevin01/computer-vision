@@ -46,9 +46,9 @@ docker_files=(
     "docker-compose.yml"
     "docker-compose.yml.backup"
     "docker-compose.yml.new"
-    "DOCKER_README.md"
+    "docs/setup/docker-readme.md"
     "DOCKER_RUNNER_README.md"
-    "DOCKER_SETUP.md"
+    "docs/setup/docker-setup.md"
     "DOCKER_SETUP_COMPLETE.md"
 )
 
@@ -84,7 +84,7 @@ echo "📚 PHASE 4: Consolidating Documentation"
 echo "---------------------------------------"
 
 doc_files=(
-    "AI_ML_IMPROVEMENTS_SUMMARY.md"
+    "docs/misc/AI_ML_IMPROVEMENTS_SUMMARY.md"
     "CHANGELOG.md"
     "CONTRIBUTING.md"
     "DIRECTORY_CLEANUP_SUMMARY.md"
@@ -93,7 +93,7 @@ doc_files=(
     "OPENCV_OPTIMIZATION.md"
     "PROJECT_CLEANUP_COMPLETE.md"
     "PROJECT_MODERNIZATION_STRATEGY.md"
-    "README_CLEANUP.md"
+    "docs/guides/README_CLEANUP.md"
     "SECURITY.md"
     "WORKFLOW.md"
 )
@@ -148,8 +148,8 @@ echo "--------------------------------------"
 
 # Move API files
 if [ -f "api-server.py" ]; then
-    mv "api-server.py" api/
-    echo "✅ Moved: api-server.py → api/"
+    # api-server.py is now located in api/
+    echo "Note: api-server.py expected at api/api-server.py"
 fi
 
 # Move web files
@@ -278,7 +278,7 @@ This directory contains the API server implementation.
 
 ## Usage:
 ```bash
-python3 api-server.py
+python3 api/api-server.py
 ```
 EOF
 echo "✅ Created: api/README.md"

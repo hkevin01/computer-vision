@@ -3,8 +3,8 @@
 ## ✅ Files Successfully Organized
 
 ### 📁 docs/setup/ (Docker & Setup)
-- `docker-setup.md` - Docker setup guide (moved from DOCKER_SETUP.md)
-- `docker-readme.md` - Comprehensive Docker usage (moved from DOCKER_README.md)
+-- `docs/setup/docker-setup.md` - Docker setup guide (moved from DOCKER_SETUP.md)
+-- `docs/setup/docker-readme.md` - Comprehensive Docker usage (moved from DOCKER_README.md)
 
 ### 📁 docs/planning/ (Strategic Planning)
 - Content available in `/documentation/planning/` directory

@@ -82,7 +82,7 @@ else
 
     # Move API files
     echo "🐍 Moving API files..."
-    [ -f "api-server.py" ] && mv api-server.py api/ && echo "  ✅ Moved api-server.py"
+    [ -f "api/api-server.py" ] && echo "  ✅ api/api-server.py present"
 
     # Move web files
     echo "🌐 Moving web files..."

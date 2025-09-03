@@ -7,7 +7,7 @@ cd /home/kevin/Projects/computer-vision
 
 # Start the API server in background
 echo "1. Starting temporary API server..."
-python3 api-server.py &
+python3 api/api-server.py &
 API_PID=$!
 
 # Wait for it to start

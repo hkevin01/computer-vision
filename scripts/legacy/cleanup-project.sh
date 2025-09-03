@@ -16,9 +16,9 @@ echo "📁 Moving documentation files..."
 
 # Planning documents (move to docs/planning/)
 planning_files=(
-    "AI_ML_IMPROVEMENTS_SUMMARY.md"
-    "IMPLEMENTATION_PLAN.md"
-    "IMPROVEMENTS_ROADMAP.md"
+    "docs/planning/AI_ML_IMPROVEMENTS_SUMMARY.md"
+    "docs/architectural/IMPLEMENTATION_PLAN.md"
+    "docs/planning/IMPROVEMENTS_ROADMAP.md"
     "OPENCV_OPTIMIZATION.md"
     "PROJECT_MODERNIZATION_STRATEGY.md"
 )

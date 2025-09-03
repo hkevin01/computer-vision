@@ -449,4 +449,4 @@ nvidia-smi dmon -s puct -d 1 &
 
 ---
 
-*For additional help, see [CONTRIBUTING.md](CONTRIBUTING.md), [AI_ML_IMPROVEMENTS_SUMMARY.md](AI_ML_IMPROVEMENTS_SUMMARY.md), or create an issue.*
+*For additional help, see [CONTRIBUTING.md](CONTRIBUTING.md), [AI_ML_IMPROVEMENTS_SUMMARY](docs/planning/AI_ML_IMPROVEMENTS_SUMMARY.md), or create an issue.*

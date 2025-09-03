@@ -36,7 +36,7 @@ ln -sf docs/setup/docker-setup.md DOCKER_SETUP.md
 ln -sf docs/setup/docker-readme.md QUICK_START.md
 
 # Remove empty planning files (content is in documentation/ folder)
-rm -f AI_ML_IMPROVEMENTS_SUMMARY.md IMPLEMENTATION_PLAN.md IMPROVEMENTS_ROADMAP.md
+rm -f docs/planning/AI_ML_IMPROVEMENTS_SUMMARY.md docs/architectural/IMPLEMENTATION_PLAN.md docs/planning/IMPROVEMENTS_ROADMAP.md
 rm -f OPENCV_OPTIMIZATION.md PROJECT_MODERNIZATION_STRATEGY.md DIRECTORY_CLEANUP_SUMMARY.md
 ```
 
@@ -81,7 +81,7 @@ After running the commands above, your root will contain:
 ## 🎉 Next Steps
 
 1. Run the symlink commands above to complete the cleanup
-2. Test with: `./run.sh --help` and `./DOCKER_SETUP.md`
+2. Test with: `./run.sh --help` and `docs/setup/docker-setup.md`
 3. Use `./docker-demo.sh` to explore Docker capabilities
 4. Build with: `docker compose build`
 

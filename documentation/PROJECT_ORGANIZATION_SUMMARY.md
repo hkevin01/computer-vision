@@ -6,9 +6,9 @@
 
 #### **AI/ML Planning Documents → `documentation/planning/`**
 
-- **`AI_ML_IMPROVEMENTS_SUMMARY.md`** - Comprehensive AI/ML analysis and improvement recommendations
-- **`IMPLEMENTATION_PLAN.md`** - Detailed neural matcher implementation plan with ONNX integration
-- **`IMPROVEMENTS_ROADMAP.md`** - AI/CV/ML enhancement roadmap with priorities
+-- **`AI_ML_IMPROVEMENTS_SUMMARY.md`** -> `docs/planning/AI_ML_IMPROVEMENTS_SUMMARY.md`
+-- **`IMPLEMENTATION_PLAN.md`** -> `docs/architectural/IMPLEMENTATION_PLAN.md`
+-- **`IMPROVEMENTS_ROADMAP.md`** -> `docs/planning/IMPROVEMENTS_ROADMAP.md`
 - **`OPENCV_OPTIMIZATION.md`** - OpenCV usage analysis and optimization strategies
 - **`PROJECT_MODERNIZATION_STRATEGY.md`** - Modernization strategy document
 

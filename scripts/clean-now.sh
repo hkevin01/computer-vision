@@ -72,8 +72,8 @@ fi
 
 # Move API files
 echo "🐍 Moving API files to api/..."
-if [ -f "api-server.py" ]; then
-    mv api-server.py api/ && echo "  ✅ api-server.py → api/"
+if [ -f "api/api-server.py" ]; then
+    echo "  ✅ api/api-server.py present"
 fi
 
 # Move web files

@@ -32,14 +32,6 @@ docker compose logs -f
 docker compose down
 ```
 
-## Benefits
-
-- One-command startup with Docker Compose and ./run.sh helper.
-- Browser-based GUI (noVNC) option that works cross-platform; native X11 GUI on Linux.
-- Consistent dev/prod environments using multi-stage images and profiles.
-- GPU-ready builds via ENABLE_CUDA / ENABLE_HIP flags.
-- Persistent data and logs: host ./data and ./logs are bind-mounted and survive rebuilds/restarts.
-
 ### 3. Development Mode
 
 ```bash
@@ -73,7 +65,6 @@ The `run.sh` script maintains backward compatibility while adding Docker support
 ### 5. GPU Acceleration
 
 For NVIDIA GPU support:
-
 ```bash
 # Set environment variable and build
 ENABLE_CUDA=true docker compose build
@@ -84,7 +75,6 @@ docker compose up -d
 ```
 
 For AMD GPU support:
-
 ```bash
 # Set environment variable and build
 ENABLE_HIP=true docker compose build
@@ -94,7 +84,6 @@ docker compose up -d
 ### 6. GUI Applications
 
 For GUI applications requiring X11:
-
 ```bash
 # Ensure X11 is available
 export DISPLAY=:0
@@ -107,7 +96,6 @@ docker compose up -d
 ```
 
 For headless operation:
-
 ```bash
 # Use offscreen rendering
 export QT_QPA_PLATFORM=offscreen
@@ -123,39 +111,32 @@ docker compose up -d
 ### 8. Ports and Access
 
 Default port mappings:
-
-- **8080**: Application API or browser GUI (noVNC), depending on profile
-- **8081**: Metrics/health when API is enabled
-- **5900**: VNC (optional, when using noVNC profile)
+- **8080**: Main application interface
+- **8081**: Debug/monitoring interface
+- **9999**: GDB debugging port (development mode)
 
 ### 9. Data and Volumes
 
-The application mounts these directories by default:
-
-- `./data:/app/data:rw` - Application datasets/configuration
-- `./logs:/app/logs:rw` - Runtime logs from the application
-- `/tmp/.X11-unix:/tmp/.X11-unix:rw` - X11 socket (only for native X11 GUI)
-
-Note: The `./data` and `./logs` directories are on the host and persist across container rebuilds and restarts. You can safely wipe logs with `rm -rf logs/*` without affecting data.
+The application mounts these directories:
+- `./data:/app/data:ro` - Input data (read-only)
+- `./output:/app/output:rw` - Output results (read-write)
+- `/tmp/.X11-unix:/tmp/.X11-unix:rw` - X11 for GUI support
 
 ### 10. Troubleshooting
 
 **Docker not found:**
-
 ```bash
 # Install Docker Desktop or Docker Engine
 # Add user to docker group: sudo usermod -aG docker $USER
 ```
 
 **Permission denied:**
-
 ```bash
 # Run with sudo or add user to docker group
 sudo docker compose up -d
 ```
 
 **GUI not working:**
-
 ```bash
 # Ensure X11 forwarding is enabled
 xhost +local:docker
@@ -163,7 +144,6 @@ export DISPLAY=:0
 ```
 
 **Build failures:**
-
 ```bash
 # Clean and rebuild
 docker compose down

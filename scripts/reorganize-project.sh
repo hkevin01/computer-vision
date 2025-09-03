@@ -93,7 +93,7 @@ doc_files=(
     "OPENCV_OPTIMIZATION.md"
     "PROJECT_CLEANUP_COMPLETE.md"
     "PROJECT_MODERNIZATION_STRATEGY.md"
-    "README_CLEANUP.md"
+    "docs/guides/README_CLEANUP.md"
     "SECURITY.md"
     "WORKFLOW.md"
 )
