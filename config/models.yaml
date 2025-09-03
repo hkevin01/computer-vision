@@ -1,22 +1,52 @@
 models:
-  hitnet:
-    path: "models/hitnet.onnx"
-    input_shape: [1,3,256,512]
-    color_order: "BGR"
-    normalization:
-      mean: [0.485,0.456,0.406]
-      std: [0.229,0.224,0.225]
-  raft_stereo:
-    path: "models/raft_stereo.onnx"
-    input_shape: [1,6,256,512]
-    color_order: "BGR"
-    normalization:
-      mean: [0.485,0.456,0.406]
-      std: [0.229,0.224,0.225]
-  crestereo:
-    path: "models/crestereo.onnx"
-    input_shape: [1,3,384,1248]
-    color_order: "BGR"
-    normalization:
-      mean: [0.485,0.456,0.406]
-      std: [0.229,0.224,0.225]
+  - name: HITNet
+    onnx_path: data/models/hitnet.onnx
+    download_url: "https://github.com/example/hitnet/releases/download/v1.0/hitnet.onnx"
+    checksum_sha256: "TODO_REPLACE_WITH_ACTUAL_SHA256_HASH"
+    input_hw: [256, 512]
+    input_channels: 3
+    output_format: "disparity"
+    provider_preference: ["tensorrt", "cuda", "cpu"]
+    precision: "fp16"
+    preprocessing:
+      normalize: true
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+      color_order: "BGR"
+
+  - name: RAFT-Stereo
+    onnx_path: data/models/raft_stereo.onnx
+    download_url: "https://github.com/example/raft-stereo/releases/download/v1.0/raft_stereo.onnx"
+    checksum_sha256: "TODO_REPLACE_WITH_ACTUAL_SHA256_HASH"
+    input_hw: [256, 512]
+    input_channels: 6  # stereo pair concatenated
+    output_format: "disparity"
+    provider_preference: ["tensorrt", "cuda", "cpu"]
+    precision: "fp16"
+    preprocessing:
+      normalize: true
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+      color_order: "BGR"
+
+  - name: CREStereo
+    onnx_path: data/models/crestereo.onnx
+    download_url: "https://github.com/example/crestereo/releases/download/v1.0/crestereo.onnx"
+    checksum_sha256: "TODO_REPLACE_WITH_ACTUAL_SHA256_HASH"
+    input_hw: [384, 1248]
+    input_channels: 3
+    output_format: "disparity"
+    provider_preference: ["cuda", "cpu"]
+    precision: "fp32"
+    preprocessing:
+      normalize: true
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+      color_order: "BGR"
+
+# Global model configuration
+global:
+  cache_dir: "data/models/cache"
+  download_timeout: 300  # seconds
+  verify_checksums: true
+  fallback_provider: "cpu"

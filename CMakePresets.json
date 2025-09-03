@@ -1,0 +1,94 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "cpu-debug",
+      "displayName": "CPU Debug",
+      "generator": "Ninja",
+      "binaryDir": "build/cpu-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "USE_CUDA": "OFF",
+        "USE_HIP": "OFF",
+        "WITH_ONNX": "OFF",
+        "WITH_TENSORRT": "OFF",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "cuda-release",
+      "displayName": "CUDA Release",
+      "generator": "Ninja",
+      "binaryDir": "build/cuda-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "USE_CUDA": "ON",
+        "USE_HIP": "OFF",
+        "WITH_ONNX": "OFF",
+        "WITH_TENSORRT": "OFF",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "hip-release",
+      "displayName": "HIP Release",
+      "generator": "Ninja",
+      "binaryDir": "build/hip-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "USE_CUDA": "OFF",
+        "USE_HIP": "ON",
+        "WITH_ONNX": "OFF",
+        "WITH_TENSORRT": "OFF",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "cpu-onnx",
+      "displayName": "CPU + ONNX",
+      "generator": "Ninja",
+      "binaryDir": "build/cpu-onnx",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "USE_CUDA": "OFF",
+        "USE_HIP": "OFF",
+        "WITH_ONNX": "ON",
+        "WITH_TENSORRT": "OFF",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "cuda-onnx-trt",
+      "displayName": "CUDA + ONNX + TensorRT",
+      "generator": "Ninja",
+      "binaryDir": "build/cuda-onnx-trt",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "USE_CUDA": "ON",
+        "USE_HIP": "OFF",
+        "WITH_ONNX": "ON",
+        "WITH_TENSORRT": "ON",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/install",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "cpu-debug", "configurePreset": "cpu-debug" },
+    { "name": "cuda-release", "configurePreset": "cuda-release" },
+    { "name": "hip-release", "configurePreset": "hip-release" },
+    { "name": "cpu-onnx", "configurePreset": "cpu-onnx" },
+    { "name": "cuda-onnx-trt", "configurePreset": "cuda-onnx-trt" }
+  ],
+  "testPresets": [
+    { "name": "cpu-debug", "configurePreset": "cpu-debug" },
+    { "name": "cuda-release", "configurePreset": "cuda-release" },
+    { "name": "hip-release", "configurePreset": "hip-release" },
+    { "name": "cpu-onnx", "configurePreset": "cpu-onnx" },
+    { "name": "cuda-onnx-trt", "configurePreset": "cuda-onnx-trt" }
+  ]
+}

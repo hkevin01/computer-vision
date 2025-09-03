@@ -82,13 +82,47 @@ The project root is now clean and organized while maintaining full functionality
 
 ### Remaining Tasks
 
-- [ ] Complete repo-wide filename-only replacements for all moved docs and scripts (finish linking in `docs/` and `scripts/legacy/`).
+#### Clean-up and Organization
+
+- [x] Complete repo-wide filename-only replacements for all moved docs and scripts (finish linking in `docs/` and `scripts/legacy/`).
 - [x] Move docker-related scripts into `scripts/docker/` and leave shims in `scripts/legacy/`.
 - [x] Add `add_subdirectory(test_programs)` to top-level `CMakeLists.txt` so tests build with the main project.
 - [x] Add smoke/diagnostic scripts and initial test program scaffolding (`scripts/smoke.sh`, `scripts/diagnose_env.sh`, `test_programs/`).
-- [ ] Populate `config/models_urls.sh` with real model URLs and SHA256 checksums (HITNet, RAFT-Stereo, CREStereo).
 - [ ] Make new scripts executable locally: `chmod +x scripts/*.sh scripts/docker/*.sh build.sh`.
 - [ ] Finish subdividing remaining `scripts/legacy/` into `scripts/reorg/` and `scripts/debug/` and update shims.
-- [ ] Add deterministic sample data to `data/stereo_images/` and `data/calibration/` for smoke tests.
-- [ ] Update CI to avoid compiling ONNX C++ tests or install ONNX Runtime C++ dev packages, and re-run CI.
 - [ ] Run a focused markdown lint/format pass on edited docs to clean remaining warnings.
+
+#### Build System and Development Experience
+
+- [x] Create `CMakePresets.json` with presets: cpu-debug, cuda-release, hip-release, cpu-onnx, cuda-onnx-trt
+- [x] Add `.vscode/tasks.json` and `.vscode/launch.json` for VS Code integration
+- [x] Implement generated config header (`include/config/config_features.hpp`) from CMake with compile-time toggles
+- [x] Replace `config/models_urls.sh` with structured `config/models.yaml` (HITNet, RAFT-Stereo, CREStereo with checksums)
+- [ ] Add CI pipelines for Linux/Windows/macOS with CUDA/HIP/CPU-only profiles and dependency caching
+
+#### AI/ML Infrastructure
+
+- [ ] Create `ModelRegistry` class that loads `config/models.yaml` with SHA256 validation and provider preferences
+- [x] Replace `config/models_urls.sh` with structured `config/models.yaml` (HITNet, RAFT-Stereo, CREStereo with checksums)
+- [ ] Implement TensorRT engine caching under `data/models/cache/` with precision settings and safe fallback
+- [ ] Add ONNX Runtime provider selection and session optimization based on available backends
+
+#### Testing and Quality
+
+- [ ] Add unit tests: ai_model_registry_test, disparity_reprojection_test, backend_selection_test
+- [ ] Add deterministic sample data to `data/stereo_images/` and `data/calibration/` for smoke tests
+- [ ] Update CI to avoid compiling ONNX C++ tests or install ONNX Runtime C++ dev packages, and re-run CI
+- [ ] Add integration tests with golden outputs for CPU/CUDA/HIP backends with tolerance checks
+
+#### Performance and Benchmarking
+
+- [ ] Create benchmark CLI (`src/tools/benchmark_app.cpp`) with CSV/JSON output to `reports/benchmarks/`
+- [ ] Add structured logging with spdlog and JSON sink to `logs/` with session UUID and performance metrics
+- [ ] Implement streaming pipeline with double/triple buffering and CUDA/HIP stream overlap
+
+#### Documentation and UX
+
+- [ ] Consolidate overlapping docs into `docs/` with mkdocs or Docusaurus site structure
+- [ ] Add `docs/SETUP_REQUIREMENTS.md` with dependency matrix and GPU driver troubleshooting FAQ
+- [ ] Implement GUI parameter persistence and first-run wizard for backend detection and model setup
+- [ ] Add sample data licensing and downloadable stereo pairs under `data/stereo_images/`
