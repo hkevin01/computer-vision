@@ -110,14 +110,16 @@ The project root is now clean and organized while maintaining full functionality
 #### Testing and Quality
 
 - [x] Add unit tests: ai_model_registry_test, disparity_reprojection_test, backend_selection_test
-- [ ] Add deterministic sample data to `data/stereo_images/` and `data/calibration/` for smoke tests
+- [x] Add deterministic sample data to `data/stereo_images/` and `data/calibration/` for smoke tests ✅
+- [x] Add structured logging with spdlog and JSON sink to `logs/` with session UUID and performance metrics ✅
+- [x] Complete build system integration and dependency resolution for all components ✅
 - [ ] Update CI to avoid compiling ONNX C++ tests or install ONNX Runtime C++ dev packages, and re-run CI
 - [ ] Add integration tests with golden outputs for CPU/CUDA/HIP backends with tolerance checks
 
 #### Performance and Benchmarking
 
 - [x] Create benchmark CLI (`src/tools/benchmark_app.cpp`) with CSV/JSON output to `reports/benchmarks/` ✅
-- [ ] Add structured logging with spdlog and JSON sink to `logs/` with session UUID and performance metrics
+- [x] Add structured logging with spdlog and JSON sink to `logs/` with session UUID and performance metrics ✅
 - [ ] Implement streaming pipeline with double/triple buffering and CUDA/HIP stream overlap
 
 #### Documentation and UX

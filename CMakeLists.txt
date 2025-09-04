@@ -341,6 +341,15 @@ set(AI_HEADERS
     "include/ai/onnx_provider_manager.hpp"
 )
 
+# --- Logging Sources ---
+set(LOGGING_SOURCES
+    "src/logging/structured_logger.cpp"
+)
+
+set(LOGGING_HEADERS
+    "include/logging/structured_logger.hpp"
+)
+
 # --- Multi-Camera System Sources ---
 set(MULTICAM_SOURCES
     "src/multicam/multi_camera_system_simple.cpp"
@@ -380,8 +389,8 @@ set(MODERN_GUI_SOURCES
 list(APPEND GUI_SOURCES ${MODERN_GUI_SOURCES})
 
 # Add new sources to core library
-list(APPEND CORE_SOURCES ${AI_SOURCES} ${MULTICAM_SOURCES} ${BATCH_SOURCES} ${CALIBRATION_SOURCES})
-list(APPEND GUI_HEADERS ${AI_HEADERS} ${MULTICAM_HEADERS} ${BATCH_HEADERS} ${CALIBRATION_HEADERS})
+list(APPEND CORE_SOURCES ${AI_SOURCES} ${MULTICAM_SOURCES} ${BATCH_SOURCES} ${CALIBRATION_SOURCES} ${LOGGING_SOURCES})
+list(APPEND GUI_HEADERS ${AI_HEADERS} ${MULTICAM_HEADERS} ${BATCH_HEADERS} ${CALIBRATION_HEADERS} ${LOGGING_HEADERS})
 
 # Add benchmark sources (optional build)
 if(BUILD_BENCHMARKS)
@@ -397,6 +406,7 @@ target_include_directories(stereo_vision_core PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ai
     ${CMAKE_CURRENT_SOURCE_DIR}/include/multicam
     ${CMAKE_CURRENT_SOURCE_DIR}/include/benchmark
+    ${yaml-cpp_SOURCE_DIR}/include
 )
 
 # Add OpenMP flags
@@ -410,6 +420,7 @@ target_link_libraries(stereo_vision_core PRIVATE
     ${OpenCV_LIBS}
     ${PCL_LIBRARIES}
     spdlog::spdlog
+    yaml-cpp
 )
 
 # Add AI/ML dependencies if available
@@ -478,10 +489,18 @@ target_link_libraries(benchmark_app PRIVATE
     ${OpenCV_LIBS}
     yaml-cpp
     spdlog::spdlog
+    curl
+    ssl
+    crypto
 )
 target_include_directories(benchmark_app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# --- Live Stereo Parameter Tuning Tool ---
+# --- Test Data Generator ---
+add_executable(generate_test_data src/tools/generate_test_data.cpp)
+target_link_libraries(generate_test_data PRIVATE
+    ${OpenCV_LIBS}
+)
+target_include_directories(generate_test_data PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)# --- Live Stereo Parameter Tuning Tool ---
 if(BUILD_GUI)
     add_executable(live_stereo_tuning src/live_stereo_tuning_main.cpp)
     target_link_libraries(live_stereo_tuning PRIVATE stereo_vision_gui stereo_vision_core)
