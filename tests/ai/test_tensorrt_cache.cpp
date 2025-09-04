@@ -4,6 +4,7 @@
 #include <filesystem>
 
 using namespace cv_stereo;
+using ::testing::HasSubstr;
 
 class TensorRTCacheTest : public ::testing::Test {
 protected:
@@ -35,10 +36,10 @@ TEST_F(TensorRTCacheTest, CacheKeyToStringIsConsistent) {
     std::string key_str2 = test_key_.to_string();
 
     EXPECT_EQ(key_str1, key_str2);
-    EXPECT_THAT(key_str1, testing::HasSubstr("TestModel"));
-    EXPECT_THAT(key_str1, testing::HasSubstr("sm_75"));
-    EXPECT_THAT(key_str1, testing::HasSubstr("fp16"));
-    EXPECT_THAT(key_str1, testing::HasSubstr("shape_1_3_256_512"));
+    EXPECT_THAT(key_str1, HasSubstr("TestModel"));
+    EXPECT_THAT(key_str1, HasSubstr("sm_75"));
+    EXPECT_THAT(key_str1, HasSubstr("fp16"));
+    EXPECT_THAT(key_str1, HasSubstr("shape_1_3_256_512"));
 }
 
 TEST_F(TensorRTCacheTest, CacheKeyEqualityWorks) {
@@ -192,7 +193,7 @@ TEST_F(TensorRTSessionManagerTest, CreateSessionWithoutFallbackCanFail) {
 
     // May fail if TensorRT is not available
     if (!result) {
-        EXPECT_THAT(error_msg, testing::HasSubstr("TensorRT not available"));
+        EXPECT_THAT(error_msg, HasSubstr("TensorRT not available"));
     }
 }
 

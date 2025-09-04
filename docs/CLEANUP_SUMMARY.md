@@ -102,21 +102,21 @@ The project root is now clean and organized while maintaining full functionality
 
 #### AI/ML Infrastructure
 
-- [ ] Create `ModelRegistry` class that loads `config/models.yaml` with SHA256 validation and provider preferences
+- [x] Create `ModelRegistry` class that loads `config/models.yaml` with SHA256 validation and provider preferences
 - [x] Replace `config/models_urls.sh` with structured `config/models.yaml` (HITNet, RAFT-Stereo, CREStereo with checksums)
-- [ ] Implement TensorRT engine caching under `data/models/cache/` with precision settings and safe fallback
-- [ ] Add ONNX Runtime provider selection and session optimization based on available backends
+- [x] Implement TensorRT engine caching under `data/models/cache/` with precision settings and safe fallback
+- [x] Add ONNX Runtime provider selection and session optimization based on available backends ✅
 
 #### Testing and Quality
 
-- [ ] Add unit tests: ai_model_registry_test, disparity_reprojection_test, backend_selection_test
+- [x] Add unit tests: ai_model_registry_test, disparity_reprojection_test, backend_selection_test
 - [ ] Add deterministic sample data to `data/stereo_images/` and `data/calibration/` for smoke tests
 - [ ] Update CI to avoid compiling ONNX C++ tests or install ONNX Runtime C++ dev packages, and re-run CI
 - [ ] Add integration tests with golden outputs for CPU/CUDA/HIP backends with tolerance checks
 
 #### Performance and Benchmarking
 
-- [ ] Create benchmark CLI (`src/tools/benchmark_app.cpp`) with CSV/JSON output to `reports/benchmarks/`
+- [x] Create benchmark CLI (`src/tools/benchmark_app.cpp`) with CSV/JSON output to `reports/benchmarks/` ✅
 - [ ] Add structured logging with spdlog and JSON sink to `logs/` with session UUID and performance metrics
 - [ ] Implement streaming pipeline with double/triple buffering and CUDA/HIP stream overlap
 

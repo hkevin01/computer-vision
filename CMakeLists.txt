@@ -328,11 +328,17 @@ set(BATCH_HEADERS
 set(AI_SOURCES
     "src/ai/neural_stereo_matcher_simple.cpp"
     "src/ai/enhanced_neural_matcher.cpp"
+    "src/ai/model_registry.cpp"
+    "src/ai/tensorrt_cache.cpp"
+    "src/ai/onnx_provider_manager.cpp"
 )
 
 set(AI_HEADERS
     "include/ai/neural_stereo_matcher_simple.hpp"
     "include/ai/enhanced_neural_matcher.hpp"
+    "include/ai/model_registry.hpp"
+    "include/ai/tensorrt_cache.hpp"
+    "include/ai/onnx_provider_manager.hpp"
 )
 
 # --- Multi-Camera System Sources ---
@@ -464,6 +470,16 @@ endif()
 # --- Main Application ---
 add_executable(stereo_vision_app src/main.cpp)
 add_executable(stereo_vision_app_simple src/main_simple.cpp)
+
+# --- Benchmark Tool ---
+add_executable(benchmark_app src/tools/benchmark_app.cpp)
+target_link_libraries(benchmark_app PRIVATE
+    stereo_vision_core
+    ${OpenCV_LIBS}
+    yaml-cpp
+    spdlog::spdlog
+)
+target_include_directories(benchmark_app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # --- Live Stereo Parameter Tuning Tool ---
 if(BUILD_GUI)

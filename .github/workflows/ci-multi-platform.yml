@@ -1,0 +1,315 @@
+name: CI Multi-Platform
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  # Linux builds with different backends
+  linux-cpu:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        preset: [cpu-debug, cpu-onnx]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/vcpkg
+            build/_deps
+          key: ${{ runner.os }}-deps-${{ matrix.preset }}-${{ hashFiles('CMakeLists.txt', 'CMakePresets.json') }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build \
+            cmake \
+            libopencv-dev \
+            libpcl-dev \
+            libvtk7-dev \
+            qt6-base-dev \
+            libyaml-cpp-dev \
+            libgtest-dev \
+            libgmock-dev
+
+      - name: Install ONNX Runtime (CPU)
+        if: contains(matrix.preset, 'onnx')
+        run: |
+          wget https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-linux-x64-1.16.3.tgz
+          tar -xzf onnxruntime-linux-x64-1.16.3.tgz
+          sudo cp -r onnxruntime-linux-x64-1.16.3/include/* /usr/local/include/
+          sudo cp -r onnxruntime-linux-x64-1.16.3/lib/* /usr/local/lib/
+          sudo ldconfig
+
+      - name: Configure CMake
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }} --parallel $(nproc)
+
+      - name: Run Tests
+        run: ctest --preset ${{ matrix.preset }} --output-on-failure
+
+      - name: Run Smoke Tests
+        run: |
+          chmod +x scripts/smoke.sh
+          ./scripts/smoke.sh
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-reports-linux-${{ matrix.preset }}
+          path: |
+            reports/smoke/
+            build/${{ matrix.preset }}/Testing/
+
+  linux-cuda:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        preset: [cuda-release, cuda-onnx-trt]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/vcpkg
+            build/_deps
+          key: ${{ runner.os }}-cuda-deps-${{ matrix.preset }}-${{ hashFiles('CMakeLists.txt', 'CMakePresets.json') }}
+
+      - name: Install CUDA
+        uses: Jimver/cuda-toolkit@v0.2.11
+        with:
+          cuda: "12.2"
+          method: "network"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build \
+            cmake \
+            libopencv-dev \
+            libpcl-dev \
+            libvtk7-dev \
+            qt6-base-dev \
+            libyaml-cpp-dev \
+            libgtest-dev \
+            libgmock-dev
+
+      - name: Install ONNX Runtime (GPU)
+        if: contains(matrix.preset, 'onnx')
+        run: |
+          wget https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-linux-x64-gpu-1.16.3.tgz
+          tar -xzf onnxruntime-linux-x64-gpu-1.16.3.tgz
+          sudo cp -r onnxruntime-linux-x64-gpu-1.16.3/include/* /usr/local/include/
+          sudo cp -r onnxruntime-linux-x64-gpu-1.16.3/lib/* /usr/local/lib/
+          sudo ldconfig
+
+      - name: Install TensorRT
+        if: contains(matrix.preset, 'trt')
+        run: |
+          # Download TensorRT (simplified for CI)
+          wget https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/secure/8.6.1/tars/tensorrt-8.6.1.6.linux.x86_64-gnu.cuda-12.0.tar.gz
+          tar -xzf tensorrt-8.6.1.6.linux.x86_64-gnu.cuda-12.0.tar.gz
+          sudo cp -r TensorRT-8.6.1.6/include/* /usr/local/include/
+          sudo cp -r TensorRT-8.6.1.6/lib/* /usr/local/lib/
+          sudo ldconfig
+
+      - name: Configure CMake
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }} --parallel $(nproc)
+
+      - name: Run Tests (CPU fallback)
+        run: ctest --preset ${{ matrix.preset }} --output-on-failure
+        continue-on-error: true # GPU tests may fail in CI without actual GPU
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-reports-linux-cuda-${{ matrix.preset }}
+          path: |
+            reports/smoke/
+            build/${{ matrix.preset }}/Testing/
+
+  windows:
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        preset: [cpu-debug, cpu-onnx]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            C:\vcpkg\installed
+            build\_deps
+          key: ${{ runner.os }}-deps-${{ matrix.preset }}-${{ hashFiles('CMakeLists.txt', 'CMakePresets.json') }}
+
+      - name: Install vcpkg dependencies
+        run: |
+          vcpkg install opencv[contrib]:x64-windows
+          vcpkg install pcl:x64-windows
+          vcpkg install qt6:x64-windows
+          vcpkg install yaml-cpp:x64-windows
+          vcpkg install gtest:x64-windows
+
+      - name: Install ONNX Runtime
+        if: contains(matrix.preset, 'onnx')
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-win-x64-1.16.3.zip" -OutFile "onnxruntime.zip"
+          Expand-Archive -Path "onnxruntime.zip" -DestinationPath "C:\onnxruntime"
+
+      - name: Configure CMake
+        run: |
+          cmake --preset ${{ matrix.preset }} -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }} --parallel
+
+      - name: Run Tests
+        run: ctest --preset ${{ matrix.preset }} --output-on-failure
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-reports-windows-${{ matrix.preset }}
+          path: |
+            reports/smoke/
+            build/${{ matrix.preset }}/Testing/
+
+  macos:
+    runs-on: macos-13
+    strategy:
+      matrix:
+        preset: [cpu-debug, cpu-onnx]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            /usr/local/Cellar
+            build/_deps
+          key: ${{ runner.os }}-deps-${{ matrix.preset }}-${{ hashFiles('CMakeLists.txt', 'CMakePresets.json') }}
+
+      - name: Install dependencies
+        run: |
+          brew install ninja cmake
+          brew install opencv pcl vtk qt6
+          brew install yaml-cpp googletest
+
+      - name: Install ONNX Runtime
+        if: contains(matrix.preset, 'onnx')
+        run: |
+          wget https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-osx-universal2-1.16.3.tgz
+          tar -xzf onnxruntime-osx-universal2-1.16.3.tgz
+          sudo cp -r onnxruntime-osx-universal2-1.16.3/include/* /usr/local/include/
+          sudo cp -r onnxruntime-osx-universal2-1.16.3/lib/* /usr/local/lib/
+
+      - name: Configure CMake
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }} --parallel $(sysctl -n hw.ncpu)
+
+      - name: Run Tests
+        run: ctest --preset ${{ matrix.preset }} --output-on-failure
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-reports-macos-${{ matrix.preset }}
+          path: |
+            reports/smoke/
+            build/${{ matrix.preset }}/Testing/
+
+  # ROCm/HIP build for AMD GPUs (Linux only)
+  linux-hip:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ROCm
+        run: |
+          wget https://repo.radeon.com/amdgpu-install/22.20.3/ubuntu/jammy/amdgpu-install_5.2.50203-1_all.deb
+          sudo dpkg -i amdgpu-install_5.2.50203-1_all.deb
+          sudo apt update
+          sudo apt install -y rocm-dev hip-dev
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get install -y \
+            ninja-build \
+            cmake \
+            libopencv-dev \
+            libpcl-dev \
+            libvtk7-dev \
+            qt6-base-dev \
+            libyaml-cpp-dev \
+            libgtest-dev \
+            libgmock-dev
+
+      - name: Configure CMake
+        run: cmake --preset hip-release
+
+      - name: Build
+        run: cmake --build --preset hip-release --parallel $(nproc)
+
+      - name: Run Tests (CPU fallback)
+        run: ctest --preset hip-release --output-on-failure
+        continue-on-error: true # HIP tests may fail without actual AMD GPU
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-reports-linux-hip
+          path: |
+            reports/smoke/
+            build/hip-release/Testing/
+
+  # Code quality checks
+  code-quality:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clang-format and clang-tidy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format clang-tidy
+
+      - name: Check code formatting
+        run: |
+          find src include tests -name "*.cpp" -o -name "*.hpp" | xargs clang-format --dry-run --Werror
+
+      - name: Run clang-tidy
+        run: |
+          cmake --preset cpu-debug
+          run-clang-tidy -p build/cpu-debug src/ include/
+
+      - name: Check markdown formatting
+        uses: DavidAnson/markdownlint-cli2-action@v13
+        with:
+          globs: "**/*.md"

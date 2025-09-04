@@ -8,6 +8,8 @@
 using namespace cv_stereo;
 using ::testing::_;
 using ::testing::Return;
+using ::testing::HasSubstr;
+using ::testing::UnorderedElementsAre;
 
 class ModelRegistryTest : public ::testing::Test {
 protected:
@@ -87,7 +89,7 @@ TEST_F(ModelRegistryTest, LoadNonexistentYamlFails) {
     bool result = ModelRegistry::instance().load_from_yaml("/nonexistent/path.yaml", error_msg);
 
     EXPECT_FALSE(result);
-    EXPECT_THAT(error_msg, testing::HasSubstr("not found"));
+    EXPECT_THAT(error_msg, HasSubstr("not found"));
 }
 
 TEST_F(ModelRegistryTest, GetExistingModelReturnsSpec) {
@@ -128,7 +130,7 @@ TEST_F(ModelRegistryTest, ListModelsReturnsAllNames) {
     auto model_names = ModelRegistry::instance().list_models();
 
     EXPECT_EQ(model_names.size(), 2);
-    EXPECT_THAT(model_names, testing::UnorderedElementsAre("TestModel1", "TestModel2"));
+    EXPECT_THAT(model_names, UnorderedElementsAre("TestModel1", "TestModel2"));
 }
 
 TEST_F(ModelRegistryTest, ValidateModelWithExistingFileSucceeds) {
@@ -151,7 +153,7 @@ TEST_F(ModelRegistryTest, ValidateModelWithMissingFileFails) {
     bool result = ModelRegistry::instance().validate_model("TestModel1", error_msg);
 
     EXPECT_FALSE(result);
-    EXPECT_THAT(error_msg, testing::HasSubstr("not found"));
+    EXPECT_THAT(error_msg, HasSubstr("not found"));
 }
 
 TEST_F(ModelRegistryTest, GlobalConfigurationLoadsCorrectly) {
@@ -190,7 +192,7 @@ TEST_F(ModelRegistryTest, LoadMalformedYamlFails) {
     bool result = ModelRegistry::instance().load_from_yaml(bad_yaml.string(), error_msg);
 
     EXPECT_FALSE(result);
-    EXPECT_THAT(error_msg, testing::HasSubstr("YAML parsing error"));
+    EXPECT_THAT(error_msg, HasSubstr("YAML parsing error"));
 }
 
 // Test for missing required fields
@@ -209,5 +211,5 @@ models:
     bool result = ModelRegistry::instance().load_from_yaml(incomplete_yaml.string(), error_msg);
 
     EXPECT_FALSE(result);
-    EXPECT_THAT(error_msg, testing::HasSubstr("missing required"));
+    EXPECT_THAT(error_msg, HasSubstr("missing required"));
 }
