@@ -350,6 +350,15 @@ set(LOGGING_HEADERS
     "include/logging/structured_logger.hpp"
 )
 
+# --- Streaming Sources ---
+set(STREAMING_SOURCES
+    "src/streaming/streaming_optimizer.cpp"
+)
+
+set(STREAMING_HEADERS
+    "include/streaming/streaming_optimizer.hpp"
+)
+
 # --- Multi-Camera System Sources ---
 set(MULTICAM_SOURCES
     "src/multicam/multi_camera_system_simple.cpp"
@@ -389,8 +398,8 @@ set(MODERN_GUI_SOURCES
 list(APPEND GUI_SOURCES ${MODERN_GUI_SOURCES})
 
 # Add new sources to core library
-list(APPEND CORE_SOURCES ${AI_SOURCES} ${MULTICAM_SOURCES} ${BATCH_SOURCES} ${CALIBRATION_SOURCES} ${LOGGING_SOURCES})
-list(APPEND GUI_HEADERS ${AI_HEADERS} ${MULTICAM_HEADERS} ${BATCH_HEADERS} ${CALIBRATION_HEADERS} ${LOGGING_HEADERS})
+list(APPEND CORE_SOURCES ${AI_SOURCES} ${MULTICAM_SOURCES} ${BATCH_SOURCES} ${CALIBRATION_SOURCES} ${LOGGING_SOURCES} ${STREAMING_SOURCES})
+list(APPEND GUI_HEADERS ${AI_HEADERS} ${MULTICAM_HEADERS} ${BATCH_HEADERS} ${CALIBRATION_HEADERS} ${LOGGING_HEADERS} ${STREAMING_HEADERS})
 
 # Add benchmark sources (optional build)
 if(BUILD_BENCHMARKS)
