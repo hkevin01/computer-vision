@@ -10,6 +10,18 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 
+# --- Fetch yaml-cpp ---
+FetchContent_Declare(
+  yaml-cpp
+  GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+  GIT_TAG        yaml-cpp-0.7.0
+)
+FetchContent_MakeAvailable(yaml-cpp)
+
+# --- Find OpenSSL and cURL ---
+find_package(OpenSSL REQUIRED)
+find_package(CURL REQUIRED)
+
 # --- Project Settings ---
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
