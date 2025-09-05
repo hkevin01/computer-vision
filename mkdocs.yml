@@ -106,6 +106,7 @@ nav:
     - Build System: development/build-system.md
     - Testing: development/testing.md
     - Code Style: development/code-style.md
+    - Performance Reports: development/performance-reports.md
   - Examples:
     - Code Examples: examples/code-examples.md
     - Sample Applications: examples/applications.md
