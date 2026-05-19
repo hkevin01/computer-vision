@@ -136,14 +136,14 @@ Advanced AI-powered calibration system that automatically detects and captures o
 
 ## � Calibration Methods Comparison
 
-| Feature | �📋 Manual Wizard | 🤖 AI Auto-Calibration |
+| <sub>Feature</sub> | <sub>�📋 Manual Wizard</sub> | <sub>🤖 AI Auto-Calibration</sub> |
 |---------|-------------------|------------------------|
-| **User Control** | ✅ Full control over each frame | ⚡ Automated frame selection |
-| **Pattern Support** | ✅ Multiple pattern types | 🔧 Chessboard only |
-| **Learning Curve** | 📚 Educational, step-by-step | 🚀 Instant results |
-| **Quality Control** | 🎯 Manual frame review | 🤖 AI quality assessment |
-| **Time Required** | ⏱️ 5-10 minutes | ⚡ 2-3 minutes |
-| **Best For** | 📖 Learning, precision control | 🏃 Quick setup, beginners |
+| <sub>**User Control**</sub> | <sub>✅ Full control over each frame</sub> | <sub>⚡ Automated frame selection</sub> |
+| <sub>**Pattern Support**</sub> | <sub>✅ Multiple pattern types</sub> | <sub>🔧 Chessboard only</sub> |
+| <sub>**Learning Curve**</sub> | <sub>📚 Educational, step-by-step</sub> | <sub>🚀 Instant results</sub> |
+| <sub>**Quality Control**</sub> | <sub>🎯 Manual frame review</sub> | <sub>🤖 AI quality assessment</sub> |
+| <sub>**Time Required**</sub> | <sub>⏱️ 5-10 minutes</sub> | <sub>⚡ 2-3 minutes</sub> |
+| <sub>**Best For**</sub> | <sub>📖 Learning, precision control</sub> | <sub>🏃 Quick setup, beginners</sub> |
 
 **Recommendation**: Use the **Manual Wizard** for learning calibration concepts and precise control, or **AI Auto-Calibration** for quick, reliable results.
 
