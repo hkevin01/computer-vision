@@ -81,19 +81,19 @@ After running `./run.sh up`:
 
 All configuration is managed via environment variables or `.env` file:
 
-| Variable | Default | Description |
+| <sub>Variable</sub> | <sub>Default</sub> | <sub>Description</sub> |
 |----------|---------|-------------|
-| `IMAGE_NAME` | stereo-vision:local | Backend Docker image name |
-| `GUI_IMAGE_NAME` | stereo-vision-gui:local | GUI Docker image name |
-| `SERVICE_NAME` | stereo-vision-api | Backend service name |
-| `GUI_SERVICE_NAME` | stereo-vision-gui | GUI service name |
-| `API_PORT` | 8080 | Backend API port |
-| `GUI_PORT` | 3000 | Web GUI port |
-| `API_URL` | http://localhost:8080 | API URL for GUI |
-| `GUI_PATH` | ./gui | GUI source directory |
-| `DEV_MODE` | false | Enable development mode |
-| `ENABLE_CUDA` | false | Enable NVIDIA GPU support |
-| `ENABLE_HIP` | false | Enable AMD GPU support |
+| <sub>`IMAGE_NAME`</sub> | <sub>stereo-vision:local</sub> | <sub>Backend Docker image name</sub> |
+| <sub>`GUI_IMAGE_NAME`</sub> | <sub>stereo-vision-gui:local</sub> | <sub>GUI Docker image name</sub> |
+| <sub>`SERVICE_NAME`</sub> | <sub>stereo-vision-api</sub> | <sub>Backend service name</sub> |
+| <sub>`GUI_SERVICE_NAME`</sub> | <sub>stereo-vision-gui</sub> | <sub>GUI service name</sub> |
+| <sub>`API_PORT`</sub> | <sub>8080</sub> | <sub>Backend API port</sub> |
+| <sub>`GUI_PORT`</sub> | <sub>3000</sub> | <sub>Web GUI port</sub> |
+| <sub>`API_URL`</sub> | <sub>http://localhost:8080</sub> | <sub>API URL for GUI</sub> |
+| <sub>`GUI_PATH`</sub> | <sub>./gui</sub> | <sub>GUI source directory</sub> |
+| <sub>`DEV_MODE`</sub> | <sub>false</sub> | <sub>Enable development mode</sub> |
+| <sub>`ENABLE_CUDA`</sub> | <sub>false</sub> | <sub>Enable NVIDIA GPU support</sub> |
+| <sub>`ENABLE_HIP`</sub> | <sub>false</sub> | <sub>Enable AMD GPU support</sub> |
 
 ### Configuration Files
 
